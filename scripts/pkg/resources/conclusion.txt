@@ -1,0 +1,12 @@
+¡Listo! OmniMac ya está en /Applications y se ha abierto en la barra de menús.
+
+Siguientes pasos (solo la primera vez):
+
+  1. Concede el permiso de Accesibilidad cuando lo pida (⌘Tab por ventanas,
+     atajos de ventanas y pegado del portapapeles).
+  2. Opcional: Grabación de pantalla, para ver miniaturas en vivo en ⌘Tab.
+  3. En Ajustes › Notch, elige tu app de música (Spotify o Música).
+
+El modo «tapa cerrada» ya está autorizado: activa el café, cierra el MacBook
+y la música seguirá sonando. Recuerda desactivarlo antes de guardar el Mac
+en una bolsa.
