@@ -107,6 +107,7 @@ struct NotchView: View {
                     Color.clear.frame(height: max(2, model.notchSize.height - 28))
                     if let card = model.deviceCard {
                         HeadphonesCard(info: card)
+                            .padding(.top, 28)   // debajo del notch físico
                             .transition(.opacity)
                     } else {
                         controlBar
@@ -146,8 +147,9 @@ struct NotchView: View {
     /// Plegado = el notch exacto; con vistazo rápido crece un poco; expandido, todo.
     private var shapeSize: CGSize {
         if model.expanded {
-            return CGSize(width: model.expandedSize.width + NotchExpandedShape.flare * 2,
-                          height: model.expandedSize.height)
+            let size = model.deviceCard != nil ? model.cardSize : model.expandedSize
+            return CGSize(width: size.width + NotchExpandedShape.flare * 2,
+                          height: size.height)
         }
         if model.peek != nil {
             return model.peekSize

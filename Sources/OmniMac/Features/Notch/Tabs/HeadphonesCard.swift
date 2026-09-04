@@ -8,45 +8,45 @@ struct HeadphonesCard: View {
     @State private var appeared = false
 
     var body: some View {
-        HStack(spacing: 22) {
+        HStack(spacing: 18) {
             ZStack {
                 Circle()
-                    .fill(RadialGradient(colors: [.white.opacity(0.22), .clear], center: .center, startRadius: 6, endRadius: 64))
-                    .frame(width: 128, height: 128)
+                    .fill(RadialGradient(colors: [.white.opacity(0.22), .clear], center: .center, startRadius: 4, endRadius: 48))
+                    .frame(width: 96, height: 96)
                 Image(systemName: info.symbol)
-                    .font(.system(size: 60, weight: .regular))
+                    .font(.system(size: 46, weight: .regular))
                     .foregroundStyle(.white)
                     .scaleEffect(appeared ? 1 : 0.35)
                     .rotationEffect(.degrees(appeared ? 0 : -14))
                     .opacity(appeared ? 1 : 0)
             }
-            .frame(width: 128)
+            .frame(width: 96)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(info.name)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: 15.5, weight: .bold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                 Text("Conectados")
-                    .font(.system(size: 12.5, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.white.opacity(0.6))
                 if info.hasBattery {
-                    HStack(spacing: 18) {
+                    HStack(spacing: 14) {
                         if let level = info.left { gauge(level, symbol: info.leftSymbol, fallback: "I") }
                         if let level = info.right { gauge(level, symbol: info.rightSymbol, fallback: "D") }
                         if let level = info.caseLevel { gauge(level, symbol: info.caseSymbol, fallback: "E") }
                         if let level = info.main { gauge(level, symbol: info.symbol, fallback: "") }
                     }
-                    .padding(.top, 8)
+                    .padding(.top, 6)
                     .transition(.scale(scale: 0.6, anchor: .leading).combined(with: .opacity))
                 }
             }
             .opacity(appeared ? 1 : 0)
             .offset(x: appeared ? 0 : 16)
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 28)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .fixedSize()
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: info)
         .onAppear {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.66).delay(0.05)) { appeared = true }
@@ -62,14 +62,14 @@ struct HeadphonesCard: View {
                     .stroke(color(for: level), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 if let symbol {
-                    Image(systemName: symbol).font(.system(size: 14, weight: .medium)).foregroundStyle(.white)
+                    Image(systemName: symbol).font(.system(size: 12.5, weight: .medium)).foregroundStyle(.white)
                 } else {
                     Text(fallback).font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
                 }
             }
-            .frame(width: 38, height: 38)
+            .frame(width: 34, height: 34)
             Text("\(level) %")
-                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                .font(.system(size: 10.5, weight: .semibold).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.85))
         }
     }
