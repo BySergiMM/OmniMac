@@ -1,11 +1,68 @@
-# OmniMac ✨
+<p align="center">
+  <img src="docs/site/img/icon.png" width="120" alt="Icono de OmniMac">
+</p>
 
-**Todo lo que le falta a tu Mac.**
+<h1 align="center">OmniMac</h1>
 
-OmniMac agrupa esas pequeñas utilidades que normalmente instalas por separado
-(Amphetamine, BoringNotch, AltTab, Rectangle, Maccy…) en una app nativa, ligera
-y muy fácil de usar: cada función es un **módulo** que activas o desactivas con
-un interruptor. Gratis, sin cuentas y sin telemetría.
+<p align="center">
+  <b>Todo lo que le falta a tu Mac.</b><br>
+  Siete utilidades en una sola app de barra de menús: ligera, gratis y de código abierto.
+</p>
+
+<p align="center">
+  <a href="https://github.com/BySergiMM/OmniMac/releases/latest"><img src="https://img.shields.io/github/v/release/BySergiMM/OmniMac?label=versi%C3%B3n&color=5b5bd6" alt="Última versión"></a>
+  <a href="https://github.com/BySergiMM/OmniMac/releases"><img src="https://img.shields.io/github/downloads/BySergiMM/OmniMac/total?label=descargas&color=5b5bd6" alt="Descargas"></a>
+  <a href="https://github.com/BySergiMM/OmniMac/actions/workflows/build.yml"><img src="https://github.com/BySergiMM/OmniMac/actions/workflows/build.yml/badge.svg" alt="Compilación"></a>
+  <img src="https://img.shields.io/badge/macOS-14.2%2B-000?logo=apple&logoColor=white" alt="macOS 14.2 o posterior">
+  <img src="https://img.shields.io/badge/Apple%20silicon%20%C2%B7%20Intel-universal-000" alt="Binario universal">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-30d158" alt="Licencia MIT"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg"><img src="https://img.shields.io/badge/Descargar%20OmniMac.pkg-5b5bd6?style=for-the-badge&logo=apple&logoColor=white" alt="Descargar OmniMac.pkg"></a>
+  &nbsp;
+  <a href="https://bysergimm.github.io/OmniMac/"><img src="https://img.shields.io/badge/Web-bysergimm.github.io%2FOmniMac-1d1d1f?style=for-the-badge" alt="Web de OmniMac"></a>
+  &nbsp;
+  <a href="https://ko-fi.com/seergiii"><img src="https://img.shields.io/badge/Inv%C3%ADtame%20a%20un%20caf%C3%A9-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"></a>
+</p>
+
+<p align="center">
+  <img src="docs/site/img/notch-media.png" width="681" alt="El notch de OmniMac desplegado con la música">
+</p>
+
+<p align="center"><sub>Capturas reales, generadas por la propia app (<code>OmniMac --snapshots</code>).</sub></p>
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/site/img/notch-tray.png" width="340" alt="Bandeja y AirDrop"><br><sub>Bandeja y AirDrop</sub></td>
+    <td align="center"><img src="docs/site/img/notch-calendar.png" width="340" alt="Calendario"><br><sub>Calendario</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/site/img/notch-sound.png" width="340" alt="Sonido y volumen por app"><br><sub>Sonido y volumen por app</sub></td>
+    <td align="center"><img src="docs/site/img/notch-timer.png" width="340" alt="Temporizador y Pomodoro"><br><sub>Temporizador y Pomodoro</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/site/img/notch-performance.png" width="340" alt="Rendimiento"><br><sub>Rendimiento</sub></td>
+    <td align="center"><img src="docs/site/img/notch-headphones.png" width="340" alt="AirPods conectados"><br><sub>Al conectar tus AirPods o Beats</sub></td>
+  </tr>
+</table>
+
+> 🇬🇧 **English:** OmniMac bundles seven Mac utilities into one free, open-source menu-bar app
+> (keep-awake, ⌘Tab by windows, dynamic notch, window snapping, clipboard, tools, sound) at
+> 0.017 % CPU and 50 MB idle. The interface is in Spanish for now; the website is available in
+> [English](https://bysergimm.github.io/OmniMac/en/).
+
+## En dos líneas
+
+Mantener despierto, ⌘Tab por ventanas, notch dinámico, atajos y disposiciones de
+ventanas, historial del portapapeles, utilidades (OCR, color, micrófono…) y sonido con
+volumen por app. Consume **0,017 % de CPU y 50 MB de memoria real en reposo**: un 81 %
+menos que las cinco apps a las que sustituye ([estudio](docs/PERFORMANCE.md)). Sin cuentas,
+sin telemetría; se actualiza sola.
+
+**Instalar**: descarga [`OmniMac.pkg`](https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg)
+y ábrelo. Como no está firmada con una cuenta de desarrollador de Apple, la primera vez
+macOS avisará: Ajustes del Sistema › Privacidad y seguridad › «Abrir igualmente».
 
 ## Módulos
 

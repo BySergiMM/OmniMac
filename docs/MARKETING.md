@@ -85,3 +85,8 @@ La regla que protege la marca: **lo gratuito nunca empeora**. Pro añade, no rec
 | Mecenas | 10 €/mes | Prioridad en peticiones de funciones y acceso a betas |
 
 **Objetivo público sugerido:** «99 €/año: certificado de desarrollador de Apple para firmar y notarizar OmniMac».
+
+## Posts e imágenes para Ko-fi
+
+En `docs/kofi/`: `posts.md` (cuatro posts en español e inglés y el texto del perfil), `cover.png` y `avatar.png` para el perfil, `post-*.png` como portadas de cada post y `galeria-*.png` para la pestaña Galería. Todo generado a partir de capturas reales de la app.
+
