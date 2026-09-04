@@ -47,6 +47,13 @@ if [[ "$2" == "--publish" ]]; then
   gh release create "v$VER" "$OUT/OmniMac-$VER.zip" "$OUT/OmniMac.pkg" "$OUT/appcast.xml" \
     --repo "$REPO" --title "OmniMac $VER" --generate-notes
   echo "🚀 Publicada: https://github.com/$REPO/releases/tag/v$VER"
+  # Tap de Homebrew: versión y sha256 del zip nuevo.
+  SHA=$(shasum -a 256 "$OUT/OmniMac-$VER.zip" | cut -d' ' -f1)
+  TAP=$(mktemp -d)
+  if gh repo clone BySergiMM/homebrew-tap "$TAP" -- -q 2>/dev/null; then
+    sed -i '' "s/^  version \".*\"/  version \"$VER\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" "$TAP/Casks/omnimac.rb"
+    git -C "$TAP" commit -qam "OmniMac $VER" && git -C "$TAP" push -q && echo "🍺 Tap de Homebrew actualizado a $VER."
+  fi
   echo "   Las apps instaladas la verán en su próxima comprobación (o con «Buscar actualizaciones…»)."
 else
   echo "Para publicarla en GitHub: scripts/release.sh $VER --publish"
