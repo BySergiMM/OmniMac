@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>es</string>
+	<key>CFBundleDisplayName</key>
+	<string>OmniMac</string>
+	<key>CFBundleExecutable</key>
+	<string>OmniMac</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.seergiii.omnimac</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>OmniMac</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.3.0</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.2</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>OmniMac necesita controlar Música/Spotify para mostrar y manejar la reproducción desde el notch.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>OmniMac capta el audio de las apps a las que pongas un volumen propio para reproducirlo al nivel que elijas.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>OmniMac muestra los eventos de hoy en la pestaña Calendario del notch.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>OmniMac muestra los eventos de hoy en la pestaña Calendario del notch.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 OmniMac</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/BySergiMM/OmniMac/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>oAMUe0mPttBDsfghNvLiSzJDnhxoCjpS0ck26YUavp8=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+</dict>
+</plist>

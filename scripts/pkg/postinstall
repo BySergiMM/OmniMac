@@ -1,0 +1,35 @@
+#!/bin/sh
+# Se ejecuta como root al final de la instalación (la contraseña ya la ha pedido
+# el propio Instalador). Deja lista la regla del modo «tapa cerrada» para que la
+# app NUNCA tenga que pedir la contraseña, y abre OmniMac.
+RULE=/etc/sudoers.d/omnimac-lid
+TARGET="${2:-/Applications}"
+
+# Usuario que está en sesión (el que instala); si no se puede saber, el grupo admin.
+CONSOLE_USER=$(stat -f %Su /dev/console 2>/dev/null || true)
+if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ] \
+   && printf '%s' "$CONSOLE_USER" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+  WHO="$CONSOLE_USER"
+else
+  WHO="%admin"
+fi
+
+# Regla mínima: solo estos dos comandos, nada más.
+TMP="$RULE.tmp"
+umask 077
+echo "$WHO ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1, /usr/bin/pmset -a disablesleep 0" > "$TMP"
+chmod 0440 "$TMP" && chown root:wheel "$TMP"
+if /usr/sbin/visudo -c -f "$TMP" >/dev/null 2>&1; then
+  mv "$TMP" "$RULE"
+else
+  rm -f "$TMP"
+fi
+
+# Por si quedó activo de una sesión anterior: valor normal.
+/usr/bin/pmset -a disablesleep 0 >/dev/null 2>&1 || true
+
+# Abre la app como el usuario en sesión (no como root).
+if [ "$WHO" != "%admin" ]; then
+  sudo -u "$CONSOLE_USER" /usr/bin/open "$TARGET/OmniMac.app" >/dev/null 2>&1 || true
+fi
+exit 0

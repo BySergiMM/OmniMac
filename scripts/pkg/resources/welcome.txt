@@ -1,0 +1,13 @@
+OmniMac — Todo lo que le falta a tu Mac.
+
+Este instalador:
+
+  • Copia OmniMac en /Applications.
+  • Deja preparado el modo «tapa cerrada» de Mantener despierto: instala
+    /etc/sudoers.d/omnimac-lid, una regla que permite a tu usuario cambiar
+    ÚNICAMENTE el ajuste de energía «disablesleep» (activar/desactivar).
+    Gracias a ella, la app nunca te pedirá la contraseña.
+
+La contraseña de administrador se pide una sola vez: ahora.
+Para deshacerlo todo más adelante: scripts/uninstall.sh (o borra la app y
+ejecuta «sudo rm /etc/sudoers.d/omnimac-lid»).

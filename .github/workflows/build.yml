@@ -1,0 +1,16 @@
+name: Compilar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compilar (release)
+        run: swift build -c release
+      - name: Tests
+        run: swift test
