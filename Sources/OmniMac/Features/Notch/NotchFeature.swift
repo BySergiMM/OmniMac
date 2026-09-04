@@ -692,14 +692,14 @@ final class NotchWindowController {
             withTransaction(transaction) { model.deviceCard = info }
             expandNow()
         }
-        scheduleHeadphonesDismiss(after: 5)
+        scheduleHeadphonesDismiss(after: 3.2)
     }
 
     /// Llega la batería: se actualiza la tarjeta (los anillos entran animados).
     func updateHeadphones(_ info: HeadphonesInfo) {
         guard model.deviceCard != nil else { return }
         withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { model.deviceCard = info }
-        scheduleHeadphonesDismiss(after: 3.5)
+        scheduleHeadphonesDismiss(after: 2.2)
     }
 
     private func scheduleHeadphonesDismiss(after seconds: TimeInterval) {
