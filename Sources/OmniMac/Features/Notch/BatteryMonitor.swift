@@ -34,7 +34,16 @@ final class BatteryMonitor: ObservableObject {
         }
     }
 
+    private var sampleMode = false
+
+    /// Solo para las capturas de la web.
+    func useSample(_ sample: BatteryState) {
+        sampleMode = true
+        state = sample
+    }
+
     func refresh() {
+        guard !sampleMode else { return }
         var newState = BatteryState()
         if let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
            let list = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as NSArray? {

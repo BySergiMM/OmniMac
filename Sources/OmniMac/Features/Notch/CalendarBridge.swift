@@ -20,7 +20,17 @@ final class CalendarBridge: ObservableObject {
 
     private let store = EKEventStore()
 
+    private var sampleMode = false
+
+    /// Solo para las capturas de la web.
+    func useSample(_ sample: [CalendarEvent]) {
+        sampleMode = true
+        authorized = true
+        events = sample
+    }
+
     func refresh() {
+        guard !sampleMode else { return }
         switch EKEventStore.authorizationStatus(for: .event) {
         case .fullAccess, .authorized:
             authorized = true

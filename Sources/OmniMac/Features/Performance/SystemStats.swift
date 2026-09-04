@@ -17,7 +17,19 @@ final class SystemStats: ObservableObject {
     private var lastTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
     private var lastBytes: (received: UInt64, sent: UInt64, at: Date)?
 
+    private var sampleMode = false
+
+    /// Solo para las capturas de la web.
+    func useSample(cpu: [Double], memory: [Double], networkIn: [Double], networkOut: [Double]) {
+        sampleMode = true
+        self.cpu = cpu
+        self.memory = memory
+        self.networkIn = networkIn
+        self.networkOut = networkOut
+    }
+
     func start() {
+        guard !sampleMode else { return }
         guard timer == nil else { return }
         sample()
         let t = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.sample() }

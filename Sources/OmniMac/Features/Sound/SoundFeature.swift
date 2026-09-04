@@ -60,6 +60,17 @@ final class SoundFeature: BaseFeature {
                    defaultEnabled: true)
     }
 
+    /// Solo para las capturas de la web: nivel visible sin tocar el hardware.
+    private var sampleMode = false
+
+    func useSample(outputVolume: Float) {
+        sampleMode = true
+        refreshing = true
+        self.outputVolume = outputVolume
+        outputMuted = false
+        refreshing = false
+    }
+
     override func start() {
         refresh()
         mixer.start()
@@ -80,6 +91,7 @@ final class SoundFeature: BaseFeature {
 
     /// Relee todo desde CoreAudio (sin disparar los `didSet`).
     func refresh() {
+        guard !sampleMode else { return }
         refreshing = true
         defer { refreshing = false }
         devices = AudioSystem.devices()
@@ -108,6 +120,7 @@ final class SoundFeature: BaseFeature {
 
     /// Solo los niveles (volumen, balance, silencio), sin releer dispositivos.
     private func refreshLevels() {
+        guard !sampleMode else { return }
         refreshing = true
         defer { refreshing = false }
         if let output {

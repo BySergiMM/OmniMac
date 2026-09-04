@@ -76,7 +76,16 @@ final class AppVolumeMixer: ObservableObject {
     /// Mientras alguna vista enseña la lista (notch o Ajustes): refresco del estado
     /// "sonando" cada 2 s. Sin vistas, solo reaccionamos a que aparezcan o
     /// desaparezcan procesos con audio (aviso de CoreAudio).
+    private var sampleMode = false
+
+    /// Solo para las capturas de la web: lista fija, sin tocar CoreAudio.
+    func useSample(_ sample: [AudioApp]) {
+        sampleMode = true
+        apps = sample
+    }
+
     func beginWatching() {
+        guard !sampleMode else { return }
         watchers += 1
         refreshApps()
         guard timer == nil else { return }
@@ -113,6 +122,7 @@ final class AppVolumeMixer: ObservableObject {
     }
 
     func refreshApps() {
+        guard !sampleMode else { return }
         let myPID = ProcessInfo.processInfo.processIdentifier
         struct Group {
             var pid: pid_t

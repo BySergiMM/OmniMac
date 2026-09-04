@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         statusItemController = StatusItemController()
+        // `OmniMac --snapshots <carpeta>`: renderiza el notch y el menú a PNG (para la web) y sale.
+        if let controller = statusItemController, Snapshots.runIfRequested(menuSource: controller) { return }
         _ = UpdaterController.shared   // comprobación de actualizaciones programada
         FeatureManager.shared.startEnabled()
 

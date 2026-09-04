@@ -201,7 +201,7 @@ Sources/OmniMac/
     ├── Sound/                  AudioSystem (CoreAudio), SoundFeature, AppVolumeMixer
     └── Performance/            Muestras de CPU, memoria y red (Mach/getifaddrs)
 Tests/OmniMacTests/             Pruebas de la lógica pura (swift test; necesita Xcode)
-docs/site/index.html            Web de presentación (abre el archivo en el navegador)
+docs/site/                      Web de presentación (index.html + img/ con capturas reales)
 ```
 
 Reglas de la casa:
@@ -215,6 +215,18 @@ Reglas de la casa:
 - **Sin código repetido entre módulos**: lo común vive en `Support/` (`AX.setFrame`,
   `Notifier.post`, `Toast.show`, `FilePicker.choose`, `HotKeyCenter.register`).
 - Los cambios de cada versión van en `CHANGELOG.md`. Licencia MIT.
+
+## Capturas para la web
+
+La propia app renderiza su interfaz a PNG (sin permisos de grabación de pantalla):
+
+```bash
+dist/OmniMac.app/Contents/MacOS/OmniMac --snapshots docs/site/img
+```
+
+Genera las seis pestañas del notch y el menú real de la barra con datos de muestra.
+Con `--notch-width 200 --debug-notch` simula el notch de otro modelo y dibuja en rojo
+dónde queda el notch físico, para comprobar que nada se esconde debajo.
 
 ## Publicar una versión (actualizaciones automáticas)
 
@@ -237,6 +249,8 @@ también desde el menú, «Buscar actualizaciones…». El workflow de GitHub Ac
 (`.github/workflows/build.yml`) compila y pasa los tests en cada push.
 
 ## Limitaciones conocidas (v0.3)
+
+- Compilada como binario universal, pero solo probada en Apple silicon.
 
 - Las miniaturas en vivo del selector ⌘Tab necesitan el permiso de Grabación de
   pantalla; sin él, el selector muestra icono + título.
