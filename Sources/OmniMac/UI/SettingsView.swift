@@ -110,11 +110,17 @@ struct SolidToolbar: ViewModifier {
         let base = content
             .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
             .toolbarBackground(.visible, for: .windowToolbar)
+        // El efecto de borde solo existe en el SDK de macOS 26 (Xcode 26 / Swift 6.2+); con SDKs
+        // anteriores (por ejemplo en CI) se compila sin él.
+        #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             base.scrollEdgeEffectStyle(.hard, for: .top)
         } else {
             base
         }
+        #else
+        content
+        #endif
     }
 }
 
