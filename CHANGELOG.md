@@ -1,5 +1,9 @@
 # Cambios
 
+## 0.3.1 — 2026-09-04
+
+- Notch: al conectar AirPods o Beats se despliega con una tarjeta animada al estilo iPhone (modelo y batería de cada pieza) y se pliega solo; opción para cerrar el aviso de macOS (experimental). Sin pedir permisos.
+
 ## 0.3.0 — 2026-09-04
 
 **Nuevo**

@@ -708,6 +708,23 @@ struct NotchPage: View {
                     Text("Pulsa Intro en los tiempos rápidos para guardarlos.")
                 }
 
+                Section {
+                    SettingToggle(title: "Animación al conectar AirPods o Beats",
+                                  subtitle: "El notch se despliega un momento con el modelo y la batería de cada pieza, como en el iPhone, y se pliega solo.",
+                                  isOn: $feature.headphonesCard)
+                    SettingToggle(title: "Ocultar el aviso de macOS",
+                                  subtitle: "Cierra el aviso de «conectados» de Control Center en cuanto aparece. Necesita Accesibilidad; experimental.",
+                                  isOn: $feature.hideSystemBanner)
+                    .disabled(!feature.headphonesCard)
+                    SettingRow(title: "Vista previa", subtitle: "Enseña la tarjeta con unos AirPods Pro de ejemplo.") {
+                        Button("Probar") { feature.previewHeadphones() }
+                    }
+                } header: {
+                    Text("Auriculares")
+                } footer: {
+                    Text("Sin permisos extra: la app se entera por CoreAudio en cuanto aparecen los auriculares y lee la batería con la información del sistema. Funciona con AirPods (todos), AirPods Max y Beats.")
+                }
+
                 Section("Otros") {
                     SettingToggle(title: "Ocultar en apps a pantalla completa",
                                   subtitle: "Vídeo, juegos, presentaciones… el notch no estorba.",
