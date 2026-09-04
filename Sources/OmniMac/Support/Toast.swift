@@ -10,8 +10,8 @@ enum ToastStyle: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .bottom: "Abajo de la pantalla"
-        case .notch: "Desplegando el notch"
+        case .bottom: L("Abajo de la pantalla", "Bottom of the screen")
+        case .notch: L("Desplegando el notch", "Expanding the notch")
         }
     }
 }

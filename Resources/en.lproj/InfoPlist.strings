@@ -1,0 +1,4 @@
+"NSAppleEventsUsageDescription" = "OmniMac needs to control Music/Spotify to show and manage playback from the notch.";
+"NSAudioCaptureUsageDescription" = "OmniMac captures the audio of the apps you give their own volume, to play it at the level you choose.";
+"NSCalendarsUsageDescription" = "OmniMac shows today's events in the notch's Calendar tab.";
+"NSCalendarsFullAccessUsageDescription" = "OmniMac shows today's events in the notch's Calendar tab.";

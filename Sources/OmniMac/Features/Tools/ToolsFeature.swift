@@ -19,11 +19,11 @@ final class ToolsFeature: BaseFeature {
     }
 
     static let shortcutHelp: [(shortcut: String, action: String)] = [
-        ("⇧⌘ 2", "Copiar texto de la pantalla: selecciona una zona y el texto va al portapapeles"),
-        ("⌃⌥⌘ M", "Silenciar o activar el micrófono"),
-        ("⌃⌥⌘ L", "Bloquear el teclado 30 segundos para limpiarlo"),
-        ("⇧⌘ 6", "Copiar el color de un punto de la pantalla (en hexadecimal)"),
-        ("⌘ Q mantenido", "Cerrar la app solo si mantienes ⌘Q medio segundo (evita cierres por accidente)"),
+        ("⇧⌘ 2", L("Copiar texto de la pantalla: selecciona una zona y el texto va al portapapeles", "Copy text from the screen: select an area and the text goes to the clipboard")),
+        ("⌃⌥⌘ M", L("Silenciar o activar el micrófono", "Mute or unmute the microphone")),
+        ("⌃⌥⌘ L", L("Bloquear el teclado 30 segundos para limpiarlo", "Lock the keyboard for 30 seconds to clean it")),
+        ("⇧⌘ 6", L("Copiar el color de un punto de la pantalla (en hexadecimal)", "Copy the colour of a point on the screen (as hex)")),
+        (L("⌘ Q mantenido", "⌘ Q held"), L("Cerrar la app solo si mantienes ⌘Q medio segundo (evita cierres por accidente)", "Quit the app only if you hold ⌘Q for half a second (prevents accidental quits)")),
     ]
 
     private static let ocrHotKey: UInt32 = 300
@@ -38,9 +38,9 @@ final class ToolsFeature: BaseFeature {
     init() {
         quitGuardEnabled = UserDefaults.standard.object(forKey: "tools.quitGuard") == nil ? true : UserDefaults.standard.bool(forKey: "tools.quitGuard")
         super.init(id: "tools",
-                   name: "Utilidades",
+                   name: L("Utilidades", "Tools"),
                    symbol: "wrench.and.screwdriver.fill",
-                   blurb: "Copiar texto de la pantalla, silenciar el micrófono, bloquear el teclado para limpiarlo y ocultar los iconos del escritorio.",
+                   blurb: L("Copiar texto de la pantalla, silenciar el micrófono, bloquear el teclado para limpiarlo y ocultar los iconos del escritorio.", "Copy text from the screen, mute the microphone, lock the keyboard to clean it and hide desktop icons."),
                    defaultEnabled: true)
         microphoneMuted = MicrophoneMute.isMuted
     }
@@ -89,7 +89,7 @@ final class ToolsFeature: BaseFeature {
     func toggleMicrophone() {
         let muted = MicrophoneMute.set(muted: !MicrophoneMute.isMuted)
         microphoneMuted = muted
-        Toast.show(muted ? "Micrófono silenciado" : "Micrófono activado",
+        Toast.show(muted ? L("Micrófono silenciado", "Microphone muted") : L("Micrófono activado", "Microphone on"),
                    symbol: muted ? "mic.slash.fill" : "mic.fill")
     }
 
@@ -104,7 +104,7 @@ final class ToolsFeature: BaseFeature {
     func toggleDesktopIcons() {
         DesktopIcons.setHidden(!DesktopIcons.hidden)
         desktopIconsHidden = DesktopIcons.hidden
-        Toast.show(desktopIconsHidden ? "Iconos del escritorio ocultos" : "Iconos del escritorio visibles",
+        Toast.show(desktopIconsHidden ? L("Iconos del escritorio ocultos", "Desktop icons hidden") : L("Iconos del escritorio visibles", "Desktop icons visible"),
                    symbol: desktopIconsHidden ? "eye.slash" : "eye")
     }
 }

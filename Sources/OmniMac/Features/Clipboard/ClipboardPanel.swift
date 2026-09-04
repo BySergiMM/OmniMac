@@ -184,14 +184,14 @@ struct ClipboardListView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(controller.query.isEmpty ? .tertiary : .secondary)
                 if controller.query.isEmpty {
-                    Text("Escribe para buscar…")
+                    Text(L("Escribe para buscar…", "Type to search…"))
                         .foregroundStyle(.tertiary)
                 } else {
                     Text(controller.query)
                         .font(.system(size: 13, weight: .medium))
                 }
                 Spacer()
-                Text("↑↓ elegir · ↩ pegar · ⌥P anclar · ⌥⌫ borrar")
+                Text(L("↑↓ elegir · ↩ pegar · ⌥P anclar · ⌥⌫ borrar", "↑↓ select · ↩ paste · ⌥P pin · ⌥⌫ delete"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -206,10 +206,10 @@ struct ClipboardListView: View {
                     Image(systemName: controller.query.isEmpty ? "clipboard" : "magnifyingglass")
                         .font(.system(size: 30))
                         .foregroundStyle(.tertiary)
-                    Text(controller.query.isEmpty ? "Aún no hay nada copiado" : "Nada coincide con «\(controller.query)»")
+                    Text(controller.query.isEmpty ? L("Aún no hay nada copiado", "Nothing copied yet") : L("Nada coincide con «\(controller.query)»", "Nothing matches “\(controller.query)”"))
                         .foregroundStyle(.secondary)
                     if controller.query.isEmpty {
-                        Text("Copia algo con ⌘C y aparecerá aquí")
+                        Text(L("Copia algo con ⌘C y aparecerá aquí", "Copy something with ⌘C and it will appear here"))
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
@@ -319,11 +319,11 @@ struct ClipboardRow: View {
     private static func timeAgo(_ date: Date) -> String {
         let seconds = Int(-date.timeIntervalSinceNow)
         switch seconds {
-        case ..<5: return "ahora mismo"
-        case ..<60: return "hace \(seconds) s"
-        case ..<3600: return "hace \(seconds / 60) min"
-        case ..<86_400: return "hace \(seconds / 3600) h"
-        default: return "hace \(seconds / 86_400) días"
+        case ..<5: return L("ahora mismo", "just now")
+        case ..<60: return L("hace \(seconds) s", "\(seconds) s ago")
+        case ..<3600: return L("hace \(seconds / 60) min", "\(seconds / 60) min ago")
+        case ..<86_400: return L("hace \(seconds / 3600) h", "\(seconds / 3600) h ago")
+        default: return L("hace \(seconds / 86_400) días", "\(seconds / 86_400) days ago")
         }
     }
 }

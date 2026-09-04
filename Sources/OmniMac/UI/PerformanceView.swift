@@ -10,9 +10,9 @@ struct PerformancePage: View {
                 HStack(spacing: 14) {
                     SettingsIcon(symbol: "gauge.with.dots.needle.33percent", color: .green, size: 44)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Rendimiento")
+                        Text(L("Rendimiento", "Performance"))
                             .font(.title3.weight(.semibold))
-                        Text("CPU, memoria y red del último minuto. Solo se mide mientras esta página o la pestaña del notch están a la vista; cerradas, no consume nada.")
+                        Text(L("CPU, memoria y red del último minuto. Solo se mide mientras esta página o la pestaña del notch están a la vista; cerradas, no consume nada.", "CPU, memory and network for the last minute. Sampled only while this page or the notch tab is visible; closed, it costs nothing."))
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -28,14 +28,14 @@ struct PerformancePage: View {
                           current: stats.cpu.last.map { String(format: "%.0f %%", $0) } ?? "—")
             }
             Section {
-                MiniChart(title: "Memoria",
+                MiniChart(title: L("Memoria", "Memory"),
                           values: stats.memory,
                           maxValue: stats.memoryTotal,
                           color: .orange,
-                          current: stats.memory.last.map { String(format: "%.1f de %.0f GB", $0, stats.memoryTotal) } ?? "—")
+                          current: stats.memory.last.map { String(format: L("%.1f de %.0f GB", "%.1f of %.0f GB"), $0, stats.memoryTotal) } ?? "—")
             }
             Section {
-                MiniChart(title: "Red",
+                MiniChart(title: L("Red", "Network"),
                           values: stats.networkIn,
                           secondary: stats.networkOut,
                           color: .green,
@@ -43,7 +43,7 @@ struct PerformancePage: View {
                               guard let down = stats.networkIn.last, let up = stats.networkOut.last else { return "—" }
                               return "↓ \(Self.rate(down)) · ↑ \(Self.rate(up))"
                           }(),
-                          legend: "línea continua: bajada · discontinua: subida")
+                          legend: L("línea continua: bajada · discontinua: subida", "solid line: download · dashed: upload"))
             }
         }
         .onAppear { stats.start() }

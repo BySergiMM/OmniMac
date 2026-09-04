@@ -3,6 +3,7 @@ import XCTest
 
 /// Pruebas de la lógica pura (sin ventanas ni permisos).
 final class TimerTests: XCTestCase {
+    override class func setUp() { setenv("OMNIMAC_LANG", "es", 1) }
     override func tearDown() {
         NotchTimer.shared.stop()
         NotchTimer.shared.presets = [5, 10, 25, 45, 60]
@@ -72,6 +73,7 @@ final class LayoutTests: XCTestCase {
 }
 
 final class MiscTests: XCTestCase {
+    override class func setUp() { setenv("OMNIMAC_LANG", "es", 1) }
     func testToastStyleTitles() {
         XCTAssertEqual(ToastStyle.bottom.title, "Abajo de la pantalla")
         XCTAssertEqual(ToastStyle.notch.title, "Desplegando el notch")

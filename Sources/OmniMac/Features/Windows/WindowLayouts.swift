@@ -98,7 +98,7 @@ final class WindowLayoutStore: ObservableObject {
         guard !name.isEmpty else { return nil }
         let entries = capture()
         guard !entries.isEmpty else {
-            Toast.show("No hay ventanas que guardar", symbol: "macwindow")
+            Toast.show(L("No hay ventanas que guardar", "No windows to save"), symbol: "macwindow")
             return nil
         }
         var layout = WindowLayout(name: name, screenCount: NSScreen.screens.count, savedAt: Date(), windows: entries)
@@ -114,7 +114,7 @@ final class WindowLayoutStore: ObservableObject {
         }
         persist()
         let shortcut = layout.shortcutLabel.map { " · \($0)" } ?? ""
-        Toast.show("Disposición «\(name)» guardada · \(entries.count) ventanas\(shortcut)", symbol: "square.grid.2x2.fill")
+        Toast.show(L("Disposición «\(name)» guardada · \(entries.count) ventanas\(shortcut)", "Layout “\(name)” saved · \(entries.count) windows\(shortcut)"), symbol: "square.grid.2x2.fill")
         return layout
     }
 
@@ -127,13 +127,13 @@ final class WindowLayoutStore: ObservableObject {
         layouts[index].screenCount = NSScreen.screens.count
         layouts[index].savedAt = Date()
         persist()
-        Toast.show("«\(layout.name)» actualizada · \(entries.count) ventanas", symbol: "square.grid.2x2.fill")
+        Toast.show(L("«\(layout.name)» actualizada · \(entries.count) ventanas", "“\(layout.name)” updated · \(entries.count) windows"), symbol: "square.grid.2x2.fill")
     }
 
     func delete(_ layout: WindowLayout) {
         layouts.removeAll { $0.id == layout.id }
         persist()
-        Toast.show("Disposición «\(layout.name)» eliminada", symbol: "trash")
+        Toast.show(L("Disposición «\(layout.name)» eliminada", "Layout “\(layout.name)” deleted"), symbol: "trash")
     }
 
     /// Asigna (o quita) el atajo ⌃⌥n. Si otra disposición lo tenía, lo pierde.
@@ -149,7 +149,7 @@ final class WindowLayoutStore: ObservableObject {
     /// Devuelve las ventanas a donde estaban antes de la última disposición aplicada.
     func undoLast() {
         guard !previousFrames.isEmpty else {
-            Toast.show("No hay ninguna disposición que deshacer", symbol: "arrow.uturn.backward")
+            Toast.show(L("No hay ninguna disposición que deshacer", "No layout to undo"), symbol: "arrow.uturn.backward")
             return
         }
         for (window, frame) in previousFrames {
@@ -158,7 +158,7 @@ final class WindowLayoutStore: ObservableObject {
         let count = previousFrames.count
         previousFrames = []
         canUndo = false
-        Toast.show("Deshecho · \(count) ventanas a su sitio", symbol: "arrow.uturn.backward")
+        Toast.show(L("Deshecho · \(count) ventanas a su sitio", "Undone · \(count) windows back in place"), symbol: "arrow.uturn.backward")
     }
 
     private func firstFreeHotKey() -> Int? {
@@ -190,9 +190,9 @@ final class WindowLayoutStore: ObservableObject {
         if let layout = layouts.first(where: { $0.hotKey == key }) {
             apply(layout)
         } else {
-            let name = "Disposición \(key)"
+            let name = L("Disposición \(key)", "Layout \(key)")
             if saveCurrent(named: name, hotKey: key) != nil {
-                Toast.show("Guardada en ⌃⌥\(key) · toca para aplicarla, mantén pulsado para liberarla",
+                Toast.show(L("Guardada en ⌃⌥\(key) · toca para aplicarla, mantén pulsado para liberarla", "Saved to ⌃⌥\(key) · tap to apply, hold to free it"),
                            symbol: "square.grid.2x2.fill", duration: 3)
             }
         }
@@ -200,20 +200,20 @@ final class WindowLayoutStore: ObservableObject {
 
     private func freeSlot(_ key: Int) {
         guard let index = layouts.firstIndex(where: { $0.hotKey == key }) else {
-            Toast.show("⌃⌥\(key) ya estaba libre", symbol: "keyboard")
+            Toast.show(L("⌃⌥\(key) ya estaba libre", "⌃⌥\(key) was already free"), symbol: "keyboard")
             return
         }
         let name = layouts[index].name
         layouts[index].hotKey = nil
         persist()
-        Toast.show("⌃⌥\(key) libre · «\(name)» sigue en Ajustes sin atajo", symbol: "keyboard", duration: 3)
+        Toast.show(L("⌃⌥\(key) libre · «\(name)» sigue en Ajustes sin atajo", "⌃⌥\(key) freed · “\(name)” stays in Settings without a shortcut"), symbol: "keyboard", duration: 3)
     }
 
     /// Coloca las ventanas. Las apps que no estén abiertas se ignoran (se avisa).
     func apply(_ layout: WindowLayout) {
         guard Permissions.hasAccessibility else {
             Permissions.requestAccessibility()
-            Toast.show("Necesita el permiso de Accesibilidad", symbol: "exclamationmark.shield.fill")
+            Toast.show(L("Necesita el permiso de Accesibilidad", "Needs the Accessibility permission"), symbol: "exclamationmark.shield.fill")
             return
         }
         var placed = 0
@@ -247,11 +247,11 @@ final class WindowLayoutStore: ObservableObject {
             }
         }
         canUndo = !previousFrames.isEmpty
-        var message = "«\(layout.name)»: \(placed) ventanas colocadas"
+        var message = L("«\(layout.name)»: \(placed) ventanas colocadas", "“\(layout.name)”: \(placed) windows placed")
         if !missingApps.isEmpty {
-            message += " · sin abrir: \(missingApps.sorted().joined(separator: ", "))"
+            message += L(" · sin abrir: \(missingApps.sorted().joined(separator: ", "))", " · not open: \(missingApps.sorted().joined(separator: ", "))")
         }
-        if placed > 0 { message += " · ⌃⌥0 deshace" }
+        if placed > 0 { message += L(" · ⌃⌥0 deshace", " · ⌃⌥0 undoes") }
         Toast.show(message, symbol: "square.grid.2x2.fill", duration: missingApps.isEmpty ? 2.2 : 3.5)
     }
 

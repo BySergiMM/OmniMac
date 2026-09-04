@@ -49,11 +49,11 @@ final class AirDropPresenter: NSObject, NSSharingServiceDelegate {
     func send(_ urls: [URL]) {
         let files = urls.filter { FileManager.default.fileExists(atPath: $0.path) }
         guard !files.isEmpty else {
-            Toast.show("No he podido leer esos archivos", symbol: "exclamationmark.triangle.fill")
+            Toast.show(L("No he podido leer esos archivos", "Couldn't read those files"), symbol: "exclamationmark.triangle.fill")
             return
         }
         guard let service = NSSharingService(named: .sendViaAirDrop) else {
-            Toast.show("AirDrop no está disponible", symbol: "airplane.slash")
+            Toast.show(L("AirDrop no está disponible", "AirDrop isn't available"), symbol: "airplane.slash")
             return
         }
         self.service = service
@@ -63,10 +63,10 @@ final class AirDropPresenter: NSObject, NSSharingServiceDelegate {
             NSApp.activate(ignoringOtherApps: true)
             self.sourceWindow?.makeKeyAndOrderFront(nil)
             guard service.canPerform(withItems: files) else {
-                Toast.show("AirDrop no puede enviar esos archivos", symbol: "airplane.slash")
+                Toast.show(L("AirDrop no puede enviar esos archivos", "AirDrop can't send those files"), symbol: "airplane.slash")
                 return
             }
-            Toast.show(files.count == 1 ? "Abriendo AirDrop…" : "Abriendo AirDrop con \(files.count) archivos…", symbol: "airplane.departure")
+            Toast.show(files.count == 1 ? L("Abriendo AirDrop…", "Opening AirDrop…") : L("Abriendo AirDrop con \(files.count) archivos…", "Opening AirDrop with \(files.count) files…"), symbol: "airplane.departure")
             service.perform(withItems: files)
             // El Finder (origen del arrastre) vuelve a activarse al soltar: nos ponemos
             // delante otra vez para que el selector de AirDrop reciba el teclado.
@@ -89,6 +89,6 @@ final class AirDropPresenter: NSObject, NSSharingServiceDelegate {
     }
 
     func sharingService(_ sharingService: NSSharingService, didShareItems items: [Any]) {
-        Toast.show(items.count == 1 ? "Enviado por AirDrop" : "\(items.count) archivos enviados por AirDrop", symbol: "checkmark.circle.fill")
+        Toast.show(items.count == 1 ? L("Enviado por AirDrop", "Sent by AirDrop") : L("\(items.count) archivos enviados por AirDrop", "\(items.count) files sent by AirDrop"), symbol: "checkmark.circle.fill")
     }
 }

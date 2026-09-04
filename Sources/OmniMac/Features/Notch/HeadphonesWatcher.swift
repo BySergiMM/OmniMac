@@ -15,7 +15,7 @@ struct HeadphonesInfo: Equatable {
 
     var hasBattery: Bool { left != nil || right != nil || caseLevel != nil || main != nil }
 
-    static let sample = HeadphonesInfo(name: "AirPods Pro de Sergi", symbol: "airpodspro",
+    static let sample = HeadphonesInfo(name: L("AirPods Pro de Sergi", "Sergi's AirPods Pro"), symbol: "airpodspro",
                                        leftSymbol: "airpodpro.left", rightSymbol: "airpodpro.right",
                                        caseSymbol: "airpodspro.chargingcase.wireless",
                                        left: 85, right: 90, caseLevel: 62, main: nil)

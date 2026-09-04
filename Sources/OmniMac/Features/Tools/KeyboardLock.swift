@@ -17,7 +17,7 @@ final class KeyboardLock {
         guard tap == nil else { return }
         guard Permissions.hasAccessibility else {
             Permissions.requestAccessibility()
-            Toast.show("Necesita el permiso de Accesibilidad", symbol: "exclamationmark.shield.fill")
+            Toast.show(L("Necesita el permiso de Accesibilidad", "Needs the Accessibility permission"), symbol: "exclamationmark.shield.fill")
             onUnlock()
             return
         }
@@ -104,11 +104,11 @@ struct KeyboardLockView: View {
         VStack(spacing: 14) {
             Image(systemName: "keyboard")
                 .font(.system(size: 54, weight: .light))
-            Text("Teclado bloqueado")
+            Text(L("Teclado bloqueado", "Keyboard locked"))
                 .font(.system(size: 26, weight: .bold))
             Text("\(model.remaining)")
                 .font(.system(size: 64, weight: .heavy, design: .rounded).monospacedDigit())
-            Text("Limpia tranquilo. Haz clic en cualquier sitio para desbloquear.")
+            Text(L("Limpia tranquilo. Haz clic en cualquier sitio para desbloquear.", "Clean away. Click anywhere to unlock."))
                 .font(.system(size: 14))
                 .opacity(0.75)
         }

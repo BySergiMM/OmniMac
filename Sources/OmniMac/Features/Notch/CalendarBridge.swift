@@ -61,7 +61,7 @@ final class CalendarBridge: ObservableObject {
             }
         events = upcoming.prefix(6).map {
             CalendarEvent(id: $0.eventIdentifier ?? UUID().uuidString,
-                          title: $0.title ?? "(Sin título)",
+                          title: $0.title ?? L("(Sin título)", "(Untitled)"),
                           start: $0.startDate,
                           end: $0.endDate,
                           isAllDay: $0.isAllDay,

@@ -46,9 +46,9 @@ final class WindowSwitcherFeature: BaseFeature {
         }
         useOptionTab = UserDefaults.standard.bool(forKey: "switcher.optionTab")
         super.init(id: "switcher",
-                   name: "⌘Tab por ventanas",
+                   name: L("⌘Tab por ventanas", "⌘Tab by windows"),
                    symbol: "rectangle.on.rectangle",
-                   blurb: "Al pulsar ⌘Tab verás todas las ventanas, no solo las apps. Escribe para buscar.",
+                   blurb: L("Al pulsar ⌘Tab verás todas las ventanas, no solo las apps. Escribe para buscar.", "Press ⌘Tab and see every window, not just apps. Type to search."),
                    defaultEnabled: true)
 
         panel.onCommit = { [weak self] in self?.endSession(commit: true) }

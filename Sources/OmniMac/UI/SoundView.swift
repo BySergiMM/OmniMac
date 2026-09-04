@@ -8,8 +8,8 @@ struct SoundPage: View {
             ModuleHeader(feature: feature, page: .sound)
 
             if feature.isEnabled {
-                Section("Salida") {
-                    SettingRow(title: "Dispositivo", subtitle: "Altavoces, auriculares, monitor, AirPods…") {
+                Section(L("Salida", "Output")) {
+                    SettingRow(title: L("Dispositivo", "Device"), subtitle: L("Altavoces, auriculares, monitor, AirPods…", "Speakers, headphones, monitor, AirPods…")) {
                         Picker("", selection: Binding(
                             get: { feature.output ?? 0 },
                             set: { feature.selectOutput($0) }
@@ -21,7 +21,7 @@ struct SoundPage: View {
                         .labelsHidden()
                         .frame(width: 230)
                     }
-                    SettingRow(title: "Volumen") {
+                    SettingRow(title: L("Volumen", "Volume")) {
                         HStack(spacing: 10) {
                             Slider(value: $feature.outputVolume, in: 0...1)
                                 .frame(width: 170)
@@ -32,28 +32,28 @@ struct SoundPage: View {
                         }
                     }
                     if feature.balanceSupported {
-                        SettingRow(title: "Balance", subtitle: "Izquierda – derecha") {
+                        SettingRow(title: "Balance", subtitle: L("Izquierda – derecha", "Left – right")) {
                             HStack(spacing: 8) {
                                 Text("I").font(.caption).foregroundStyle(.secondary)
                                 Slider(value: $feature.balance, in: 0...1).frame(width: 140)
                                 Text("D").font(.caption).foregroundStyle(.secondary)
-                                Button("Centrar") { feature.balance = 0.5 }.controlSize(.small)
+                                Button(L("Centrar", "Center")) { feature.balance = 0.5 }.controlSize(.small)
                             }
                         }
                     }
-                    SettingToggle(title: "Silenciar la salida", isOn: $feature.outputMuted)
+                    SettingToggle(title: L("Silenciar la salida", "Mute the output"), isOn: $feature.outputMuted)
                 }
 
                 Section {
                     AppVolumeList(mixer: feature.mixer)
                 } header: {
-                    Text("Volumen por app")
+                    Text(L("Volumen por app", "Per-app volume"))
                 } footer: {
-                    Text("Capta el audio de esa app (macOS pide permiso una vez, «grabar el audio del sistema») y lo reproduce al nivel elegido; las apps al 100 % no se tocan. También desde la pestaña Sonido del notch.")
+                    Text(L("Capta el audio de esa app (macOS pide permiso una vez, «grabar el audio del sistema») y lo reproduce al nivel elegido; las apps al 100 % no se tocan. También desde la pestaña Sonido del notch.", "Captures that app's audio (macOS asks once for “record system audio”) and plays it at the chosen level; apps at 100 % are left alone. Also from the notch's Sound tab."))
                 }
 
-                Section("Entrada") {
-                    SettingRow(title: "Micrófono", subtitle: "El que usan las videollamadas y las grabaciones.") {
+                Section(L("Entrada", "Input")) {
+                    SettingRow(title: L("Micrófono", "Microphone"), subtitle: L("El que usan las videollamadas y las grabaciones.", "The one video calls and recordings use.")) {
                         Picker("", selection: Binding(
                             get: { feature.input ?? 0 },
                             set: { feature.selectInput($0) }
@@ -65,7 +65,7 @@ struct SoundPage: View {
                         .labelsHidden()
                         .frame(width: 230)
                     }
-                    SettingRow(title: "Volumen de entrada") {
+                    SettingRow(title: L("Volumen de entrada", "Input volume")) {
                         HStack(spacing: 10) {
                             Slider(value: $feature.inputVolume, in: 0...1)
                                 .frame(width: 170)
@@ -81,11 +81,11 @@ struct SoundPage: View {
                     ForEach(SoundFeature.shortcutHelp, id: \.shortcut) { item in
                         ShortcutRow(keys: item.shortcut, text: item.action)
                     }
-                    ShortcutRow(keys: "⌃⌥⌘ M", text: "silencia o activa el micrófono (en Utilidades)")
+                    ShortcutRow(keys: "⌃⌥⌘ M", text: L("silencia o activa el micrófono (en Utilidades)", "mutes or unmutes the microphone (in Tools)"))
                 } header: {
-                    Text("Atajos")
+                    Text(L("Atajos", "Shortcuts"))
                 } footer: {
-                    Text("Lo mismo que Ajustes del Sistema › Sonido, pero a un clic y también desde el menú de OmniMac. El balance solo aparece si el dispositivo lo admite.")
+                    Text(L("Lo mismo que Ajustes del Sistema › Sonido, pero a un clic y también desde el menú de OmniMac. El balance solo aparece si el dispositivo lo admite.", "The same as System Settings › Sound, one click away and also from OmniMac's menu. Balance only appears if the device supports it."))
                 }
             }
         }
@@ -100,7 +100,7 @@ struct AppVolumeList: View {
     var body: some View {
         Group {
             if mixer.apps.isEmpty {
-                Text("Ninguna app está sonando ahora mismo. Cuando alguna reproduzca audio aparecerá aquí con su propio volumen.")
+                Text(L("Ninguna app está sonando ahora mismo. Cuando alguna reproduzca audio aparecerá aquí con su propio volumen.", "No app is playing right now. When one plays audio it will appear here with its own volume."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {

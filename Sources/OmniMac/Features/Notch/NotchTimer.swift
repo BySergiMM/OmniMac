@@ -65,9 +65,9 @@ final class NotchTimer: ObservableObject {
 
     var phaseText: String {
         switch (mode, phase) {
-        case (.simple, _): return "Temporizador"
-        case (.pomodoro, .work): return "Trabajo · pomodoro \(completedPomodoros + 1)"
-        case (.pomodoro, .rest): return isLongRest ? "Descanso largo" : "Descanso"
+        case (.simple, _): return L("Temporizador", "Timer")
+        case (.pomodoro, .work): return L("Trabajo · pomodoro \(completedPomodoros + 1)", "Work · pomodoro \(completedPomodoros + 1)")
+        case (.pomodoro, .rest): return isLongRest ? L("Descanso largo", "Long break") : L("Descanso", "Break")
         }
     }
 
@@ -160,8 +160,8 @@ final class NotchTimer: ObservableObject {
         NSSound(named: "Glass")?.play()
         switch mode {
         case .simple:
-            notify(title: "Tiempo cumplido", body: "El temporizador de \(Int(total / 60)) min ha terminado.")
-            Toast.show("Tiempo cumplido", symbol: "timer", duration: 3)
+            notify(title: L("Tiempo cumplido", "Time's up"), body: L("El temporizador de \(Int(total / 60)) min ha terminado.", "The \(Int(total / 60)) min timer has finished."))
+            Toast.show(L("Tiempo cumplido", "Time's up"), symbol: "timer", duration: 3)
             total = 0
             remaining = 0
         case .pomodoro:
@@ -170,15 +170,15 @@ final class NotchTimer: ObservableObject {
                 isLongRest = longRestEvery > 0 && completedPomodoros % longRestEvery == 0
                 let rest = isLongRest ? longRestMinutes : restMinutes
                 phase = .rest
-                notify(title: "Pomodoro completado",
-                       body: "Llevas \(completedPomodoros). Ahora \(rest) minutos de descanso\(isLongRest ? " largo" : "").")
-                Toast.show("Pomodoro \(completedPomodoros) completado · descanso de \(rest) min", symbol: "cup.and.saucer.fill", duration: 3)
+                notify(title: L("Pomodoro completado", "Pomodoro complete"),
+                       body: L("Llevas \(completedPomodoros). Ahora \(rest) minutos de descanso\(isLongRest ? " largo" : "").", "That makes \(completedPomodoros). Now \(rest) minutes of \(isLongRest ? "long " : "")break."))
+                Toast.show(L("Pomodoro \(completedPomodoros) completado · descanso de \(rest) min", "Pomodoro \(completedPomodoros) complete · \(rest) min break"), symbol: "cup.and.saucer.fill", duration: 3)
                 begin(seconds: TimeInterval(rest * 60))
             } else {
                 phase = .work
                 isLongRest = false
-                notify(title: "Fin del descanso", body: "Empieza el pomodoro \(completedPomodoros + 1).")
-                Toast.show("Fin del descanso · pomodoro \(completedPomodoros + 1)", symbol: "timer", duration: 3)
+                notify(title: L("Fin del descanso", "Break over"), body: L("Empieza el pomodoro \(completedPomodoros + 1).", "Pomodoro \(completedPomodoros + 1) starts."))
+                Toast.show(L("Fin del descanso · pomodoro \(completedPomodoros + 1)", "Break over · pomodoro \(completedPomodoros + 1)"), symbol: "timer", duration: 3)
                 begin(seconds: TimeInterval(workMinutes * 60))
             }
         }
@@ -206,7 +206,7 @@ struct TimerTab: View {
     /// Sin temporizador: elige un tiempo con un clic.
     private var chooser: some View {
         VStack(spacing: 9) {
-            Text("Elige un tiempo")
+            Text(L("Elige un tiempo", "Pick a time"))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.7))
             HStack(spacing: 8) {
@@ -214,10 +214,10 @@ struct TimerTab: View {
                     presetButton("\(minutes) min") { timer.start(minutes: minutes) }
                 }
             }
-            presetButton("Pomodoro · \(timer.workMinutes) min de trabajo, \(timer.restMinutes) de descanso", prominent: true) {
+            presetButton(L("Pomodoro · \(timer.workMinutes) min de trabajo, \(timer.restMinutes) de descanso", "Pomodoro · \(timer.workMinutes) min work, \(timer.restMinutes) break"), prominent: true) {
                 timer.startPomodoro()
             }
-            Text("Los tiempos se cambian en Ajustes › Notch › Temporizador")
+            Text(L("Los tiempos se cambian en Ajustes › Notch › Temporizador", "Times are set in Settings › Notch › Timer"))
                 .font(.system(size: 9.5))
                 .foregroundStyle(.white.opacity(0.35))
         }

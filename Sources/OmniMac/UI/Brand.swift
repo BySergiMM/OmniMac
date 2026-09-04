@@ -3,7 +3,7 @@ import SwiftUI
 /// Identidad de marca de OmniMac.
 enum Brand {
     static let name = "OmniMac"
-    static let tagline = "Todo lo que le falta a tu Mac"
+    static let tagline = L("Todo lo que le falta a tu Mac", "Everything your Mac is missing")
 
     /// Violeta OmniMac (#6C4DFF aprox.)
     static let accent = Color(red: 0.42, green: 0.30, blue: 1.0)
