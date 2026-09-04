@@ -273,7 +273,7 @@ final class NotchModel: ObservableObject {
     }
     /// Tarjeta «AirPods conectados»: un panel más recogido y centrado que el de pestañas.
     var cardSize: CGSize {
-        CGSize(width: max(440, notchSize.width + 250), height: 160)
+        CGSize(width: max(440, notchSize.width + 250), height: 172)
     }
 
     var onHoverChange: ((Bool) -> Void)?
