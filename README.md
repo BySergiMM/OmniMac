@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <b>🇪🇸 Español</b> · <a href="README.en.md">🇬🇧 English</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/BySergiMM/OmniMac/releases/latest"><img src="https://img.shields.io/github/v/release/BySergiMM/OmniMac?label=versi%C3%B3n&color=5b5bd6" alt="Última versión"></a>
   <a href="https://github.com/BySergiMM/OmniMac/releases"><img src="https://img.shields.io/github/downloads/BySergiMM/OmniMac/total?label=descargas&color=5b5bd6" alt="Descargas"></a>
   <a href="https://github.com/BySergiMM/OmniMac/actions/workflows/build.yml"><img src="https://github.com/BySergiMM/OmniMac/actions/workflows/build.yml/badge.svg" alt="Compilación"></a>
@@ -47,21 +51,16 @@
   </tr>
 </table>
 
-> 🇬🇧 **English:** OmniMac bundles seven Mac utilities into one free, open-source menu-bar app
-> (keep-awake, ⌘Tab by windows, dynamic notch, window snapping, clipboard, tools, sound) at
-> 0.017 % CPU and 50 MB idle. The interface is in Spanish for now; the website is available in
-> [English](https://bysergimm.github.io/OmniMac/en/).
-
 ## En dos líneas
 
 Mantener despierto, ⌘Tab por ventanas, notch dinámico, atajos y disposiciones de
 ventanas, historial del portapapeles, utilidades (OCR, color, micrófono…) y sonido con
 volumen por app. Consume **0,017 % de CPU y 50 MB de memoria real en reposo**: un 81 %
 menos que las cinco apps a las que sustituye ([estudio](docs/PERFORMANCE.md)). Sin cuentas,
-sin telemetría; se actualiza sola.
+sin telemetría; se actualiza sola. La interfaz sigue el idioma del Mac (español o inglés) y se puede fijar en Ajustes.
 
 **Instalar**: descarga [`OmniMac.pkg`](https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg)
-y ábrelo. Como no está firmada con una cuenta de desarrollador de Apple, la primera vez
+y ábrelo, o `brew install --cask BySergiMM/tap/omnimac`. Como no está firmada con una cuenta de desarrollador de Apple, la primera vez
 macOS avisará: Ajustes del Sistema › Privacidad y seguridad › «Abrir igualmente».
 
 ## Módulos

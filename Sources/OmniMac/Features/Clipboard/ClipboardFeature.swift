@@ -26,7 +26,7 @@ struct ClipItem: Identifiable, Equatable {
     var text: String {
         switch content {
         case .text(let string): string
-        case .image(let image): "Imagen · \(Int(image.size.width)) × \(Int(image.size.height))"
+        case .image(let image): L("Imagen · \(Int(image.size.width)) × \(Int(image.size.height))", "Image · \(Int(image.size.width)) × \(Int(image.size.height))")
         case .files(let urls): urls.map(\.lastPathComponent).joined(separator: ", ")
         }
     }
@@ -73,9 +73,9 @@ final class ClipboardFeature: BaseFeature {
         maxItems = stored == 0 ? 40 : stored
         persist = UserDefaults.standard.bool(forKey: "clipboard.persist")
         super.init(id: "clipboard",
-                   name: "Historial del portapapeles",
+                   name: L("Historial del portapapeles", "Clipboard history"),
                    symbol: "doc.on.clipboard",
-                   blurb: "Guarda lo que copias (texto, imágenes y archivos) y pégalo cuando quieras con ⇧⌘V.",
+                   blurb: L("Guarda lo que copias (texto, imágenes y archivos) y pégalo cuando quieras con ⇧⌘V.", "Saves what you copy (text, images and files) and pastes it whenever you want with ⇧⌘V."),
                    defaultEnabled: true)
 
         panel.onSelect = { [weak self] item in self?.paste(item) }

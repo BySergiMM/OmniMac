@@ -29,7 +29,7 @@ struct SoundTab: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help("Siguiente salida")
+                    .help(L("Siguiente salida", "Next output"))
                 }
                 Spacer(minLength: 8)
                 VolumeBar(value: sound.outputVolume, accent: true) { sound.outputVolume = $0 }
@@ -42,10 +42,10 @@ struct SoundTab: View {
 
             if mixer.apps.isEmpty {
                 VStack(spacing: 4) {
-                    Text("Ninguna app está sonando")
+                    Text(L("Ninguna app está sonando", "No app is playing"))
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text("Cuando alguna reproduzca audio podrás ponerle aquí su propio volumen.")
+                    Text(L("Cuando alguna reproduzca audio podrás ponerle aquí su propio volumen.", "When one plays audio you can give it its own volume here."))
                         .font(.system(size: 10.5))
                         .foregroundStyle(.white.opacity(0.5))
                         .multilineTextAlignment(.center)

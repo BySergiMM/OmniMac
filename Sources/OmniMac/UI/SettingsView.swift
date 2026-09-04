@@ -19,15 +19,15 @@ enum SettingsPage: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .home: "Inicio"
-        case .keepAwake: "Mantener despierto"
-        case .switcher: "⌘Tab por ventanas"
-        case .notch: "Notch dinámico"
-        case .snapping: "Atajos de ventanas"
-        case .clipboard: "Portapapeles"
-        case .tools: "Utilidades"
-        case .sound: "Sonido"
-        case .performance: "Rendimiento"
+        case .home: L("Inicio", "Home")
+        case .keepAwake: L("Mantener despierto", "Keep awake")
+        case .switcher: L("⌘Tab por ventanas", "⌘Tab by windows")
+        case .notch: L("Notch dinámico", "Dynamic notch")
+        case .snapping: L("Atajos de ventanas", "Window shortcuts")
+        case .clipboard: L("Portapapeles", "Clipboard")
+        case .tools: L("Utilidades", "Tools")
+        case .sound: L("Sonido", "Sound")
+        case .performance: L("Rendimiento", "Performance")
         }
     }
 
@@ -261,15 +261,15 @@ struct PermissionRow: View {
                 .font(.system(size: 22))
                 .foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 5) {
-                Text(kind == .accessibility ? "Falta el permiso de Accesibilidad" : "Falta el permiso de Grabación de pantalla")
+                Text(kind == .accessibility ? L("Falta el permiso de Accesibilidad", "Accessibility permission missing") : L("Falta el permiso de Grabación de pantalla", "Screen Recording permission missing"))
                     .font(.headline)
                 Text(kind == .accessibility
-                     ? "Necesario para el selector ⌘Tab, mover ventanas y pegar automáticamente. macOS te pedirá marcar OmniMac en la lista."
-                     : "Necesario para las miniaturas en vivo, copiar texto y colores de la pantalla.")
+                     ? L("Necesario para el selector ⌘Tab, mover ventanas y pegar automáticamente. macOS te pedirá marcar OmniMac en la lista.", "Needed for the ⌘Tab switcher, moving windows and auto-paste. macOS will ask you to tick OmniMac in the list.")
+                     : L("Necesario para las miniaturas en vivo, copiar texto y colores de la pantalla.", "Needed for live thumbnails and for copying text and colours from the screen."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Conceder permiso…") {
+                Button(L("Conceder permiso…", "Grant permission…")) {
                     if kind == .accessibility {
                         Permissions.requestAccessibility()
                         Permissions.openAccessibilitySettings()
@@ -306,7 +306,7 @@ struct HomePage: View {
                             .font(.title.bold())
                         Text(Brand.tagline)
                             .foregroundStyle(.secondary)
-                        Text("Versión \(Brand.version) · gratis y de código abierto")
+                        Text(L("Versión \(Brand.version) · gratis y de código abierto", "Version \(Brand.version) · free and open source"))
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
@@ -323,20 +323,27 @@ struct HomePage: View {
                     ModuleRow(feature: feature)
                 }
             } header: {
-                Text("Módulos")
+                Text(L("Módulos", "Modules"))
             } footer: {
-                Text("Cada módulo se activa o desactiva aquí; sus opciones están en su página de la barra lateral.")
+                Text(L("Cada módulo se activa o desactiva aquí; sus opciones están en su página de la barra lateral.", "Each module switches on or off here; its options live on its own page in the sidebar."))
             }
 
             Section("General") {
-                SettingToggle(title: "Abrir OmniMac al iniciar sesión",
-                              subtitle: loginError ?? "Así los módulos están siempre disponibles.",
+                SettingRow(title: L("Idioma", "Language"), subtitle: L("Por defecto, el del Mac. Cambiarlo reinicia OmniMac.", "Follows the Mac's language by default. Changing it relaunches OmniMac.")) {
+                    Picker("", selection: Binding(get: { Localization.preference }, set: { Localization.setPreference($0) })) {
+                        ForEach(AppLanguage.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .frame(width: 210)
+                }
+                SettingToggle(title: L("Abrir OmniMac al iniciar sesión", "Open OmniMac at login"),
+                              subtitle: loginError ?? L("Así los módulos están siempre disponibles.", "So the modules are always available."),
                               isOn: Binding(get: { loginEnabled }, set: setLogin))
-                SettingToggle(title: "Buscar actualizaciones automáticamente",
-                              subtitle: "Una vez al día. \(updater.lastCheckText).",
+                SettingToggle(title: L("Buscar actualizaciones automáticamente", "Check for updates automatically"),
+                              subtitle: L("Una vez al día. \(updater.lastCheckText).", "Once a day. \(updater.lastCheckText)."),
                               isOn: $updater.automaticChecks)
-                SettingRow(title: "Actualizaciones", subtitle: "Comprueba ahora si hay una versión nueva.") {
-                    Button("Buscar ahora") { updater.checkForUpdates() }
+                SettingRow(title: L("Actualizaciones", "Updates"), subtitle: L("Comprueba ahora si hay una versión nueva.", "Check now for a new version.")) {
+                    Button(L("Buscar ahora", "Check now")) { updater.checkForUpdates() }
                         .disabled(!updater.canCheck)
                 }
             }
@@ -345,9 +352,9 @@ struct HomePage: View {
                 HStack(spacing: 14) {
                     Text("☕️").font(.system(size: 28))
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("¿Te está ayudando OmniMac?")
+                        Text(L("¿Te está ayudando OmniMac?", "Is OmniMac helping you?"))
                             .font(.headline)
-                        Text("Es gratis, sin anuncios ni cuentas. Si quieres apoyar el desarrollo, invítame a un café.")
+                        Text(L("Es gratis, sin anuncios ni cuentas. Si quieres apoyar el desarrollo, invítame a un café.", "It's free, with no ads or accounts. If you want to support development, buy me a coffee."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -357,7 +364,7 @@ struct HomePage: View {
                         Button {
                             NSWorkspace.shared.open(Brand.coffeeURL)
                         } label: {
-                            Label("Invítame a un café", systemImage: "cup.and.saucer.fill")
+                            Label(L("Invítame a un café", "Buy me a coffee"), systemImage: "cup.and.saucer.fill")
                         }
                         .buttonStyle(.borderedProminent)
                         Button("GitHub Sponsors") { NSWorkspace.shared.open(Brand.sponsorsURL) }
@@ -366,7 +373,7 @@ struct HomePage: View {
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Apoyar el proyecto")
+                Text(L("Apoyar el proyecto", "Support the project"))
             }
         }
     }
@@ -378,7 +385,7 @@ struct HomePage: View {
             loginError = nil
         } catch {
             loginEnabled = SMAppService.mainApp.status == .enabled
-            loginError = "No se pudo cambiar: \(error.localizedDescription)"
+            loginError = L("No se pudo cambiar: \(error.localizedDescription)", "Couldn't change it: \(error.localizedDescription)")
         }
     }
 }
@@ -434,18 +441,18 @@ struct KeepAwakePage: View {
             ModuleHeader(feature: feature, page: .keepAwake)
 
             if feature.isEnabled {
-                Section("Sesión") {
+                Section(L("Sesión", "Session")) {
                     if feature.isActive {
                         HStack(spacing: 10) {
                             Image(systemName: "bolt.fill").foregroundStyle(.yellow)
-                            Text(feature.remainingDescription.map { "Activo · queda \($0)" } ?? "Activo · sin límite")
+                            Text(feature.remainingDescription.map { L("Activo · queda \($0)", "Active · \($0) left") } ?? L("Activo · sin límite", "Active · no limit"))
                             Spacer()
-                            Button("Desactivar") { feature.deactivate() }
+                            Button(L("Desactivar", "Turn off")) { feature.deactivate() }
                         }
                     } else {
-                        SettingRow(title: "Empezar", subtitle: "Sin límite o con temporizador.") {
+                        SettingRow(title: L("Empezar", "Start"), subtitle: L("Sin límite o con temporizador.", "Indefinitely or with a timer.")) {
                             HStack(spacing: 6) {
-                                Button("Sin límite") { feature.activate(minutes: nil) }
+                                Button(L("Sin límite", "No limit")) { feature.activate(minutes: nil) }
                                     .buttonStyle(.borderedProminent)
                                 Button("15 min") { feature.activate(minutes: 15) }
                                 Button("30 min") { feature.activate(minutes: 30) }
@@ -456,25 +463,25 @@ struct KeepAwakePage: View {
                             }
                             .controlSize(.small)
                         }
-                        SettingRow(title: "Hasta una hora concreta") {
+                        SettingRow(title: L("Hasta una hora concreta", "Until a specific time")) {
                             HStack(spacing: 8) {
                                 DatePicker("", selection: $untilTime, displayedComponents: .hourAndMinute)
                                     .labelsHidden()
-                                Button("Activar") { feature.activate(until: untilDate) }
+                                Button(L("Activar", "Turn on")) { feature.activate(until: untilDate) }
                             }
                         }
                     }
                 }
 
                 Section {
-                    SettingToggle(title: "Mantener también la pantalla encendida",
-                                  subtitle: "Si lo desactivas, la pantalla podrá apagarse pero el Mac seguirá despierto.",
+                    SettingToggle(title: L("Mantener también la pantalla encendida", "Keep the display on too"),
+                                  subtitle: L("Si lo desactivas, la pantalla podrá apagarse pero el Mac seguirá despierto.", "If you turn this off, the display may sleep but the Mac stays awake."),
                                   isOn: $feature.keepDisplayOn)
-                    SettingToggle(title: "Seguir despierto con la tapa cerrada",
-                                  subtitle: "Cierra el MacBook y la música sigue. La primera vez macOS pide tu contraseña de administrador; después no vuelve a pedirla.",
+                    SettingToggle(title: L("Seguir despierto con la tapa cerrada", "Stay awake with the lid closed"),
+                                  subtitle: L("Cierra el MacBook y la música sigue. La primera vez macOS pide tu contraseña de administrador; después no vuelve a pedirla.", "Close the MacBook and the music keeps playing. The first time macOS asks for your administrator password; it never asks again."),
                                   isOn: $feature.closedLidMode)
                     if feature.closedLidMode, feature.isActive, feature.closedLidActive {
-                        Label("Activo: el Mac no se dormirá al cerrar la tapa. No lo guardes en una bolsa con el café puesto.", systemImage: "laptopcomputer")
+                        Label(L("Activo: el Mac no se dormirá al cerrar la tapa. No lo guardes en una bolsa con el café puesto.", "Active: the Mac won't sleep when you close the lid. Don't put it in a bag with keep-awake on."), systemImage: "laptopcomputer")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else if feature.closedLidMode, let error = feature.closedLidError {
@@ -482,14 +489,14 @@ struct KeepAwakePage: View {
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
-                    SettingToggle(title: "Tiempo restante en la barra de menús",
-                                  subtitle: "Junto al icono, cuando la sesión tiene temporizador.",
+                    SettingToggle(title: L("Tiempo restante en la barra de menús", "Time left in the menu bar"),
+                                  subtitle: L("Junto al icono, cuando la sesión tiene temporizador.", "Next to the icon, when the session has a timer."),
                                   isOn: $feature.showRemainingInMenuBar)
-                    SettingToggle(title: "Avisar cuando termine la sesión",
-                                  subtitle: "Una notificación al acabar el temporizador o al pararse por batería.",
+                    SettingToggle(title: L("Avisar cuando termine la sesión", "Notify when the session ends"),
+                                  subtitle: L("Una notificación al acabar el temporizador o al pararse por batería.", "A notification when the timer ends or the session stops because of the battery."),
                                   isOn: $feature.notifyOnEnd)
-                    SettingRow(title: "Parar si la batería baja del…",
-                               subtitle: "Sin cargador conectado, la sesión termina para no agotar la batería.") {
+                    SettingRow(title: L("Parar si la batería baja del…", "Stop if the battery drops below…"),
+                               subtitle: L("Sin cargador conectado, la sesión termina para no agotar la batería.", "Without the charger connected, the session ends so the battery isn't drained.")) {
                         HStack(spacing: 8) {
                             Picker("", selection: $feature.lowBatteryThreshold) {
                                 Text("10 %").tag(10)
@@ -505,22 +512,22 @@ struct KeepAwakePage: View {
                         }
                     }
                 } header: {
-                    Text("Opciones")
+                    Text(L("Opciones", "Options"))
                 } footer: {
-                    Text("El modo tapa cerrada instala una regla que solo permite a OmniMac cambiar el ajuste de energía «disablesleep». Para quitarla: sudo rm /etc/sudoers.d/omnimac-lid")
+                    Text(L("El modo tapa cerrada instala una regla que solo permite a OmniMac cambiar el ajuste de energía «disablesleep». Para quitarla: sudo rm /etc/sudoers.d/omnimac-lid", "Closed-lid mode installs a rule that only lets OmniMac change the “disablesleep” power setting. To remove it: sudo rm /etc/sudoers.d/omnimac-lid"))
                 }
 
                 Section {
-                    SettingToggle(title: "Mientras esté conectado al cargador",
-                                  subtitle: "Se activa solo al enchufarlo y se apaga al desenchufarlo.",
+                    SettingToggle(title: L("Mientras esté conectado al cargador", "While the charger is connected"),
+                                  subtitle: L("Se activa solo al enchufarlo y se apaga al desenchufarlo.", "Turns on when you plug it in and off when you unplug it."),
                                   isOn: $feature.awakeWhilePluggedIn)
-                    SettingToggle(title: "Mientras haya una pantalla externa",
-                                  subtitle: "Ideal si trabajas con monitor: nunca se duerme a mitad de algo.",
+                    SettingToggle(title: L("Mientras haya una pantalla externa", "While an external display is connected"),
+                                  subtitle: L("Ideal si trabajas con monitor: nunca se duerme a mitad de algo.", "Ideal with a monitor: it never sleeps halfway through something."),
                                   isOn: $feature.awakeWithExternalDisplay)
                 } header: {
-                    Text("Activar automáticamente")
+                    Text(L("Activar automáticamente", "Turn on automatically"))
                 } footer: {
-                    Text("También puedes activarlo desde el icono de la barra de menús o desde el notch.")
+                    Text(L("También puedes activarlo desde el icono de la barra de menús o desde el notch.", "You can also turn it on from the menu-bar icon or from the notch."))
                 }
             }
         }
@@ -540,32 +547,32 @@ struct SwitcherPage: View {
             if !axGranted { Section { PermissionRow(kind: .accessibility) } }
 
             if feature.isEnabled {
-                Section("Opciones") {
-                    SettingToggle(title: "Miniaturas en vivo",
-                                  subtitle: "Una vista previa real de cada ventana, como AltTab. Necesita Grabación de pantalla.",
+                Section(L("Opciones", "Options")) {
+                    SettingToggle(title: L("Miniaturas en vivo", "Live thumbnails"),
+                                  subtitle: L("Una vista previa real de cada ventana, como AltTab. Necesita Grabación de pantalla.", "A real preview of every window, like AltTab. Needs Screen Recording."),
                                   isOn: $feature.showThumbnails)
                     if feature.showThumbnails && !screenGranted { PermissionRow(kind: .screenRecording) }
-                    SettingToggle(title: "También con ⌥Tab",
-                                  subtitle: "Abre el selector con ⌥Tab además de ⌘Tab (se confirma al soltar ⌥).",
+                    SettingToggle(title: L("También con ⌥Tab", "Also with ⌥Tab"),
+                                  subtitle: L("Abre el selector con ⌥Tab además de ⌘Tab (se confirma al soltar ⌥).", "Opens the switcher with ⌥Tab as well as ⌘Tab (confirmed when you release ⌥)."),
                                   isOn: $feature.useOptionTab)
-                    SettingToggle(title: "Incluir ventanas minimizadas",
-                                  subtitle: "Aparecen al final con una insignia naranja y se restauran al elegirlas.",
+                    SettingToggle(title: L("Incluir ventanas minimizadas", "Include minimized windows"),
+                                  subtitle: L("Aparecen al final con una insignia naranja y se restauran al elegirlas.", "They appear last with an orange badge and are restored when chosen."),
                                   isOn: $feature.includeMinimized)
                 }
 
                 Section {
-                    ShortcutRow(keys: "⌘ Tab", text: "abre el selector y avanza")
+                    ShortcutRow(keys: "⌘ Tab", text: L("abre el selector y avanza", "opens the switcher and moves forward"))
                     ShortcutRow(keys: "⌘⇧ Tab", text: "retrocede")
-                    ShortcutRow(keys: "⌘ + flechas", text: "moverse por la cuadrícula")
-                    ShortcutRow(keys: "Escribir", text: "busca por título de ventana o app")
-                    ShortcutRow(keys: "⌘ W / ⌘ M", text: "cierra / minimiza la ventana elegida")
-                    ShortcutRow(keys: "⌘ H / ⌘ Q", text: "oculta / cierra la app de la ventana elegida")
-                    ShortcutRow(keys: "Soltar ⌘", text: "cambia a la ventana elegida")
+                    ShortcutRow(keys: L("⌘ + flechas", "⌘ + arrows"), text: L("moverse por la cuadrícula", "move around the grid"))
+                    ShortcutRow(keys: L("Escribir", "Type"), text: L("busca por título de ventana o app", "searches by window or app title"))
+                    ShortcutRow(keys: "⌘ W / ⌘ M", text: L("cierra / minimiza la ventana elegida", "closes / minimizes the selected window"))
+                    ShortcutRow(keys: "⌘ H / ⌘ Q", text: L("oculta / cierra la app de la ventana elegida", "hides / quits the selected window's app"))
+                    ShortcutRow(keys: L("Soltar ⌘", "Release ⌘"), text: L("cambia a la ventana elegida", "switches to the selected window"))
                     ShortcutRow(keys: "Esc", text: "cancela")
                 } header: {
-                    Text("Cómo se usa")
+                    Text(L("Cómo se usa", "How to use it"))
                 } footer: {
-                    Text("Mientras este módulo está activo, el selector nativo de macOS queda sustituido.")
+                    Text(L("Mientras este módulo está activo, el selector nativo de macOS queda sustituido.", "While this module is on, the native macOS switcher is replaced."))
                 }
             }
         }
@@ -588,9 +595,9 @@ struct NotchPage: View {
             ModuleHeader(feature: feature, page: .notch)
 
             if feature.isEnabled {
-                Section("Apertura") {
-                    SettingRow(title: "Retardo antes de abrir",
-                               subtitle: "Cuánto hay que estar con el ratón encima (la animación añade ~0,1 s).") {
+                Section(L("Apertura", "Opening")) {
+                    SettingRow(title: L("Retardo antes de abrir", "Delay before opening"),
+                               subtitle: L("Cuánto hay que estar con el ratón encima (la animación añade ~0,1 s).", "How long the mouse must hover (the animation adds ~0.1 s).")) {
                         HStack(spacing: 10) {
                             Slider(value: $hoverDelay, in: 0.1...1.0, step: 0.1)
                                 .frame(width: 140)
@@ -600,14 +607,14 @@ struct NotchPage: View {
                                 .frame(width: 36, alignment: .trailing)
                         }
                     }
-                    SettingToggle(title: "Vibración al abrir",
-                                  subtitle: "Un toque en el trackpad cuando se expande.",
+                    SettingToggle(title: L("Vibración al abrir", "Haptic on open"),
+                                  subtitle: L("Un toque en el trackpad cuando se expande.", "A tap on the trackpad when it expands."),
                                   isOn: Binding(get: { haptic != 0 }, set: { haptic = $0 ? 1 : 0 }))
                     if haptic != 0 {
-                        SettingRow(title: "Intensidad") {
+                        SettingRow(title: L("Intensidad", "Intensity")) {
                             Picker("", selection: $haptic) {
-                                Text("Mínima").tag(1)
-                                Text("Suave").tag(2)
+                                Text(L("Mínima", "Minimal")).tag(1)
+                                Text(L("Suave", "Soft")).tag(2)
                             }
                             .pickerStyle(.segmented)
                             .frame(width: 150)
@@ -628,20 +635,20 @@ struct NotchPage: View {
                                         }))
                     }
                 } header: {
-                    Text("Pestañas")
+                    Text(L("Pestañas", "Tabs"))
                 } footer: {
-                    Text("Apaga lo que no uses: su icono desaparece del notch al momento.")
+                    Text(L("Apaga lo que no uses: su icono desaparece del notch al momento.", "Switch off what you don't use: its icon disappears from the notch at once."))
                 }
 
-                Section("Botones de la cabecera") {
-                    SettingToggle(title: "Mantener despierto (café)", subtitle: "Activa o apaga el café con un clic.", isOn: $feature.showCoffeeButton)
-                    SettingToggle(title: "Ajustes de OmniMac (engranaje)", subtitle: "Abre esta ventana.", isOn: $feature.showSettingsButton)
-                    SettingToggle(title: "Batería", subtitle: "Porcentaje y estado; clic para ir a Ajustes del Sistema › Batería.", isOn: $feature.showBattery)
+                Section(L("Botones de la cabecera", "Header buttons")) {
+                    SettingToggle(title: L("Mantener despierto (café)", "Keep awake (coffee)"), subtitle: L("Activa o apaga el café con un clic.", "Turns keep-awake on or off with one click."), isOn: $feature.showCoffeeButton)
+                    SettingToggle(title: L("Ajustes de OmniMac (engranaje)", "OmniMac settings (gear)"), subtitle: L("Abre esta ventana.", "Opens this window."), isOn: $feature.showSettingsButton)
+                    SettingToggle(title: L("Batería", "Battery"), subtitle: L("Porcentaje y estado; clic para ir a Ajustes del Sistema › Batería.", "Percentage and state; click to open System Settings › Battery."), isOn: $feature.showBattery)
                 }
 
-                Section("Música") {
-                    SettingRow(title: "App de música",
-                               subtitle: "La que el notch controla y puede abrir para reproducir aunque esté cerrada.") {
+                Section(L("Música", "Music")) {
+                    SettingRow(title: L("App de música", "Music app"),
+                               subtitle: L("La que el notch controla y puede abrir para reproducir aunque esté cerrada.", "The one the notch controls and can launch to play even if it's closed.")) {
                         Picker("", selection: Binding(
                             get: { player?.rawValue ?? "" },
                             set: { raw in
@@ -649,7 +656,7 @@ struct NotchPage: View {
                                 MusicPlayer.preferred = player
                             }
                         )) {
-                            Text("Sin asignar").tag("")
+                            Text(L("Sin asignar", "Not set")).tag("")
                             ForEach(MusicPlayer.installed) { candidate in
                                 Text(candidate.displayName).tag(candidate.rawValue)
                             }
@@ -657,14 +664,14 @@ struct NotchPage: View {
                         .labelsHidden()
                         .frame(width: 150)
                     }
-                    SettingToggle(title: "Vistazo rápido al cambiar de canción",
-                                  subtitle: "Título y artista bajo el notch durante unos segundos.",
+                    SettingToggle(title: L("Vistazo rápido al cambiar de canción", "Sneak peek on track change"),
+                                  subtitle: L("Título y artista bajo el notch durante unos segundos.", "Title and artist under the notch for a few seconds."),
                                   isOn: $feature.sneakPeek)
                 }
 
                 Section {
-                    SettingRow(title: "Dónde aparecen los avisos",
-                               subtitle: "«Texto copiado», «Micrófono silenciado», el temporizador…") {
+                    SettingRow(title: L("Dónde aparecen los avisos", "Where notices appear"),
+                               subtitle: L("«Texto copiado», «Micrófono silenciado», el temporizador…", "“Text copied”, “Microphone muted”, the timer…")) {
                         Picker("", selection: $toastStyle) {
                             ForEach(ToastStyle.allCases, id: \.rawValue) { style in
                                 Text(style.title).tag(style.rawValue)
@@ -673,27 +680,27 @@ struct NotchPage: View {
                         .labelsHidden()
                         .frame(width: 190)
                     }
-                    SettingRow(title: "Probar") {
-                        Button("Enseñar un aviso") { Toast.show("Así se ven los avisos", symbol: "hand.wave.fill", duration: 2.5) }
+                    SettingRow(title: L("Probar", "Try it")) {
+                        Button(L("Enseñar un aviso", "Show a notice")) { Toast.show(L("Así se ven los avisos", "This is what notices look like"), symbol: "hand.wave.fill", duration: 2.5) }
                     }
                 } header: {
-                    Text("Avisos")
+                    Text(L("Avisos", "Notices"))
                 } footer: {
-                    Text("Con el notch abierto u oculto (pantalla completa), el aviso sale abajo.")
+                    Text(L("Con el notch abierto u oculto (pantalla completa), el aviso sale abajo.", "With the notch open or hidden (full screen), the notice appears at the bottom."))
                 }
 
                 Section {
-                    SettingRow(title: "Trabajo") { minutesStepper($timer.workMinutes, range: 5...120) }
-                    SettingRow(title: "Descanso") { minutesStepper($timer.restMinutes, range: 1...60) }
-                    SettingRow(title: "Descanso largo") { minutesStepper($timer.longRestMinutes, range: 5...90) }
-                    SettingRow(title: "Descanso largo cada", subtitle: "Pomodoros seguidos antes del descanso largo (0 = nunca).") {
+                    SettingRow(title: L("Trabajo", "Work")) { minutesStepper($timer.workMinutes, range: 5...120) }
+                    SettingRow(title: L("Descanso", "Break")) { minutesStepper($timer.restMinutes, range: 1...60) }
+                    SettingRow(title: L("Descanso largo", "Long break")) { minutesStepper($timer.longRestMinutes, range: 5...90) }
+                    SettingRow(title: L("Descanso largo cada", "Long break every"), subtitle: L("Pomodoros seguidos antes del descanso largo (0 = nunca).", "Pomodoros in a row before a long break (0 = never).")) {
                         Stepper(value: $timer.longRestEvery, in: 0...10) {
                             Text(timer.longRestEvery == 0 ? "nunca" : "\(timer.longRestEvery) pomodoros")
                                 .monospacedDigit()
                                 .frame(width: 96, alignment: .trailing)
                         }
                     }
-                    SettingRow(title: "Tiempos rápidos", subtitle: "Los botones del notch, en minutos y separados por comas (hasta 6).") {
+                    SettingRow(title: L("Tiempos rápidos", "Quick times"), subtitle: L("Los botones del notch, en minutos y separados por comas (hasta 6).", "The notch buttons, in minutes, separated by commas (up to 6).")) {
                         TextField("5, 10, 25, 45, 60", text: $presetsText)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 170)
@@ -703,34 +710,34 @@ struct NotchPage: View {
                             }
                     }
                 } header: {
-                    Text("Temporizador y Pomodoro")
+                    Text(L("Temporizador y Pomodoro", "Timer and Pomodoro"))
                 } footer: {
-                    Text("Pulsa Intro en los tiempos rápidos para guardarlos.")
+                    Text(L("Pulsa Intro en los tiempos rápidos para guardarlos.", "Press Return in the quick times to save them."))
                 }
 
                 Section {
-                    SettingToggle(title: "Animación al conectar AirPods o Beats",
-                                  subtitle: "El notch se despliega un momento con el modelo y la batería de cada pieza, como en el iPhone, y se pliega solo.",
+                    SettingToggle(title: L("Animación al conectar AirPods o Beats", "Animation when AirPods or Beats connect"),
+                                  subtitle: L("El notch se despliega un momento con el modelo y la batería de cada pieza, como en el iPhone, y se pliega solo.", "The notch expands for a moment with the model and each piece's battery, like on iPhone, and folds away by itself."),
                                   isOn: $feature.headphonesCard)
-                    SettingToggle(title: "Ocultar el aviso de macOS",
-                                  subtitle: "Cierra el aviso de «conectados» de Control Center en cuanto aparece. Necesita Accesibilidad; experimental.",
+                    SettingToggle(title: L("Ocultar el aviso de macOS", "Hide the macOS banner"),
+                                  subtitle: L("Cierra el aviso de «conectados» de Control Center en cuanto aparece. Necesita Accesibilidad; experimental.", "Closes Control Center's “connected” banner as soon as it appears. Needs Accessibility; experimental."),
                                   isOn: $feature.hideSystemBanner)
                     .disabled(!feature.headphonesCard)
-                    SettingRow(title: "Vista previa", subtitle: "Enseña la tarjeta con unos AirPods Pro de ejemplo.") {
-                        Button("Probar") { feature.previewHeadphones() }
+                    SettingRow(title: L("Vista previa", "Preview"), subtitle: L("Enseña la tarjeta con unos AirPods Pro de ejemplo.", "Shows the card with sample AirPods Pro.")) {
+                        Button(L("Probar", "Try it")) { feature.previewHeadphones() }
                     }
                 } header: {
-                    Text("Auriculares")
+                    Text(L("Auriculares", "Headphones"))
                 } footer: {
-                    Text("Sin permisos extra: la app se entera por CoreAudio en cuanto aparecen los auriculares y lee la batería con la información del sistema. Funciona con AirPods (todos), AirPods Max y Beats.")
+                    Text(L("Sin permisos extra: la app se entera por CoreAudio en cuanto aparecen los auriculares y lee la batería con la información del sistema. Funciona con AirPods (todos), AirPods Max y Beats.", "No extra permissions: the app hears about the headphones through CoreAudio as soon as they appear and reads the battery from System Information. Works with all AirPods, AirPods Max and Beats."))
                 }
 
-                Section("Otros") {
-                    SettingToggle(title: "Ocultar en apps a pantalla completa",
-                                  subtitle: "Vídeo, juegos, presentaciones… el notch no estorba.",
+                Section(L("Otros", "Other")) {
+                    SettingToggle(title: L("Ocultar en apps a pantalla completa", "Hide in full-screen apps"),
+                                  subtitle: L("Vídeo, juegos, presentaciones… el notch no estorba.", "Video, games, presentations… the notch stays out of the way."),
                                   isOn: $feature.hideInFullscreen)
-                    SettingToggle(title: "Mostrar también sin notch",
-                                  subtitle: "En pantallas sin notch aparece una pequeña isla negra arriba, en el centro.",
+                    SettingToggle(title: L("Mostrar también sin notch", "Show on Macs without a notch too"),
+                                  subtitle: L("En pantallas sin notch aparece una pequeña isla negra arriba, en el centro.", "On displays without a notch, a small black island appears at the top centre."),
                                   isOn: $feature.showWithoutNotch)
                 }
             }
@@ -760,21 +767,21 @@ struct SnappingPage: View {
             if !axGranted { Section { PermissionRow(kind: .accessibility) } }
 
             if feature.isEnabled {
-                Section("Opciones") {
-                    SettingToggle(title: "Ajustar arrastrando a los bordes",
-                                  subtitle: "Arrastra una ventana a un lado (mitad), a una esquina (cuarto) o arriba (maximizar); una huella te enseña dónde quedará.",
+                Section(L("Opciones", "Options")) {
+                    SettingToggle(title: L("Ajustar arrastrando a los bordes", "Snap by dragging to the edges"),
+                                  subtitle: L("Arrastra una ventana a un lado (mitad), a una esquina (cuarto) o arriba (maximizar); una huella te enseña dónde quedará.", "Drag a window to a side (half), a corner (quarter) or the top (maximize); a footprint shows where it will land."),
                                   isOn: $feature.snapByDragging)
-                    SettingToggle(title: "Ciclar tamaños al repetir",
-                                  subtitle: "Repetir un atajo de mitad en la misma ventana pasa de ½ a ⅔ y a ⅓.",
+                    SettingToggle(title: L("Ciclar tamaños al repetir", "Cycle sizes on repeat"),
+                                  subtitle: L("Repetir un atajo de mitad en la misma ventana pasa de ½ a ⅔ y a ⅓.", "Repeating a half shortcut on the same window goes from ½ to ⅔ to ⅓."),
                                   isOn: $feature.cycleSizes)
                 }
 
                 Section {
                     HStack(spacing: 8) {
-                        TextField("Nombre, p. ej. «Trabajo» o «Monitor»", text: $newName)
+                        TextField(L("Nombre, p. ej. «Trabajo» o «Monitor»", "Name, e.g. “Work” or “Monitor”"), text: $newName)
                             .textFieldStyle(.roundedBorder)
                             .onSubmit(saveLayout)
-                        Button("Guardar la disposición actual", action: saveLayout)
+                        Button(L("Guardar la disposición actual", "Save the current layout"), action: saveLayout)
                             .buttonStyle(.borderedProminent)
                             .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
@@ -784,32 +791,32 @@ struct SnappingPage: View {
                                 get: { layout.hotKey ?? 0 },
                                 set: { store.setHotKey($0 == 0 ? nil : $0, for: layout) }
                             )) {
-                                Text("Sin atajo").tag(0)
+                                Text(L("Sin atajo", "No shortcut")).tag(0)
                                 ForEach(1...9, id: \.self) { number in Text("⌃⌥ \(number)").tag(number) }
                             }
                             .labelsHidden()
                             .frame(width: 100)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(layout.name).fontWeight(.semibold)
-                                Text("\(layout.windows.count) ventanas de \(layout.appCount) apps · \(layout.screenCount == 1 ? "1 pantalla" : "\(layout.screenCount) pantallas")")
+                                Text(L("\(layout.windows.count) ventanas de \(layout.appCount) apps · \(layout.screenCount == 1 ? "1 pantalla" : "\(layout.screenCount) pantallas")", "\(layout.windows.count) windows from \(layout.appCount) apps · \(layout.screenCount == 1 ? "1 display" : "\(layout.screenCount) displays")"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("Aplicar") { store.apply(layout) }
-                            Button("Actualizar") { store.refresh(layout) }
-                                .help("Vuelve a guardar dónde están las ventanas ahora")
-                            Button("Eliminar", role: .destructive) { store.delete(layout) }
+                            Button(L("Aplicar", "Apply")) { store.apply(layout) }
+                            Button(L("Actualizar", "Update")) { store.refresh(layout) }
+                                .help(L("Vuelve a guardar dónde están las ventanas ahora", "Saves where the windows are now again"))
+                            Button(L("Eliminar", "Delete"), role: .destructive) { store.delete(layout) }
                         }
                         .controlSize(.small)
                     }
-                    SettingToggle(title: "Aplicar sola al cambiar de pantallas",
-                                  subtitle: "Al conectar o quitar un monitor, coloca las ventanas según la última disposición guardada con ese número de pantallas.",
+                    SettingToggle(title: L("Aplicar sola al cambiar de pantallas", "Apply automatically when displays change"),
+                                  subtitle: L("Al conectar o quitar un monitor, coloca las ventanas según la última disposición guardada con ese número de pantallas.", "When you connect or remove a monitor, windows are placed following the last layout saved with that number of displays."),
                                   isOn: $store.autoApply)
                 } header: {
-                    Text("Disposiciones")
+                    Text(L("Disposiciones", "Layouts"))
                 } footer: {
-                    Text("Sin abrir Ajustes: ⌃⌥ + número guarda la disposición actual si ese número está libre, o la aplica si ya tiene una; mantén pulsado el atajo para liberar el número. ⌃⌥0 deshace la última aplicada.")
+                    Text(L("Sin abrir Ajustes: ⌃⌥ + número guarda la disposición actual si ese número está libre, o la aplica si ya tiene una; mantén pulsado el atajo para liberar el número. ⌃⌥0 deshace la última aplicada.", "Without opening Settings: ⌃⌥ + number saves the current layout if that number is free, or applies it if it already has one; hold the shortcut to free the number. ⌃⌥0 undoes the last one applied."))
                 }
 
                 Section {
@@ -817,9 +824,9 @@ struct SnappingPage: View {
                         ShortcutRow(keys: item.shortcut, text: item.action)
                     }
                 } header: {
-                    Text("Atajos")
+                    Text(L("Atajos", "Shortcuts"))
                 } footer: {
-                    Text("«Restaurar» devuelve la ventana a como estaba antes del primer ajuste.")
+                    Text(L("«Restaurar» devuelve la ventana a como estaba antes del primer ajuste.", "“Restore” returns the window to how it was before the first snap."))
                 }
             }
         }
@@ -844,7 +851,7 @@ struct ClipboardPage: View {
 
             if feature.isEnabled {
                 Section {
-                    SettingRow(title: "Elementos guardados", subtitle: "Cuántas copias recordar como máximo.") {
+                    SettingRow(title: L("Elementos guardados", "Items kept"), subtitle: L("Cuántas copias recordar como máximo.", "How many copies to remember at most.")) {
                         Picker("", selection: $feature.maxItems) {
                             Text("20").tag(20)
                             Text("40").tag(40)
@@ -854,29 +861,29 @@ struct ClipboardPage: View {
                         .frame(width: 160)
                         .labelsHidden()
                     }
-                    SettingToggle(title: "Guardar el historial en disco",
-                                  subtitle: "Se conserva al cerrar la app (en tu carpeta de Application Support, sin cifrar). Apagado, solo vive en memoria.",
+                    SettingToggle(title: L("Guardar el historial en disco", "Save the history to disk"),
+                                  subtitle: L("Se conserva al cerrar la app (en tu carpeta de Application Support, sin cifrar). Apagado, solo vive en memoria.", "Kept when the app quits (in your Application Support folder, unencrypted). Off, it lives only in memory."),
                                   isOn: $feature.persist)
-                    SettingToggle(title: "Pausar el historial",
-                                  subtitle: "Mientras esté en pausa no se guarda nada de lo que copies.",
+                    SettingToggle(title: L("Pausar el historial", "Pause the history"),
+                                  subtitle: L("Mientras esté en pausa no se guarda nada de lo que copies.", "While paused, nothing you copy is saved."),
                                   isOn: $feature.paused)
-                    SettingRow(title: "\(feature.items.count) elementos en el historial") {
-                        Button("Vaciar historial", role: .destructive) { feature.clear() }
+                    SettingRow(title: L("\(feature.items.count) elementos en el historial", "\(feature.items.count) items in the history")) {
+                        Button(L("Vaciar historial", "Clear history"), role: .destructive) { feature.clear() }
                             .controlSize(.small)
                     }
                 } header: {
-                    Text("Opciones")
+                    Text(L("Opciones", "Options"))
                 } footer: {
-                    Text("Guarda texto, imágenes y archivos. Se ignoran los gestores de contraseñas y las copias marcadas como confidenciales.")
+                    Text(L("Guarda texto, imágenes y archivos. Se ignoran los gestores de contraseñas y las copias marcadas como confidenciales.", "Saves text, images and files. Password managers and copies marked confidential are ignored."))
                 }
 
-                Section("Cómo se usa") {
-                    ShortcutRow(keys: "⇧⌘ V", text: "abre el historial")
-                    ShortcutRow(keys: "Escribir", text: "busca en lo copiado")
-                    ShortcutRow(keys: "↑ ↓ o 1–9", text: "elige un elemento")
-                    ShortcutRow(keys: "↩", text: "lo pega donde estabas escribiendo")
-                    ShortcutRow(keys: "⌥ P", text: "ancla el elemento (siempre arriba y se conserva)")
-                    ShortcutRow(keys: "⌥ ⌫", text: "borra el elemento elegido")
+                Section(L("Cómo se usa", "How to use it")) {
+                    ShortcutRow(keys: "⇧⌘ V", text: L("abre el historial", "opens the history"))
+                    ShortcutRow(keys: L("Escribir", "Type"), text: L("busca en lo copiado", "searches what you copied"))
+                    ShortcutRow(keys: L("↑ ↓ o 1–9", "↑ ↓ or 1–9"), text: L("elige un elemento", "selects an item"))
+                    ShortcutRow(keys: "↩", text: L("lo pega donde estabas escribiendo", "pastes it where you were typing"))
+                    ShortcutRow(keys: "⌥ P", text: L("ancla el elemento (siempre arriba y se conserva)", "pins the item (always on top and kept)"))
+                    ShortcutRow(keys: "⌥ ⌫", text: L("borra el elemento elegido", "deletes the selected item"))
                 }
             }
         }
@@ -897,34 +904,34 @@ struct ToolsPage: View {
             if feature.isEnabled {
                 if !screenGranted { Section { PermissionRow(kind: .screenRecording) } }
 
-                Section("Herramientas") {
-                    SettingRow(title: "Copiar texto de la pantalla",
-                               subtitle: "⇧⌘2: selecciona cualquier zona (una imagen, un vídeo, una app que no deja copiar) y el texto va al portapapeles.") {
-                        Button("Probar") { feature.captureText() }
+                Section(L("Herramientas", "Tools")) {
+                    SettingRow(title: L("Copiar texto de la pantalla", "Copy text from the screen"),
+                               subtitle: L("⇧⌘2: selecciona cualquier zona (una imagen, un vídeo, una app que no deja copiar) y el texto va al portapapeles.", "⇧⌘2: select any area (an image, a video, an app that won't let you copy) and the text goes to the clipboard.")) {
+                        Button(L("Probar", "Try it")) { feature.captureText() }
                     }
-                    SettingRow(title: "Copiar un color de la pantalla",
-                               subtitle: "⇧⌘6: haz clic en cualquier punto y su color va al portapapeles en hexadecimal (#3A7BD5).") {
-                        Button("Probar") { feature.pickColor() }
+                    SettingRow(title: L("Copiar un color de la pantalla", "Copy a colour from the screen"),
+                               subtitle: L("⇧⌘6: haz clic en cualquier punto y su color va al portapapeles en hexadecimal (#3A7BD5).", "⇧⌘6: click any point and its colour goes to the clipboard as hex (#3A7BD5).")) {
+                        Button(L("Probar", "Try it")) { feature.pickColor() }
                     }
-                    SettingRow(title: "Silenciar el micrófono",
-                               subtitle: "⌃⌥⌘M en cualquier app (videollamadas). Cambia el micrófono por defecto del sistema.") {
-                        Button(feature.microphoneMuted ? "Activar" : "Silenciar") { feature.toggleMicrophone() }
+                    SettingRow(title: L("Silenciar el micrófono", "Mute the microphone"),
+                               subtitle: L("⌃⌥⌘M en cualquier app (videollamadas). Cambia el micrófono por defecto del sistema.", "⌃⌥⌘M in any app (video calls). Changes the system's default microphone.")) {
+                        Button(feature.microphoneMuted ? L("Activar", "Turn on") : L("Silenciar", "Mute")) { feature.toggleMicrophone() }
                     }
-                    SettingRow(title: "Bloquear el teclado para limpiarlo",
-                               subtitle: "⌃⌥⌘L: 30 segundos sin que ninguna tecla haga nada; un clic lo desbloquea. Necesita Accesibilidad.") {
-                        Button("Bloquear 30 s") { feature.lockKeyboard() }
+                    SettingRow(title: L("Bloquear el teclado para limpiarlo", "Lock the keyboard to clean it"),
+                               subtitle: L("⌃⌥⌘L: 30 segundos sin que ninguna tecla haga nada; un clic lo desbloquea. Necesita Accesibilidad.", "⌃⌥⌘L: 30 seconds during which no key does anything; a click unlocks it. Needs Accessibility.")) {
+                        Button(L("Bloquear 30 s", "Lock for 30 s")) { feature.lockKeyboard() }
                             .disabled(!axGranted)
                     }
-                    SettingToggle(title: "Evitar cerrar apps por accidente",
-                                  subtitle: "⌘Q solo cierra la app si lo mantienes pulsado medio segundo; un toque rápido no hace nada. Necesita Accesibilidad.",
+                    SettingToggle(title: L("Evitar cerrar apps por accidente", "Prevent quitting apps by accident"),
+                                  subtitle: L("⌘Q solo cierra la app si lo mantienes pulsado medio segundo; un toque rápido no hace nada. Necesita Accesibilidad.", "⌘Q only quits the app if you hold it for half a second; a quick tap does nothing. Needs Accessibility."),
                                   isOn: $feature.quitGuardEnabled)
                         .disabled(!axGranted)
-                    SettingToggle(title: "Ocultar los iconos del escritorio",
-                                  subtitle: "Para presentaciones y capturas limpias. Finder se reinicia un instante al cambiarlo.",
+                    SettingToggle(title: L("Ocultar los iconos del escritorio", "Hide desktop icons"),
+                                  subtitle: L("Para presentaciones y capturas limpias. Finder se reinicia un instante al cambiarlo.", "For presentations and clean screenshots. Finder restarts for an instant when you change it."),
                                   isOn: Binding(get: { feature.desktopIconsHidden }, set: { _ in feature.toggleDesktopIcons() }))
                 }
 
-                Section("Atajos") {
+                Section(L("Atajos", "Shortcuts")) {
                     ForEach(ToolsFeature.shortcutHelp, id: \.shortcut) { item in
                         ShortcutRow(keys: item.shortcut, text: item.action)
                     }

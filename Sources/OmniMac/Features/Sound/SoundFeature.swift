@@ -44,7 +44,7 @@ final class SoundFeature: BaseFeature {
     private static let cycleHotKey: UInt32 = 400
 
     static let shortcutHelp: [(shortcut: String, action: String)] = [
-        ("⌃⌥⌘ O", "Cambia a la siguiente salida de audio (altavoces, auriculares, monitor…)"),
+        ("⌃⌥⌘ O", L("Cambia a la siguiente salida de audio (altavoces, auriculares, monitor…)", "Switches to the next audio output (speakers, headphones, monitor…)")),
     ]
 
     var outputDevices: [AudioDevice] { devices.filter(\.hasOutput) }
@@ -54,9 +54,9 @@ final class SoundFeature: BaseFeature {
 
     init() {
         super.init(id: "sound",
-                   name: "Sonido",
+                   name: L("Sonido", "Sound"),
                    symbol: "speaker.wave.3.fill",
-                   blurb: "Volumen distinto para cada app, cambio de altavoces o micrófono al instante, balance y silencio por dispositivo, y un atajo para ciclar la salida.",
+                   blurb: L("Volumen distinto para cada app, cambio de altavoces o micrófono al instante, balance y silencio por dispositivo, y un atajo para ciclar la salida.", "A different volume for every app, instant switching of speakers or microphone, balance and mute per device, and a shortcut to cycle the output."),
                    defaultEnabled: true)
     }
 
@@ -146,12 +146,12 @@ final class SoundFeature: BaseFeature {
     func cycleOutput() {
         let outputs = outputDevices
         guard outputs.count > 1 else {
-            Toast.show("Solo hay una salida de audio", symbol: "speaker.wave.2.fill")
+            Toast.show(L("Solo hay una salida de audio", "There is only one audio output"), symbol: "speaker.wave.2.fill")
             return
         }
         let index = outputs.firstIndex { $0.id == output } ?? -1
         let next = outputs[(index + 1) % outputs.count]
         selectOutput(next.id)
-        Toast.show("Salida: \(next.name)", symbol: "speaker.wave.2.fill")
+        Toast.show(L("Salida: \(next.name)", "Output: \(next.name)"), symbol: "speaker.wave.2.fill")
     }
 }

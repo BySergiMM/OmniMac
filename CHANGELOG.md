@@ -1,8 +1,11 @@
 # Cambios
 
-## Sin publicar
+## 0.4.0 — 2026-09-04
 
-- Notch: la tarjeta de AirPods se abre en un panel más recogido (440×160) con el contenido centrado y se pliega antes (3,2 s; 2,2 s tras la batería).
+- **Interfaz en inglés y español**: sigue el idioma del Mac y se puede fijar en Ajustes › Inicio › General › Idioma (cambiarlo reinicia la app). Textos de permisos localizados.
+- Notch: la tarjeta de AirPods se abre en un panel más recogido y centrado (440×172) y se pliega antes (3,2 s; 2,2 s tras la batería); sombra estable durante la animación.
+- Instalación con Homebrew: `brew install --cask BySergiMM/tap/omnimac`.
+- Capturas de la web en inglés (`--snapshots … --lang en`).
 
 ## 0.3.1 — 2026-09-04
 

@@ -217,7 +217,7 @@ struct SwitcherView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 22))
                         .foregroundStyle(.tertiary)
-                    Text("Ninguna ventana coincide con «\(model.filter)»")
+                    Text(L("Ninguna ventana coincide con «\(model.filter)»", "No window matches “\(model.filter)”"))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -264,7 +264,7 @@ struct SwitcherView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(model.filter.isEmpty ? .tertiary : .secondary)
             if model.filter.isEmpty {
-                Text("Escribe para buscar · ⌘W cerrar · ⌘M minimizar · ⌘H ocultar app · ⌘Q salir")
+                Text(L("Escribe para buscar · ⌘W cerrar · ⌘M minimizar · ⌘H ocultar app · ⌘Q salir", "Type to search · ⌘W close · ⌘M minimize · ⌘H hide app · ⌘Q quit"))
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             } else {

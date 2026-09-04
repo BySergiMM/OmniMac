@@ -77,10 +77,10 @@ struct MediaTab: View {
                 .frame(width: 66, height: 66)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Nada sonando")
+                    Text(L("Nada sonando", "Nothing playing"))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text("Pon música en Música o Spotify\ny contrólala desde aquí.")
+                    Text(L("Pon música en Música o Spotify\ny contrólala desde aquí.", "Play something in Music or Spotify\nand control it from here."))
                         .font(.system(size: 11.5))
                         .foregroundStyle(.white.opacity(0.5))
                         .fixedSize(horizontal: false, vertical: true)
@@ -95,7 +95,7 @@ struct MediaTab: View {
         VStack(spacing: 10) {
             ProgressView()
                 .controlSize(.small)
-            Text("Abriendo \(preferredPlayer?.displayName ?? "el reproductor")…")
+            Text(L("Abriendo \(preferredPlayer?.displayName ?? "el reproductor")…", "Opening \(preferredPlayer?.displayName ?? "the player")…"))
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.7))
         }
@@ -115,14 +115,14 @@ struct MediaTab: View {
                 Text(player.displayName)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
-                Text("Cerrada · dale al play y empieza a sonar")
+                Text(L("Cerrada · dale al play y empieza a sonar", "Closed · press play and it starts"))
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.5))
                 Button {
                     MusicPlayer.preferred = nil
                     preferredPlayer = nil
                 } label: {
-                    Text("Cambiar de app")
+                    Text(L("Cambiar de app", "Switch app"))
                         .font(.system(size: 10.5))
                         .underline()
                         .foregroundStyle(.white.opacity(0.45))
@@ -145,7 +145,7 @@ struct MediaTab: View {
                 .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .help("Reproducir en \(player.displayName)")
+            .help(L("Reproducir en \(player.displayName)", "Play in \(player.displayName)"))
         }
         .padding(.horizontal, 6)
     }
@@ -225,12 +225,12 @@ struct PlayerPicker: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text("¿Con qué app escuchas música?")
+            Text(L("¿Con qué app escuchas música?", "Which app do you listen to music with?"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white)
 
             if players.isEmpty {
-                Text("No encuentro Spotify ni Apple Music en este Mac.")
+                Text(L("No encuentro Spotify ni Apple Music en este Mac.", "I can't find Spotify or Apple Music on this Mac."))
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.5))
             } else {
@@ -260,7 +260,7 @@ struct PlayerPicker: View {
                         .buttonStyle(.plain)
                     }
                 }
-                Text("La podrás cambiar cuando quieras en Ajustes → Notch")
+                Text(L("La podrás cambiar cuando quieras en Ajustes → Notch", "You can change it any time in Settings → Notch"))
                     .font(.system(size: 9.5))
                     .foregroundStyle(.white.opacity(0.35))
             }

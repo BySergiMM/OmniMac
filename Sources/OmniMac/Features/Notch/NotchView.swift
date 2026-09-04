@@ -187,12 +187,12 @@ struct NotchView: View {
             if model.showCoffee, keepAwake.isEnabled {
                 quickButton(symbol: keepAwake.isActive ? "cup.and.saucer.fill" : "cup.and.saucer",
                             active: keepAwake.isActive,
-                            help: keepAwake.isActive ? "Mantener despierto: activado" : "Mantener despierto") {
+                            help: keepAwake.isActive ? L("Mantener despierto: activado", "Keep awake: on") : L("Mantener despierto", "Keep awake")) {
                     keepAwake.toggle()
                 }
             }
             if model.showSettings {
-                quickButton(symbol: "gearshape.fill", active: false, help: "Ajustes de OmniMac") {
+                quickButton(symbol: "gearshape.fill", active: false, help: L("Ajustes de OmniMac", "OmniMac settings")) {
                     model.onCollapseRequest?()
                     SettingsWindowController.shared.show()
                 }
@@ -254,10 +254,10 @@ struct NotchView: View {
                     Image(systemName: "square.grid.2x2")
                         .font(.system(size: 22))
                         .foregroundStyle(.white.opacity(0.4))
-                    Text("Sin pestañas activas")
+                    Text(L("Sin pestañas activas", "No tabs enabled"))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text("Actívalas en Ajustes › Notch dinámico")
+                    Text(L("Actívalas en Ajustes › Notch dinámico", "Enable them in Settings › Dynamic notch"))
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.5))
                 }

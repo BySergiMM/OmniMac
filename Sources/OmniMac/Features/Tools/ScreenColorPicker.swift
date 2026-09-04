@@ -14,7 +14,7 @@ final class ScreenColorPicker {
         guard Permissions.hasScreenRecording else {
             _ = Permissions.requestScreenRecording()
             Permissions.openScreenRecordingSettings()
-            Toast.show("Necesita el permiso de Grabación de pantalla", symbol: "rectangle.dashed.badge.record")
+            Toast.show(L("Necesita el permiso de Grabación de pantalla", "Needs the Screen Recording permission"), symbol: "rectangle.dashed.badge.record")
             return
         }
         let mouse = NSEvent.mouseLocation
@@ -76,14 +76,14 @@ final class ScreenColorPicker {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(hex, forType: .string)
-                Toast.show("\(hex) copiado · rgb(\(color.r), \(color.g), \(color.b))",
+                Toast.show(L("\(hex) copiado · rgb(\(color.r), \(color.g), \(color.b))", "\(hex) copied · rgb(\(color.r), \(color.g), \(color.b))"),
                            symbol: "eyedropper.halffull",
                            duration: 2.5,
                            tint: NSColor(red: CGFloat(color.r) / 255, green: CGFloat(color.g) / 255, blue: CGFloat(color.b) / 255, alpha: 1))
             }
         } catch {
             await MainActor.run {
-                Toast.show("No se pudo leer el color", symbol: "exclamationmark.triangle.fill")
+                Toast.show(L("No se pudo leer el color", "Couldn't read the colour"), symbol: "exclamationmark.triangle.fill")
             }
         }
     }
@@ -142,7 +142,7 @@ final class ColorPickView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let hint = "Haz clic en un color para copiarlo · Esc para cancelar"
+        let hint = L("Haz clic en un color para copiarlo · Esc para cancelar", "Click a colour to copy it · Esc to cancel")
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 15, weight: .semibold),
             .foregroundColor: NSColor.white.withAlphaComponent(0.92),

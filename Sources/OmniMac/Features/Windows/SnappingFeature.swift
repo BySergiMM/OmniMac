@@ -65,17 +65,17 @@ final class SnappingFeature: BaseFeature {
 
     /// Para mostrar en Ajustes.
     static let shortcutHelp: [(shortcut: String, action: String)] = [
-        ("⌃⌥ ← / →", "Mitad izquierda / derecha"),
-        ("⌃⌥⇧ ↑ / ↓", "Mitad superior / inferior"),
-        ("⌃⌥ ↑", "Maximizar"),
-        ("⌃⌥ ↩", "Casi maximizar (con aire alrededor)"),
-        ("⌃⌥ ↓", "Centrar"),
-        ("⌃⌥ U / I / J / K", "Cuartos (arriba izq., arriba der., abajo izq., abajo der.)"),
-        ("⌃⌥ D / F / G", "Tercios: primero, central, último"),
-        ("⌃⌥ E / T", "Dos tercios: primeros, últimos"),
-        ("⌃⌥ = / −", "Más grande / más pequeño"),
-        ("⌃⌥ ⌫", "Restaurar el tamaño anterior"),
-        ("⌃⌥⌘ → / ←", "Pantalla siguiente / anterior"),
+        ("⌃⌥ ← / →", L("Mitad izquierda / derecha", "Left / right half")),
+        ("⌃⌥⇧ ↑ / ↓", L("Mitad superior / inferior", "Top / bottom half")),
+        ("⌃⌥ ↑", L("Maximizar", "Maximize")),
+        ("⌃⌥ ↩", L("Casi maximizar (con aire alrededor)", "Almost maximize (with air around)")),
+        ("⌃⌥ ↓", L("Centrar", "Center")),
+        ("⌃⌥ U / I / J / K", L("Cuartos (arriba izq., arriba der., abajo izq., abajo der.)", "Quarters (top left, top right, bottom left, bottom right)")),
+        ("⌃⌥ D / F / G", L("Tercios: primero, central, último", "Thirds: first, middle, last")),
+        ("⌃⌥ E / T", L("Dos tercios: primeros, últimos", "Two thirds: first, last")),
+        ("⌃⌥ = / −", L("Más grande / más pequeño", "Larger / smaller")),
+        ("⌃⌥ ⌫", L("Restaurar el tamaño anterior", "Restore the previous size")),
+        ("⌃⌥⌘ → / ←", L("Pantalla siguiente / anterior", "Next / previous display")),
     ]
 
     /// Ajustar arrastrando a los bordes y esquinas (con huella), como Rectangle.
@@ -109,9 +109,9 @@ final class SnappingFeature: BaseFeature {
         }
         cycleSizes = UserDefaults.standard.object(forKey: "snapping.cycle") == nil ? true : UserDefaults.standard.bool(forKey: "snapping.cycle")
         super.init(id: "snapping",
-                   name: "Atajos de ventanas",
+                   name: L("Atajos de ventanas", "Window shortcuts"),
                    symbol: "rectangle.split.2x1",
-                   blurb: "Coloca ventanas en mitades, cuartos, tercios o a pantalla completa con ⌃⌥ + teclas, o arrastrándolas a los bordes.",
+                   blurb: L("Coloca ventanas en mitades, cuartos, tercios o a pantalla completa con ⌃⌥ + teclas, o arrastrándolas a los bordes.", "Places windows in halves, quarters, thirds or full screen with ⌃⌥ + keys, or by dragging them to the edges."),
                    defaultEnabled: true)
     }
 

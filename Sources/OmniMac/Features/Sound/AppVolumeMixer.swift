@@ -185,7 +185,7 @@ final class AppVolumeMixer: ObservableObject {
             lastError = nil
         } catch {
             lastError = error.localizedDescription
-            Toast.show("Volumen por app: \(error.localizedDescription)", symbol: "exclamationmark.triangle.fill")
+            Toast.show(L("Volumen por app: \(error.localizedDescription)", "Per-app volume: \(error.localizedDescription)"), symbol: "exclamationmark.triangle.fill")
         }
     }
 
@@ -294,8 +294,8 @@ final class MixEngine {
             guard status == noErr, tapID != kAudioObjectUnknown else {
                 stop()
                 throw EngineError(message: status == kAudioHardwareIllegalOperationError
-                                  ? "macOS no ha dado permiso para captar el audio del sistema (Ajustes del Sistema › Privacidad › Grabación de pantalla y audio del sistema)"
-                                  : "no se pudo captar el audio de la app (\(status))")
+                                  ? L("macOS no ha dado permiso para captar el audio del sistema (Ajustes del Sistema › Privacidad › Grabación de pantalla y audio del sistema)", "macOS hasn't granted permission to capture system audio (System Settings › Privacy › Screen & System Audio Recording)")
+                                  : L("no se pudo captar el audio de la app (\(status))", "couldn't capture the app's audio (\(status))"))
             }
             taps.append(tapID)
             gains[index] = group.1
@@ -307,12 +307,12 @@ final class MixEngine {
               format.mFormatFlags & kAudioFormatFlagIsFloat != 0,
               format.mBitsPerChannel == 32 else {
             stop()
-            throw EngineError(message: "formato de audio no compatible")
+            throw EngineError(message: L("formato de audio no compatible", "unsupported audio format"))
         }
         let outputUID = try Self.string(of: outputDevice, selector: kAudioDevicePropertyDeviceUID)
 
         let aggregateDescription: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "OmniMac Mezclador",
+            kAudioAggregateDeviceNameKey: L("OmniMac Mezclador", "OmniMac Mixer"),
             kAudioAggregateDeviceUIDKey: "com.seergiii.omnimac.mixer",
             kAudioAggregateDeviceMainSubDeviceKey: outputUID,
             kAudioAggregateDeviceIsPrivateKey: true,
@@ -325,7 +325,7 @@ final class MixEngine {
         let aggregateStatus = AudioHardwareCreateAggregateDevice(aggregateDescription as CFDictionary, &aggregateID)
         guard aggregateStatus == noErr, aggregateID != kAudioObjectUnknown else {
             stop()
-            throw EngineError(message: "no se pudo crear el mezclador (\(aggregateStatus))")
+            throw EngineError(message: L("no se pudo crear el mezclador (\(aggregateStatus))", "couldn't create the mixer (\(aggregateStatus))"))
         }
         aggregate = aggregateID
 
@@ -341,13 +341,13 @@ final class MixEngine {
         }
         guard procStatus == noErr, let procID else {
             stop()
-            throw EngineError(message: "no se pudo arrancar el mezclador (\(procStatus))")
+            throw EngineError(message: L("no se pudo arrancar el mezclador (\(procStatus))", "couldn't start the mixer (\(procStatus))"))
         }
         proc = procID
         let startStatus = AudioDeviceStart(aggregateID, procID)
         guard startStatus == noErr else {
             stop()
-            throw EngineError(message: "no se pudo arrancar el mezclador (\(startStatus))")
+            throw EngineError(message: L("no se pudo arrancar el mezclador (\(startStatus))", "couldn't start the mixer (\(startStatus))"))
         }
     }
 
@@ -419,7 +419,7 @@ final class MixEngine {
         let status = withUnsafeMutablePointer(to: &value) {
             AudioObjectGetPropertyData(object, &address, 0, nil, &size, $0)
         }
-        guard status == noErr else { throw EngineError(message: "no se pudo leer el dispositivo (\(status))") }
+        guard status == noErr else { throw EngineError(message: L("no se pudo leer el dispositivo (\(status))", "couldn't read the device (\(status))")) }
         return value as String
     }
 
@@ -428,7 +428,7 @@ final class MixEngine {
         var format = AudioStreamBasicDescription()
         var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         let status = AudioObjectGetPropertyData(tap, &address, 0, nil, &size, &format)
-        guard status == noErr else { throw EngineError(message: "no se pudo leer el formato del audio (\(status))") }
+        guard status == noErr else { throw EngineError(message: L("no se pudo leer el formato del audio (\(status))", "couldn't read the audio format (\(status))")) }
         return format
     }
 }

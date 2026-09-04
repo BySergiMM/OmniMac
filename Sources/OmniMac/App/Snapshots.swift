@@ -40,7 +40,7 @@ enum Snapshots {
 
         let media = MediaBridge()
         media.useSample(NowPlayingInfo(playerName: "Spotify", bundleID: "com.spotify.client",
-                                       title: "Todo lo que le falta a tu Mac", artist: "OmniMac",
+                                       title: L("Todo lo que le falta a tu Mac", "Everything your Mac is missing"), artist: "OmniMac",
                                        isPlaying: true, artworkURL: nil, position: 72, duration: 188),
                         artwork: sampleArtwork())
         let battery = BatteryMonitor()
@@ -107,11 +107,11 @@ enum Snapshots {
             if item.isSectionHeader { return .header(item.title) }
             let keys = item.keyEquivalent.isEmpty ? "" : "⌘" + item.keyEquivalent.uppercased()
             // Estado de muestra: la salida no está silenciada en la captura.
-            let checked = item.state == .on && item.title != "Silenciar la salida"
+            let checked = item.state == .on && item.title != L("Silenciar la salida", "Mute the output")
             return .item(item.title, submenu: item.submenu != nil, checked: checked,
                          enabled: item.isEnabled, keys: keys)
         }
-        let view = MenuSnapshotView(lines: lines, highlighted: "Activar 1 hora")
+        let view = MenuSnapshotView(lines: lines, highlighted: L("Activar 1 hora", "Keep awake for 1 hour"))
         let hosting = NSHostingView(rootView: view)
         let height = lines.reduce(CGFloat(12)) { $0 + $1.height }
         let window = offscreenWindow(size: CGSize(width: 320 + 60, height: height + 60), content: hosting)
@@ -179,9 +179,9 @@ enum Snapshots {
         }
         let (s1, e1) = at(0, minutes: 45), (s2, e2) = at(2, minutes: 60), (s3, e3) = at(5, minutes: 60)
         return [
-            CalendarEvent(id: "1", title: "Reunión de equipo", start: s1, end: e1, isAllDay: false, color: .systemBlue),
-            CalendarEvent(id: "2", title: "Comida con Marta", start: s2, end: e2, isAllDay: false, color: .systemOrange),
-            CalendarEvent(id: "3", title: "Gimnasio", start: s3, end: e3, isAllDay: false, color: .systemGreen),
+            CalendarEvent(id: "1", title: L("Reunión de equipo", "Team meeting"), start: s1, end: e1, isAllDay: false, color: .systemBlue),
+            CalendarEvent(id: "2", title: L("Comida con Marta", "Lunch with Marta"), start: s2, end: e2, isAllDay: false, color: .systemOrange),
+            CalendarEvent(id: "3", title: L("Gimnasio", "Gym"), start: s3, end: e3, isAllDay: false, color: .systemGreen),
         ]
     }
 

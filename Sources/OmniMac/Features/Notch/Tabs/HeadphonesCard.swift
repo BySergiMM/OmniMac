@@ -26,7 +26,7 @@ struct HeadphonesCard: View {
                 .font(.system(size: 14.5, weight: .bold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
-            Text("Conectados")
+            Text(L("Conectados", "Connected"))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.white.opacity(0.6))
 

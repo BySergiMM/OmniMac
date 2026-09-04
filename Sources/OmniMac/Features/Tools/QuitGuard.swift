@@ -53,7 +53,7 @@ final class QuitGuard {
         if event.getIntegerValueField(.eventSourceUserData) == Self.magic {
             return Unmanaged.passUnretained(event)
         }
-        // Con el selector ⌘Tab abierto, ⌘Q es "cerrar esa app": no interferimos.
+        // Con el selector ⌘Tab abierto, ⌘Q es L("cerrar esa app", "quit that app"): no interferimos.
         if FeatureManager.shared.switcher.isSessionActive {
             return Unmanaged.passUnretained(event)
         }
@@ -75,8 +75,8 @@ final class QuitGuard {
             }
             if !holding {
                 holding = true
-                let name = front.localizedName ?? "la app"
-                Toast.show("Mantén pulsado ⌘Q para salir de \(name)", symbol: "hand.raised.fill", duration: Self.holdSeconds + 0.6)
+                let name = front.localizedName ?? L("la app", "the app")
+                Toast.show(L("Mantén pulsado ⌘Q para salir de \(name)", "Hold ⌘Q to quit \(name)"), symbol: "hand.raised.fill", duration: Self.holdSeconds + 0.6)
                 let work = DispatchWorkItem { [weak self] in self?.quitAfterHold(front) }
                 holdWork = work
                 DispatchQueue.main.asyncAfter(deadline: .now() + Self.holdSeconds, execute: work)

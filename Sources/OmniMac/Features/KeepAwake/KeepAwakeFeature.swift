@@ -93,9 +93,9 @@ final class KeepAwakeFeature: BaseFeature {
         awakeWhilePluggedIn = defaults.bool(forKey: "keepawake.trigger.charger")
         awakeWithExternalDisplay = defaults.bool(forKey: "keepawake.trigger.display")
         super.init(id: "keepawake",
-                   name: "Mantener despierto",
+                   name: L("Mantener despierto", "Keep awake"),
                    symbol: "cup.and.saucer.fill",
-                   blurb: "Evita que tu Mac se duerma, como Amphetamine. Sin límite o con temporizador.",
+                   blurb: L("Evita que tu Mac se duerma, como Amphetamine. Sin límite o con temporizador.", "Keeps your Mac awake, like Amphetamine. Indefinitely or with a timer."),
                    defaultEnabled: true)
 
         // Si la app murió de golpe con la tapa "bloqueada", al arrancar lo deshacemos.
@@ -222,12 +222,12 @@ final class KeepAwakeFeature: BaseFeature {
     private func notify(_ reason: EndReason) {
         guard notifyOnEnd, Bundle.main.bundleIdentifier != nil else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Mantener despierto"
+        content.title = L("Mantener despierto", "Keep awake")
         switch reason {
         case .timer:
-            content.body = "La sesión ha terminado: tu Mac volverá a dormirse con normalidad."
+            content.body = L("La sesión ha terminado: tu Mac volverá a dormirse con normalidad.", "The session has ended: your Mac will sleep normally again.")
         case .lowBattery:
-            content.body = "Sesión detenida: batería al \(battery.state.level) %. Conecta el cargador para seguir."
+            content.body = L("Sesión detenida: batería al \(battery.state.level) %. Conecta el cargador para seguir.", "Session stopped: battery at \(battery.state.level) %. Connect the charger to continue.")
         case .manual:
             return
         }
@@ -252,7 +252,7 @@ final class KeepAwakeFeature: BaseFeature {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             var error: String?
             if LidSleepControl.isAuthorized {
-                if !LidSleepControl.set(true) { error = "No se pudo cambiar el ajuste de energía." }
+                if !LidSleepControl.set(true) { error = L("No se pudo cambiar el ajuste de energía.", "Couldn't change the power setting.") }
             } else {
                 // Primera vez: diálogo de contraseña del sistema (una sola vez).
                 error = LidSleepControl.authorizeAndEnable()
@@ -277,7 +277,7 @@ final class KeepAwakeFeature: BaseFeature {
         guard closedLidActive else { return }
         closedLidActive = false
         if !LidSleepControl.set(false) {
-            closedLidError = "No se pudo restaurar el ajuste de energía. En Terminal: sudo pmset -a disablesleep 0"
+            closedLidError = L("No se pudo restaurar el ajuste de energía. En Terminal: sudo pmset -a disablesleep 0", "Couldn't restore the power setting. In Terminal: sudo pmset -a disablesleep 0")
         }
     }
 }
@@ -311,7 +311,7 @@ enum LidSleepControl {
     static func authorizeAndEnable() -> String? {
         let user = NSUserName()
         guard user.range(of: "^[A-Za-z0-9._-]+$", options: .regularExpression) != nil else {
-            return "El nombre de usuario contiene caracteres no válidos para sudoers."
+            return L("El nombre de usuario contiene caracteres no válidos para sudoers.", "The user name contains characters that are not valid for sudoers.")
         }
         let rule = "\(user) ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1, /usr/bin/pmset -a disablesleep 0"
         let tmp = rulePath + ".tmp"
@@ -319,12 +319,12 @@ enum LidSleepControl {
             + " && /usr/sbin/visudo -c -f \(tmp) && mv \(tmp) \(rulePath) && /usr/bin/pmset -a disablesleep 1"
         let source = "do shell script \"\(shell)\" with administrator privileges"
 
-        guard let script = NSAppleScript(source: source) else { return "No se pudo preparar la autorización." }
+        guard let script = NSAppleScript(source: source) else { return L("No se pudo preparar la autorización.", "Couldn't prepare the authorization.") }
         var error: NSDictionary?
         script.executeAndReturnError(&error)
         guard let error else { return nil }
-        if (error[NSAppleScript.errorNumber] as? Int) == -128 { return "Autorización cancelada." }
-        return (error[NSAppleScript.errorMessage] as? String) ?? "No se pudo autorizar."
+        if (error[NSAppleScript.errorNumber] as? Int) == -128 { return L("Autorización cancelada.", "Authorization cancelled.") }
+        return (error[NSAppleScript.errorMessage] as? String) ?? L("No se pudo autorizar.", "Couldn't authorize.")
     }
 
     private static func run(_ path: String, _ args: [String]) -> (status: Int32, output: String) {

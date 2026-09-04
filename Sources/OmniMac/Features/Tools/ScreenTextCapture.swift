@@ -16,7 +16,7 @@ final class ScreenTextCapture {
         guard Permissions.hasScreenRecording else {
             _ = Permissions.requestScreenRecording()
             Permissions.openScreenRecordingSettings()
-            Toast.show("Necesita el permiso de Grabación de pantalla", symbol: "rectangle.dashed.badge.record")
+            Toast.show(L("Necesita el permiso de Grabación de pantalla", "Needs the Screen Recording permission"), symbol: "rectangle.dashed.badge.record")
             return
         }
         let mouse = NSEvent.mouseLocation
@@ -78,18 +78,18 @@ final class ScreenTextCapture {
             let text = try recognizeText(in: image)
             await MainActor.run {
                 guard !text.isEmpty else {
-                    Toast.show("No he encontrado texto en esa zona", symbol: "text.viewfinder")
+                    Toast.show(L("No he encontrado texto en esa zona", "No text found in that area"), symbol: "text.viewfinder")
                     return
                 }
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(text, forType: .string)
                 let lines = text.split(separator: "\n").count
-                Toast.show(lines == 1 ? "Texto copiado" : "Texto copiado · \(lines) líneas", symbol: "doc.on.clipboard.fill")
+                Toast.show(lines == 1 ? L("Texto copiado", "Text copied") : L("Texto copiado · \(lines) líneas", "Text copied · \(lines) lines"), symbol: "doc.on.clipboard.fill")
             }
         } catch {
             await MainActor.run {
-                Toast.show("No se pudo capturar la pantalla", symbol: "exclamationmark.triangle.fill")
+                Toast.show(L("No se pudo capturar la pantalla", "Couldn't capture the screen"), symbol: "exclamationmark.triangle.fill")
             }
         }
     }
@@ -177,7 +177,7 @@ final class SelectionView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let hint = "Selecciona el texto a copiar · Esc para cancelar"
+        let hint = L("Selecciona el texto a copiar · Esc para cancelar", "Select the text to copy · Esc to cancel")
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 15, weight: .semibold),
             .foregroundColor: NSColor.white.withAlphaComponent(0.9),

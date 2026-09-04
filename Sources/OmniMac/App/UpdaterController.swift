@@ -28,9 +28,9 @@ final class UpdaterController: ObservableObject {
     }
 
     var lastCheckText: String {
-        guard let lastCheck else { return "Aún no se ha comprobado" }
+        guard let lastCheck else { return L("Aún no se ha comprobado", "Not checked yet") }
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = Locale(identifier: "es_ES")
-        return "Última comprobación: \(formatter.localizedString(for: lastCheck, relativeTo: Date()))"
+        return L("Última comprobación: \(formatter.localizedString(for: lastCheck, relativeTo: Date()))", "Last check: \(formatter.localizedString(for: lastCheck, relativeTo: Date()))")
     }
 }

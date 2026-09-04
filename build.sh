@@ -20,6 +20,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp .build/universal/OmniMac "$APP/Contents/MacOS/OmniMac"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp -R Resources/es.lproj Resources/en.lproj "$APP/Contents/Resources/"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # Sparkle (actualizaciones automáticas): el framework va dentro del .app y el

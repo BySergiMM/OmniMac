@@ -252,6 +252,18 @@ final class MediaBridge: ObservableObject {
     }
 
     private func updateArtwork(_ info: NowPlayingInfo) {
+        // Música no da una URL: la carátula se pide por AppleScript (bytes de la imagen)
+        // una vez por pista.
+        if info.bundleID == "com.apple.Music" {
+            let key = "music:" + info.title + "\u{1}" + info.artist
+            guard key != lastArtworkURL else { return }
+            lastArtworkURL = key
+            queue.async { [weak self] in
+                let image = self?.musicArtworkData().flatMap { NSImage(data: $0) }
+                DispatchQueue.main.async { self?.artwork = image }
+            }
+            return
+        }
         guard info.artworkURL != lastArtworkURL else { return }
         lastArtworkURL = info.artworkURL
         guard let urlString = info.artworkURL, let url = URL(string: urlString) else {
@@ -262,6 +274,29 @@ final class MediaBridge: ObservableObject {
             guard let data, let image = NSImage(data: data) else { return }
             DispatchQueue.main.async { self?.artwork = image }
         }.resume()
+    }
+
+    private lazy var artworkScript: NSAppleScript? = {
+        let script = NSAppleScript(source: """
+        tell application "Music"
+            if player state is stopped then return missing value
+            if (count of artworks of current track) is 0 then return missing value
+            return data of artwork 1 of current track
+        end tell
+        """)
+        var error: NSDictionary?
+        script?.compileAndReturnError(&error)
+        return script
+    }()
+
+    /// Bytes de la carátula de la pista actual de Música (JPEG/PNG), o nil.
+    private func musicArtworkData() -> Data? {
+        guard let script = artworkScript else { return nil }
+        var error: NSDictionary?
+        let result = script.executeAndReturnError(&error)
+        guard error == nil else { return nil }
+        let data = result.data
+        return data.count > 100 ? data : nil
     }
 
     // MARK: - AppleScript en proceso

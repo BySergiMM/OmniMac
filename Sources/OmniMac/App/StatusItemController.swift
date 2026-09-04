@@ -46,14 +46,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         if NotchTimer.shared.isSet {
             if menu.items.count > 0 { menu.addItem(.separator()) }
-            menu.addItem(NSMenuItem.sectionHeader(title: "Temporizador"))
+            menu.addItem(NSMenuItem.sectionHeader(title: L("Temporizador", "Timer")))
             let status = NSMenuItem(title: "⏱ \(NotchTimer.shared.remainingText) · \(NotchTimer.shared.phaseText)", action: nil, keyEquivalent: "")
             status.isEnabled = false
             menu.addItem(status)
-            let stop = NSMenuItem(title: NotchTimer.shared.running ? "Pausar" : "Continuar", action: #selector(toggleTimer), keyEquivalent: "")
+            let stop = NSMenuItem(title: NotchTimer.shared.running ? L("Pausar", "Pause") : L("Continuar", "Resume"), action: #selector(toggleTimer), keyEquivalent: "")
             stop.target = self
             menu.addItem(stop)
-            let cancel = NSMenuItem(title: "Parar el temporizador", action: #selector(stopTimer), keyEquivalent: "")
+            let cancel = NSMenuItem(title: L("Parar el temporizador", "Stop the timer"), action: #selector(stopTimer), keyEquivalent: "")
             cancel.target = self
             menu.addItem(cancel)
         }
@@ -62,13 +62,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         if manager.clipboard.isEnabled {
             menu.addItem(.separator())
-            let clipboardItem = NSMenuItem(title: "Historial del portapapeles…",
+            let clipboardItem = NSMenuItem(title: L("Historial del portapapeles…", "Clipboard history…"),
                                            action: #selector(showClipboard),
                                            keyEquivalent: "")
             clipboardItem.target = self
             menu.addItem(clipboardItem)
 
-            let pauseItem = NSMenuItem(title: "Pausar el historial del portapapeles",
+            let pauseItem = NSMenuItem(title: L("Pausar el historial del portapapeles", "Pause the clipboard history"),
                                        action: #selector(toggleClipboardPause),
                                        keyEquivalent: "")
             pauseItem.target = self
@@ -78,18 +78,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         if manager.tools.isEnabled {
             menu.addItem(.separator())
-            menu.addItem(NSMenuItem.sectionHeader(title: "Utilidades"))
-            let ocr = NSMenuItem(title: "Copiar texto de la pantalla…", action: #selector(captureText), keyEquivalent: "")
+            menu.addItem(NSMenuItem.sectionHeader(title: L("Utilidades", "Tools")))
+            let ocr = NSMenuItem(title: L("Copiar texto de la pantalla…", "Copy text from the screen…"), action: #selector(captureText), keyEquivalent: "")
             ocr.target = self
             menu.addItem(ocr)
-            let mic = NSMenuItem(title: "Silenciar el micrófono", action: #selector(toggleMicrophone), keyEquivalent: "")
+            let mic = NSMenuItem(title: L("Silenciar el micrófono", "Mute the microphone"), action: #selector(toggleMicrophone), keyEquivalent: "")
             mic.target = self
             mic.state = manager.tools.microphoneMuted ? .on : .off
             menu.addItem(mic)
-            let lock = NSMenuItem(title: "Bloquear el teclado 30 s (para limpiarlo)", action: #selector(lockKeyboard), keyEquivalent: "")
+            let lock = NSMenuItem(title: L("Bloquear el teclado 30 s (para limpiarlo)", "Lock the keyboard for 30 s (to clean it)"), action: #selector(lockKeyboard), keyEquivalent: "")
             lock.target = self
             menu.addItem(lock)
-            let desktop = NSMenuItem(title: "Ocultar los iconos del escritorio", action: #selector(toggleDesktopIcons), keyEquivalent: "")
+            let desktop = NSMenuItem(title: L("Ocultar los iconos del escritorio", "Hide desktop icons"), action: #selector(toggleDesktopIcons), keyEquivalent: "")
             desktop.target = self
             desktop.state = manager.tools.desktopIconsHidden ? .on : .off
             menu.addItem(desktop)
@@ -98,8 +98,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if manager.sound.isEnabled {
             manager.sound.refresh()
             menu.addItem(.separator())
-            menu.addItem(NSMenuItem.sectionHeader(title: "Sonido"))
-            let outputItem = NSMenuItem(title: "Salida: \(manager.sound.outputName)", action: nil, keyEquivalent: "")
+            menu.addItem(NSMenuItem.sectionHeader(title: L("Sonido", "Sound")))
+            let outputItem = NSMenuItem(title: L("Salida: \(manager.sound.outputName)", "Output: \(manager.sound.outputName)"), action: nil, keyEquivalent: "")
             let outputMenu = NSMenu()
             for device in manager.sound.outputDevices {
                 let item = NSMenuItem(title: device.name, action: #selector(selectOutput(_:)), keyEquivalent: "")
@@ -110,7 +110,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             }
             outputItem.submenu = outputMenu
             menu.addItem(outputItem)
-            let inputItem = NSMenuItem(title: "Entrada: \(manager.sound.inputName)", action: nil, keyEquivalent: "")
+            let inputItem = NSMenuItem(title: L("Entrada: \(manager.sound.inputName)", "Input: \(manager.sound.inputName)"), action: nil, keyEquivalent: "")
             let inputMenu = NSMenu()
             for device in manager.sound.inputDevices {
                 let item = NSMenuItem(title: device.name, action: #selector(selectInput(_:)), keyEquivalent: "")
@@ -121,7 +121,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             }
             inputItem.submenu = inputMenu
             menu.addItem(inputItem)
-            let muteOutput = NSMenuItem(title: "Silenciar la salida", action: #selector(toggleOutputMute), keyEquivalent: "")
+            let muteOutput = NSMenuItem(title: L("Silenciar la salida", "Mute the output"), action: #selector(toggleOutputMute), keyEquivalent: "")
             muteOutput.target = self
             muteOutput.state = manager.sound.outputMuted ? .on : .off
             menu.addItem(muteOutput)
@@ -129,7 +129,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         if manager.snapping.isEnabled {
             menu.addItem(.separator())
-            let layoutsItem = NSMenuItem(title: "Disposiciones de ventanas", action: nil, keyEquivalent: "")
+            let layoutsItem = NSMenuItem(title: L("Disposiciones de ventanas", "Window layouts"), action: nil, keyEquivalent: "")
             let layoutsMenu = NSMenu()
             for layout in WindowLayoutStore.shared.layouts {
                 let shortcut = layout.shortcutLabel.map { "   \($0)" } ?? ""
@@ -140,11 +140,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             }
             if !WindowLayoutStore.shared.layouts.isEmpty { layoutsMenu.addItem(.separator()) }
             if WindowLayoutStore.shared.canUndo {
-                let undo = NSMenuItem(title: "Deshacer la última disposición   ⌃⌥ 0", action: #selector(undoLayout), keyEquivalent: "")
+                let undo = NSMenuItem(title: L("Deshacer la última disposición   ⌃⌥ 0", "Undo the last layout   ⌃⌥ 0"), action: #selector(undoLayout), keyEquivalent: "")
                 undo.target = self
                 layoutsMenu.addItem(undo)
             }
-            let save = NSMenuItem(title: "Guardar la disposición actual…", action: #selector(saveLayoutPrompt), keyEquivalent: "")
+            let save = NSMenuItem(title: L("Guardar la disposición actual…", "Save the current layout…"), action: #selector(saveLayoutPrompt), keyEquivalent: "")
             save.target = self
             layoutsMenu.addItem(save)
             layoutsItem.submenu = layoutsMenu
@@ -153,7 +153,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         if !Permissions.hasAccessibility {
             menu.addItem(.separator())
-            let warning = NSMenuItem(title: "⚠️ Falta el permiso de Accesibilidad…",
+            let warning = NSMenuItem(title: L("⚠️ Falta el permiso de Accesibilidad…", "⚠️ Accessibility permission missing…"),
                                      action: #selector(grantAccessibility),
                                      keyEquivalent: "")
             warning.target = self
@@ -162,19 +162,19 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let coffee = NSMenuItem(title: "☕️ Invítame a un café…", action: #selector(openCoffee), keyEquivalent: "")
+        let coffee = NSMenuItem(title: L("☕️ Invítame a un café…", "☕️ Buy me a coffee…"), action: #selector(openCoffee), keyEquivalent: "")
         coffee.target = self
         menu.addItem(coffee)
 
-        let updates = NSMenuItem(title: "Buscar actualizaciones…", action: #selector(checkForUpdates), keyEquivalent: "")
+        let updates = NSMenuItem(title: L("Buscar actualizaciones…", "Check for updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         updates.target = self
         menu.addItem(updates)
 
-        let settings = NSMenuItem(title: "Ajustes…", action: #selector(showSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: L("Ajustes…", "Settings…"), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
 
-        let quit = NSMenuItem(title: "Salir de OmniMac", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L("Salir de OmniMac", "Quit OmniMac"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
     }
@@ -183,32 +183,32 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func buildKeepAwakeSection(_ menu: NSMenu) {
         let keepAwake = manager.keepAwake
-        menu.addItem(NSMenuItem.sectionHeader(title: "Mantener despierto"))
+        menu.addItem(NSMenuItem.sectionHeader(title: L("Mantener despierto", "Keep awake")))
 
         if keepAwake.isActive {
             let statusTitle: String
             if let remaining = keepAwake.remainingDescription {
-                statusTitle = "Activo · queda \(remaining)"
+                statusTitle = L("Activo · queda \(remaining)", "Active · \(remaining) left")
             } else {
-                statusTitle = "Activo · sin límite"
+                statusTitle = L("Activo · sin límite", "Active · no limit")
             }
             let status = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
             status.isEnabled = false
             status.image = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
             menu.addItem(status)
 
-            let off = NSMenuItem(title: "Desactivar", action: #selector(keepAwakeOff), keyEquivalent: "")
+            let off = NSMenuItem(title: L("Desactivar", "Turn off"), action: #selector(keepAwakeOff), keyEquivalent: "")
             off.target = self
             menu.addItem(off)
         } else {
             let options: [(String, Int?)] = [
-                ("Activar sin límite", nil),
-                ("Activar 15 minutos", 15),
-                ("Activar 30 minutos", 30),
-                ("Activar 1 hora", 60),
-                ("Activar 2 horas", 120),
-                ("Activar 4 horas", 240),
-                ("Activar 8 horas", 480),
+                (L("Activar sin límite", "Keep awake indefinitely"), nil),
+                (L("Activar 15 minutos", "Keep awake for 15 minutes"), 15),
+                (L("Activar 30 minutos", "Keep awake for 30 minutes"), 30),
+                (L("Activar 1 hora", "Keep awake for 1 hour"), 60),
+                (L("Activar 2 horas", "Keep awake for 2 hours"), 120),
+                (L("Activar 4 horas", "Keep awake for 4 hours"), 240),
+                (L("Activar 8 horas", "Keep awake for 8 hours"), 480),
             ]
             for (title, minutes) in options {
                 let item = NSMenuItem(title: title, action: #selector(keepAwakeOn(_:)), keyEquivalent: "")
@@ -218,7 +218,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             }
 
             // Hasta una hora concreta: las próximas 12 horas en punto.
-            let until = NSMenuItem(title: "Activar hasta las…", action: nil, keyEquivalent: "")
+            let until = NSMenuItem(title: L("Activar hasta las…", "Keep awake until…"), action: nil, keyEquivalent: "")
             let submenu = NSMenu()
             let formatter = DateFormatter()
             formatter.dateFormat = "HH:mm"
@@ -238,7 +238,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     private func buildFeatureToggles(_ menu: NSMenu) {
-        menu.addItem(NSMenuItem.sectionHeader(title: "Módulos"))
+        menu.addItem(NSMenuItem.sectionHeader(title: L("Módulos", "Modules")))
         for feature in manager.all {
             let item = NSMenuItem(title: feature.displayName,
                                   action: #selector(toggleFeature(_:)),
@@ -291,12 +291,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func saveLayoutPrompt() {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "Guardar la disposición actual"
-        alert.informativeText = "Ponle un nombre. Después podrás volver a colocar todas las ventanas así desde este menú, desde Ajustes o con ⌃⌥ + número."
-        alert.addButton(withTitle: "Guardar")
-        alert.addButton(withTitle: "Cancelar")
+        alert.messageText = L("Guardar la disposición actual", "Save the current layout")
+        alert.informativeText = L("Ponle un nombre. Después podrás volver a colocar todas las ventanas así desde este menú, desde Ajustes o con ⌃⌥ + número.", "Give it a name. Afterwards you can put every window back like this from this menu, from Settings or with ⌃⌥ + number.")
+        alert.addButton(withTitle: L("Guardar", "Save"))
+        alert.addButton(withTitle: L("Cancelar", "Cancel"))
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
-        field.placeholderString = "Trabajo, Monitor, Presentación…"
+        field.placeholderString = L("Trabajo, Monitor, Presentación…", "Work, Monitor, Presentation…")
         alert.accessoryView = field
         alert.window.initialFirstResponder = field
         if alert.runModal() == .alertFirstButtonReturn {
@@ -366,7 +366,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func updateIcon() {
         let symbol = manager.keepAwake.isActive ? "cup.and.saucer.fill" : "switch.2"
-        let description = manager.keepAwake.isActive ? "OmniMac (mantener despierto activo)" : "OmniMac"
+        let description = manager.keepAwake.isActive ? L("OmniMac (mantener despierto activo)", "OmniMac (keep awake on)") : "OmniMac"
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: description)
         statusItem.button?.imagePosition = .imageLeading
     }

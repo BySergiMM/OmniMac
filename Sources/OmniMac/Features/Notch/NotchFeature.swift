@@ -97,9 +97,9 @@ final class NotchFeature: BaseFeature {
             enabledTabs = Set(NotchTab.allCases)
         }
         super.init(id: "notch",
-                   name: "Notch dinámico",
+                   name: L("Notch dinámico", "Dynamic notch"),
                    symbol: "sparkles.rectangle.stack",
-                   blurb: "Música, AirDrop, batería y accesos rápidos al pasar el ratón por el notch.",
+                   blurb: L("Música, AirDrop, batería y accesos rápidos al pasar el ratón por el notch.", "Music, AirDrop, battery and quick actions when you hover the notch."),
                    defaultEnabled: true)
     }
 
@@ -175,12 +175,12 @@ enum NotchTab: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .media: "Música"
-        case .tray: "Bandeja y AirDrop"
-        case .calendar: "Calendario"
-        case .sound: "Sonido y volumen por app"
-        case .timer: "Temporizador"
-        case .performance: "Rendimiento"
+        case .media: L("Música", "Music")
+        case .tray: L("Bandeja y AirDrop", "Tray and AirDrop")
+        case .calendar: L("Calendario", "Calendar")
+        case .sound: L("Sonido y volumen por app", "Sound and per-app volume")
+        case .timer: L("Temporizador", "Timer")
+        case .performance: L("Rendimiento", "Performance")
         }
     }
 
@@ -197,12 +197,12 @@ enum NotchTab: String, CaseIterable {
 
     var settingsHint: String {
         switch self {
-        case .media: "Carátula, progreso y controles de Spotify o Música."
-        case .tray: "Archivos a mano y zona AirDrop."
-        case .calendar: "Los eventos de hoy (pide permiso de Calendario)."
-        case .sound: "Salida de audio y volumen distinto para cada app."
-        case .timer: "Cuenta atrás y Pomodoro; el tiempo restante se ve junto al icono de la barra de menús."
-        case .performance: "CPU, memoria y red del último minuto."
+        case .media: L("Carátula, progreso y controles de Spotify o Música.", "Artwork, progress and controls for Spotify or Music.")
+        case .tray: L("Archivos a mano y zona AirDrop.", "Files at hand and an AirDrop zone.")
+        case .calendar: L("Los eventos de hoy (pide permiso de Calendario).", "Today's events (asks for Calendar permission).")
+        case .sound: L("Salida de audio y volumen distinto para cada app.", "Audio output and a different volume for every app.")
+        case .timer: L("Cuenta atrás y Pomodoro; el tiempo restante se ve junto al icono de la barra de menús.", "Countdown and Pomodoro; the time left shows next to the menu-bar icon.")
+        case .performance: L("CPU, memoria y red del último minuto.", "CPU, memory and network for the last minute.")
         }
     }
 
@@ -397,6 +397,8 @@ final class NotchWindowController {
     }
     var hideSystemBanner = true
     private var deviceWork: DispatchWorkItem?
+    /// Tras un cambio de escritorio, nada se abre solo hasta que el ratón se mueva de verdad.
+    private var expandBlockedUntilMouseMoves = false
     var showCoffee = true { didSet { model.showCoffee = showCoffee } }
     var showSettings = true { didSet { model.showSettings = showSettings } }
     var showBattery = true { didSet { model.showBattery = showBattery } }
@@ -510,8 +512,12 @@ final class NotchWindowController {
         // transiciones lo dejan atrás) y decidir si toca esconderse por pantalla completa.
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification] {
-            workspaceObservers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                self?.refreshVisibility()
+            workspaceObservers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+                guard let self else { return }
+                // Al cambiar de escritorio, el panel abierto se quedaba quieto mientras todo
+                // se deslizaba: se pliega en el acto y no se reabre hasta que muevas el ratón.
+                if note.name == NSWorkspace.activeSpaceDidChangeNotification { self.collapseForSpaceChange() }
+                self.refreshVisibility()
             })
         }
         refreshVisibility()
@@ -545,6 +551,7 @@ final class NotchWindowController {
     /// y programa el plegado al salir del panel expandido.
     private func mouseMoved() {
         guard !hiddenForFullscreen else { return }
+        expandBlockedUntilMouseMoves = false
         let mouse = NSEvent.mouseLocation
         if model.expanded {
             updateHover(screenPoint: mouse)
@@ -591,7 +598,7 @@ final class NotchWindowController {
     /// Un instante encima del notch antes de abrir (ajustable en Ajustes): así no se
     /// despliega solo al pasar el ratón de largo por la zona.
     private func scheduleExpand() {
-        guard !model.expanded, expandWork == nil, !hiddenForFullscreen else { return }
+        guard !model.expanded, expandWork == nil, !hiddenForFullscreen, !expandBlockedUntilMouseMoves else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.expandWork = nil
@@ -677,6 +684,31 @@ final class NotchWindowController {
             withTransaction(transaction) { self.model.deviceCard = nil }
             self.applyRestingState()
         }
+    }
+
+    /// Plegado inmediato (sin animación) al cambiar de escritorio.
+    private func collapseForSpaceChange() {
+        cancelExpand()
+        collapseWork?.cancel(); collapseWork = nil
+        deviceWork?.cancel(); deviceWork = nil
+        peekWork?.cancel(); peekWork = nil
+        expandBlockedUntilMouseMoves = true
+        guard model.expanded || model.peek != nil else { return }
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            model.showContent = false
+            model.expanded = false
+            model.deviceCard = nil
+            model.peek = nil
+        }
+        model.hover.point = nil
+        media.stopPolling()
+        removeClickMonitor()
+        removeForwardingTap()
+        stopWatchdog()
+        updateWatch()
+        applyRestingState()
     }
 
     // MARK: - Auriculares conectados

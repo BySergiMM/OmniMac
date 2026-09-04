@@ -22,7 +22,7 @@ struct TrayTab: View {
         Group {
             if model.shelf.isEmpty {
                 Button {
-                    FilePicker.choose(message: "Elige los archivos que quieres tener a mano en el notch", prompt: "Añadir") { urls in
+                    FilePicker.choose(message: L("Elige los archivos que quieres tener a mano en el notch", "Choose the files you want to keep at hand in the notch"), prompt: L("Añadir", "Add")) { urls in
                         model.addToShelf(urls)
                     }
                 } label: {
@@ -33,7 +33,7 @@ struct TrayTab: View {
                             VStack(spacing: 5) {
                                 Image(systemName: "tray.and.arrow.down")
                                     .font(.system(size: 17))
-                                Text("Suelta archivos aquí o haz clic\npara elegirlos en el Finder")
+                                Text(L("Suelta archivos aquí o haz clic\npara elegirlos en el Finder", "Drop files here or click\nto choose them in Finder"))
                                     .font(.system(size: 10.5))
                                     .multilineTextAlignment(.center)
                             }
@@ -42,7 +42,7 @@ struct TrayTab: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("Suelta archivos o haz clic para elegirlos")
+                .help(L("Suelta archivos o haz clic para elegirlos", "Drop files or click to choose them"))
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -50,7 +50,7 @@ struct TrayTab: View {
                             shelfItem(url)
                         }
                         Button {
-                            FilePicker.choose(message: "Elige los archivos que quieres tener a mano en el notch", prompt: "Añadir") { urls in
+                            FilePicker.choose(message: L("Elige los archivos que quieres tener a mano en el notch", "Choose the files you want to keep at hand in the notch"), prompt: L("Añadir", "Add")) { urls in
                                 model.addToShelf(urls)
                             }
                         } label: {
@@ -61,7 +61,7 @@ struct TrayTab: View {
                                 .background(Circle().fill(.white.opacity(0.12)))
                         }
                         .buttonStyle(PressScaleStyle())
-                        .help("Añadir archivos desde el Finder")
+                        .help(L("Añadir archivos desde el Finder", "Add files from Finder"))
                     }
                     .padding(.horizontal, 8)
                     .frame(maxHeight: .infinity)
@@ -89,12 +89,12 @@ struct TrayTab: View {
         .onDrag { NSItemProvider(object: url as NSURL) }
         .onTapGesture(count: 2) { NSWorkspace.shared.open(url) }
         .contextMenu {
-            Button("Abrir") { NSWorkspace.shared.open(url) }
-            Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-            Button("Enviar por AirDrop") { sendViaAirDrop([url]) }
+            Button(L("Abrir", "Open")) { NSWorkspace.shared.open(url) }
+            Button(L("Mostrar en Finder", "Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            Button(L("Enviar por AirDrop", "Send by AirDrop")) { sendViaAirDrop([url]) }
             Divider()
-            Button("Quitar de la bandeja") { model.shelf.removeAll { $0 == url } }
-            Button("Vaciar bandeja") { model.shelf.removeAll() }
+            Button(L("Quitar de la bandeja", "Remove from tray")) { model.shelf.removeAll { $0 == url } }
+            Button(L("Vaciar bandeja", "Empty tray")) { model.shelf.removeAll() }
         }
         .help(url.lastPathComponent)
     }
@@ -108,7 +108,7 @@ struct AirDropZone: View {
 
     var body: some View {
         Button {
-            FilePicker.choose(message: "Elige los archivos que quieres enviar por AirDrop", prompt: "Enviar por AirDrop") { urls in
+            FilePicker.choose(message: L("Elige los archivos que quieres enviar por AirDrop", "Choose the files you want to send by AirDrop"), prompt: L("Enviar por AirDrop", "Send by AirDrop")) { urls in
                 sendViaAirDrop(urls)
             }
         } label: {
@@ -117,7 +117,7 @@ struct AirDropZone: View {
                     .font(.system(size: 22, weight: .medium))
                 Text("AirDrop")
                     .font(.system(size: 11, weight: .semibold))
-                Text("suelta aquí o haz clic")
+                Text(L("suelta aquí o haz clic", "drop here or click"))
                     .font(.system(size: 9))
                     .opacity(0.7)
             }
@@ -135,7 +135,7 @@ struct AirDropZone: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressScaleStyle())
-        .help("Suelta archivos para enviarlos o haz clic para elegirlos")
+        .help(L("Suelta archivos para enviarlos o haz clic para elegirlos", "Drop files to send them or click to choose them"))
         .background(
             // Publica su marco para que el destino único del notch sepa dónde está.
             GeometryReader { geo in
