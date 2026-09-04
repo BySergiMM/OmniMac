@@ -105,8 +105,13 @@ struct NotchView: View {
                     // La barra de control sube a la altura de la barra de menús; sus
                     // clics los reenvía el forwardTap (si no, el sistema se los traga).
                     Color.clear.frame(height: max(2, model.notchSize.height - 28))
-                    controlBar
-                    content
+                    if let card = model.deviceCard {
+                        HeadphonesCard(info: card)
+                            .transition(.opacity)
+                    } else {
+                        controlBar
+                        content
+                    }
                 }
                 .padding(.horizontal, NotchExpandedShape.flare) // el contenido va en el cuerpo, no en las alas
                 // El contenido emerge escalando desde el centro-arriba (el notch).

@@ -23,6 +23,22 @@ final class NotchFeature: BaseFeature {
     }
 
     /// Vistazo rápido: título y artista bajo el notch unos segundos al cambiar de canción.
+    /// Tarjeta al estilo iPhone al conectar AirPods o Beats.
+    @Published var headphonesCard: Bool {
+        didSet {
+            UserDefaults.standard.set(headphonesCard, forKey: "notch.headphonesCard")
+            updateHeadphonesWatcher()
+        }
+    }
+    /// Intentar cerrar el aviso de Control Center (experimental).
+    @Published var hideSystemBanner: Bool {
+        didSet {
+            UserDefaults.standard.set(hideSystemBanner, forKey: "notch.hideSystemBanner")
+            controller?.hideSystemBanner = hideSystemBanner
+        }
+    }
+    private let headphones = HeadphonesWatcher()
+
     @Published var sneakPeek: Bool {
         didSet {
             UserDefaults.standard.set(sneakPeek, forKey: "notch.sneakPeek")
@@ -63,6 +79,8 @@ final class NotchFeature: BaseFeature {
         showWithoutNotch = defaults.object(forKey: "notch.showWithoutNotch") == nil ? true : defaults.bool(forKey: "notch.showWithoutNotch")
         hideInFullscreen = defaults.object(forKey: "notch.hideFullscreen") == nil ? true : defaults.bool(forKey: "notch.hideFullscreen")
         sneakPeek = defaults.object(forKey: "notch.sneakPeek") == nil ? true : defaults.bool(forKey: "notch.sneakPeek")
+        headphonesCard = defaults.object(forKey: "notch.headphonesCard") == nil ? true : defaults.bool(forKey: "notch.headphonesCard")
+        hideSystemBanner = defaults.object(forKey: "notch.hideSystemBanner") == nil ? true : defaults.bool(forKey: "notch.hideSystemBanner")
         showCoffeeButton = defaults.object(forKey: "notch.showCoffee") == nil ? true : defaults.bool(forKey: "notch.showCoffee")
         showSettingsButton = defaults.object(forKey: "notch.showSettings") == nil ? true : defaults.bool(forKey: "notch.showSettings")
         showBattery = defaults.object(forKey: "notch.showBattery") == nil ? true : defaults.bool(forKey: "notch.showBattery")
@@ -85,7 +103,25 @@ final class NotchFeature: BaseFeature {
                    defaultEnabled: true)
     }
 
+    private func updateHeadphonesWatcher() {
+        guard isEnabled, headphonesCard else { headphones.stop(); return }
+        headphones.onConnect = { [weak self] info in self?.controller?.presentHeadphones(info) }
+        headphones.onUpdate = { [weak self] info in self?.controller?.updateHeadphones(info) }
+        headphones.start()
+    }
+
+    /// Botón «Probar» de Ajustes: enseña la tarjeta con datos de ejemplo.
+    func previewHeadphones() {
+        var first = HeadphonesInfo.sample
+        first.left = nil; first.right = nil; first.caseLevel = nil
+        controller?.presentHeadphones(first)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { [weak self] in
+            self?.controller?.updateHeadphones(HeadphonesInfo.sample)
+        }
+    }
+
     override func start() {
+        updateHeadphonesWatcher()
         rebuild()
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -97,6 +133,7 @@ final class NotchFeature: BaseFeature {
     }
 
     override func stop() {
+        headphones.stop()
         if let screenObserver {
             NotificationCenter.default.removeObserver(screenObserver)
         }
@@ -118,6 +155,7 @@ final class NotchFeature: BaseFeature {
         controller.hideInFullscreen = hideInFullscreen
         controller.sneakPeekEnabled = sneakPeek
         controller.enabledTabs = enabledTabs
+        controller.hideSystemBanner = hideSystemBanner
         controller.showCoffee = showCoffeeButton
         controller.showSettings = showSettingsButton
         controller.showBattery = showBattery
@@ -218,6 +256,8 @@ final class NotchModel: ObservableObject {
     @Published var showBattery = true
     /// Zona que se resaltará mientras se arrastra un archivo por encima.
     @Published var dropZone: NotchDropZone = .none
+    /// Tarjeta «AirPods conectados» (sustituye a las pestañas mientras se enseña).
+    @Published var deviceCard: HeadphonesInfo?
 
     let hasNotch: Bool
     let notchSize: CGSize
@@ -351,6 +391,8 @@ final class NotchWindowController {
     var sneakPeekEnabled = true {
         didSet { updateWatch() }
     }
+    var hideSystemBanner = true
+    private var deviceWork: DispatchWorkItem?
     var showCoffee = true { didSet { model.showCoffee = showCoffee } }
     var showSettings = true { didSet { model.showSettings = showSettings } }
     var showBattery = true { didSet { model.showBattery = showBattery } }
@@ -502,6 +544,7 @@ final class NotchWindowController {
         let mouse = NSEvent.mouseLocation
         if model.expanded {
             updateHover(screenPoint: mouse)
+            if model.deviceCard != nil { return }   // la tarjeta se cierra sola
             // Fuera del negro (6 px de margen) → se pliega casi al instante.
             if Self.reaches(bodyFrame.insetBy(dx: -6, dy: -6), mouse) {
                 collapseWork?.cancel()
@@ -530,7 +573,7 @@ final class NotchWindowController {
     private func hoverChanged(_ hovering: Bool) {
         if hovering {
             scheduleExpand()
-        } else if model.expanded, collapseWork == nil {
+        } else if model.expanded, collapseWork == nil, model.deviceCard == nil {
             // margen para mover el ratón dentro del panel sin que se cierre
             let work = DispatchWorkItem { [weak self] in self?.collapseNow() }
             collapseWork = work
@@ -624,7 +667,55 @@ final class NotchWindowController {
         stopWatchdog()
         updateWatch()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) { [weak self] in
-            self?.applyRestingState()
+            guard let self else { return }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { self.model.deviceCard = nil }
+            self.applyRestingState()
+        }
+    }
+
+    // MARK: - Auriculares conectados
+
+    /// Despliega el notch con la tarjeta del dispositivo y lo pliega solo pasados unos
+    /// segundos (si el ratón está dentro, se queda abierto con las pestañas normales).
+    func presentHeadphones(_ info: HeadphonesInfo) {
+        guard !hiddenForFullscreen else { return }
+        if hideSystemBanner { SystemBannerDismisser.dismissSoon() }
+        deviceWork?.cancel()
+        if model.expanded {
+            // Ya abierto por el usuario: la tarjeta sustituye a las pestañas un momento.
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { model.deviceCard = info }
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { model.deviceCard = info }
+            expandNow()
+        }
+        scheduleHeadphonesDismiss(after: 5)
+    }
+
+    /// Llega la batería: se actualiza la tarjeta (los anillos entran animados).
+    func updateHeadphones(_ info: HeadphonesInfo) {
+        guard model.deviceCard != nil else { return }
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { model.deviceCard = info }
+        scheduleHeadphonesDismiss(after: 3.5)
+    }
+
+    private func scheduleHeadphonesDismiss(after seconds: TimeInterval) {
+        deviceWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.dismissHeadphones() }
+        deviceWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
+    }
+
+    private func dismissHeadphones() {
+        deviceWork = nil
+        guard model.deviceCard != nil else { return }
+        if Self.reaches(bodyFrame.insetBy(dx: -6, dy: -6), NSEvent.mouseLocation) {
+            withAnimation(.easeInOut(duration: 0.25)) { model.deviceCard = nil }
+        } else {
+            collapseNow()
         }
     }
 
@@ -848,6 +939,7 @@ final class NotchWindowController {
         guard expandedWatchdog == nil else { return }
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self, self.model.expanded else { return }
+            if self.model.deviceCard != nil { return }   // la tarjeta se cierra sola
             if !Self.reaches(self.bodyFrame.insetBy(dx: -16, dy: -16), NSEvent.mouseLocation) {
                 self.collapseNow()
             }

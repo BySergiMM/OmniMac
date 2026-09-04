@@ -151,6 +151,18 @@ La primera vez se abre la ventana de Ajustes y se pide el permiso de Accesibilid
 - Un clic fuera del notch lo pliega. Arrastrar archivos hacia él lo abre en la
   pestaña Bandeja automáticamente.
 
+## AirPods y Beats en el notch
+
+Al conectar unos AirPods (todos los modelos, también Max) o unos Beats, el notch se
+despliega un momento con la tarjeta del iPhone: modelo y batería de cada pieza. La
+app se entera por CoreAudio (aparece el dispositivo de audio Bluetooth) y completa
+modelo y batería con `system_profiler`, así que no pide ningún permiso. En Ajustes ›
+Notch › Auriculares se activa o desactiva y hay un botón «Probar».
+
+El aviso de «conectados» de macOS lo dibuja Control Center y no tiene ajuste para
+apagarlo; la opción «Ocultar el aviso de macOS» intenta cerrarlo por Accesibilidad
+en cuanto aparece (experimental: solo pulsa un botón llamado cerrar/descartar).
+
 ## Marca
 
 - **Tagline**: «Todo lo que le falta a tu Mac»

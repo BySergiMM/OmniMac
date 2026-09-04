@@ -76,8 +76,13 @@ enum Snapshots {
         func next() {
             guard let tab = pending.first else {
                 NotchTimer.shared.stop()
-                window.orderOut(nil)
-                renderMenu(into: dir, source: menuSource) { NSApp.terminate(nil) }
+                // Tarjeta «AirPods conectados» (con su animación ya asentada).
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { model.deviceCard = HeadphonesInfo.sample }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                    save(hosting, to: dir.appendingPathComponent("notch-headphones.png"))
+                    window.orderOut(nil)
+                    renderMenu(into: dir, source: menuSource) { NSApp.terminate(nil) }
+                }
                 return
             }
             pending.removeFirst()
