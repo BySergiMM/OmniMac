@@ -119,7 +119,7 @@ struct SolidToolbar: ViewModifier {
             base
         }
         #else
-        content
+        base
         #endif
     }
 }
