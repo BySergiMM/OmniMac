@@ -1,5 +1,9 @@
 # Cambios
 
+## Sin publicar
+
+- Notch: la tarjeta de AirPods se abre en un panel más recogido (440×160) con el contenido centrado y se pliega antes (3,2 s; 2,2 s tras la batería).
+
 ## 0.3.1 — 2026-09-04
 
 - Notch: al conectar AirPods o Beats se despliega con una tarjeta animada al estilo iPhone (modelo y batería de cada pieza) y se pliega solo; opción para cerrar el aviso de macOS (experimental). Sin pedir permisos.
