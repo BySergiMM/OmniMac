@@ -76,8 +76,8 @@
   .notch .tabs span.on{background:rgba(255,255,255,.14);color:#fff}
   .notch .tabs .r{margin-left:auto;display:flex;gap:10px}
   .stage{position:absolute;left:50%;top:0;width:681px;height:232px;transform:translateX(-50%) scale(var(--s,1));transform-origin:top center}
-  .stage .shape{position:absolute;left:36px;top:0;width:609px;height:196px;filter:drop-shadow(0 18px 40px rgba(0,0,0,.65))}
-  .stage .media{position:absolute;left:0;top:0;width:681px;height:232px;transition:opacity .28s ease}
+  .stage .shape{position:absolute;left:36px;top:0;width:609px;height:196px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.55)) drop-shadow(0 8px 16px rgba(0,0,0,.38));will-change:filter,width,height,left}
+  .stage .media{position:absolute;left:0;top:0;width:681px;height:232px;transition:opacity .26s ease;clip-path:path('M36,0 L645,0 Q631,0 631,14 L631,170 Q631,196 605,196 L76,196 Q50,196 50,170 L50,14 Q50,0 36,0 Z')}
   .stage.on .media{opacity:0}
   .hcard{position:absolute;left:120.5px;top:0;width:440px;height:172px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:32px 24px 0;text-align:center;box-sizing:border-box;opacity:0;transition:opacity .3s ease;pointer-events:none;color:#fff}
   .stage.on .hcard{opacity:1}
@@ -533,10 +533,11 @@
       busy = true; timers.forEach(clearTimeout); timers = [];
       button.classList.add('busy'); label.textContent = 'Conectando…';
       stage.classList.add('on');
-      morphTo(CARD, FULL, 420, 120);
+      morphTo(CARD, FULL, 420, 280);
       later(900, () => { label.textContent = 'Conectados'; stage.classList.add('battery'); counters.forEach(c => count(c, +c.dataset.count, 900)); });
-      later(3400, () => { stage.classList.remove('on', 'battery'); counters.forEach(c => c.textContent = '0 %'); morphTo(FULL, CARD, 380, 60); });
-      later(3900, () => { button.classList.remove('busy'); label.textContent = 'Toca los AirPods'; busy = false; });
+      later(3400, () => { stage.classList.remove('battery'); stage.querySelector('.hcard').style.opacity = '0'; morphTo(FULL, CARD, 380, 120); });
+      later(3950, () => { stage.classList.remove('on'); stage.querySelector('.hcard').style.opacity = ''; counters.forEach(c => c.textContent = '0 %'); });
+      later(4300, () => { button.classList.remove('busy'); label.textContent = 'Toca los AirPods'; busy = false; });
     };
     button.addEventListener('click', play);
     if (/[?&]demo/.test(location.search)) setTimeout(play, 500);
