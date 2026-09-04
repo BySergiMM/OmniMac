@@ -13,6 +13,9 @@
 - Sonido: salida/entrada, volumen, balance, silencio, volumen por app, ⌃⌥⌘O para ciclar salida; sincronizado en tiempo real con las teclas de volumen.
 - Rendimiento: tres gráficos (CPU, memoria, red) en Ajustes y en el notch.
 - Actualizaciones automáticas (Sparkle + GitHub Releases) e instalador `.pkg`.
+- Binario universal (Apple silicon e Intel), macOS 14.2 o posterior.
+- El panel del notch se adapta al ancho del notch de cada pantalla: las pestañas nunca quedan debajo.
+- Web de presentación con capturas reales generadas por la propia app (`OmniMac --snapshots <carpeta>`).
 - Ajustes al estilo Ajustes del Sistema.
 
 **Arreglos**

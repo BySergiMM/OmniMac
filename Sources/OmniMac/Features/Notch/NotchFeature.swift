@@ -224,6 +224,8 @@ final class NotchModel: ObservableObject {
     let expandedSize: CGSize
 
     static let peekExtraHeight: CGFloat = 30
+    /// Espacio mínimo libre a cada lado del notch físico dentro del panel expandido.
+    static let sideClearance: CGFloat = 212
     /// Ancho del vistazo actual (depende del texto).
     @Published var peekWidth: CGFloat = 0
     var peekSize: CGSize {
@@ -374,7 +376,10 @@ final class NotchWindowController {
             notchWidth = screen.frame.width - left.width - right.width
         }
 
-        let expandedSize = CGSize(width: max(580, notchWidth + 340), height: 196)
+        // A cada lado del notch físico deben caber las cinco pestañas de la izquierda
+        // (16 + 5×32 + 4×6 + 8 = 208 pt) y el grupo de la derecha; así vale para
+        // cualquier MacBook con notch, sea del ancho que sea.
+        let expandedSize = CGSize(width: max(580, notchWidth + NotchModel.sideClearance * 2), height: 196)
         model = NotchModel(hasNotch: hasNotch,
                            notchSize: CGSize(width: notchWidth, height: notchHeight),
                            expandedSize: expandedSize)

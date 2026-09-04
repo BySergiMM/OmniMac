@@ -7,20 +7,25 @@ set -e
 cd "$(dirname "$0")"
 
 echo "🔨 Compilando OmniMac (release)…"
+# Binario universal (Apple silicon + Intel) sin Xcode: dos compilaciones y lipo.
 swift build -c release
+swift build -c release --triple x86_64-apple-macosx
+BIN=.build/release
+mkdir -p .build/universal
+lipo -create .build/arm64-apple-macosx/release/OmniMac .build/x86_64-apple-macosx/release/OmniMac -output .build/universal/OmniMac
 
 APP="dist/OmniMac.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp .build/release/OmniMac "$APP/Contents/MacOS/OmniMac"
+cp .build/universal/OmniMac "$APP/Contents/MacOS/OmniMac"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # Sparkle (actualizaciones automáticas): el framework va dentro del .app y el
 # binario lo busca en Contents/Frameworks.
 mkdir -p "$APP/Contents/Frameworks"
-cp -R .build/release/Sparkle.framework "$APP/Contents/Frameworks/"
+cp -R "$BIN/Sparkle.framework" "$APP/Contents/Frameworks/"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/OmniMac" 2>/dev/null || true
 
 # Icono de la app (se genera una vez con scripts/make-icon.swift)

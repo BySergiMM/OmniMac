@@ -37,9 +37,15 @@ mkdir -p "$OUT"
 ditto -c -k --keepParent dist/OmniMac.app "$OUT/OmniMac-$VER.zip"
 "$TOOLS/bin/generate_appcast" --download-url-prefix "https://github.com/$REPO/releases/download/v$VER/" "$OUT"
 
-echo "✅ Listo: $OUT/OmniMac-$VER.zip y $OUT/appcast.xml (versión $VER, build $BUILD)."
+# Instalador .pkg con nombre fijo: la web enlaza siempre a
+# https://github.com/$REPO/releases/latest/download/OmniMac.pkg
+./build.sh pkg >/dev/null
+cp "dist/OmniMac-$VER.pkg" "$OUT/OmniMac.pkg"
+
+echo "✅ Listo: $OUT/OmniMac-$VER.zip, $OUT/OmniMac.pkg y $OUT/appcast.xml (versión $VER, build $BUILD)."
 if [[ "$2" == "--publish" ]]; then
-  gh release create "v$VER" "$OUT/OmniMac-$VER.zip" "$OUT/appcast.xml" --repo "$REPO" --title "OmniMac $VER" --generate-notes
+  gh release create "v$VER" "$OUT/OmniMac-$VER.zip" "$OUT/OmniMac.pkg" "$OUT/appcast.xml" \
+    --repo "$REPO" --title "OmniMac $VER" --generate-notes
   echo "🚀 Publicada: https://github.com/$REPO/releases/tag/v$VER"
   echo "   Las apps instaladas la verán en su próxima comprobación (o con «Buscar actualizaciones…»)."
 else

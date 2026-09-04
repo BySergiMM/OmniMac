@@ -32,9 +32,17 @@ final class MediaBridge: ObservableObject {
     /// estado optimista y no de sondeos que aún traen el estado anterior.
     private var lastPlayPauseAt: Date = .distantPast
     private let queue = DispatchQueue(label: "com.seergiii.omnimac.media")
+    /// Solo para las capturas de la web (`--snapshots`): datos fijos, sin sondear.
+    private var sampleMode = false
+
+    func useSample(_ info: NowPlayingInfo, artwork: NSImage?) {
+        sampleMode = true
+        nowPlaying = info
+        self.artwork = artwork
+    }
 
     func startPolling() {
-        guard timer == nil else { return }
+        guard timer == nil, !sampleMode else { return }
         poll()
         let t = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             self?.poll()
@@ -53,7 +61,7 @@ final class MediaBridge: ObservableObject {
     /// distribuida. Solo entonces consultamos una vez por AppleScript. Con el ratón
     /// quieto y la misma canción, cero trabajo (sondear cada 3 s costaba 0,35 % de CPU).
     func startWatching() {
-        guard watchObservers.isEmpty else { return }
+        guard watchObservers.isEmpty, !sampleMode else { return }
         let center = DistributedNotificationCenter.default()
         for name in ["com.spotify.client.PlaybackStateChanged", "com.apple.Music.playerInfo"] {
             watchObservers.append(center.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
@@ -161,6 +169,7 @@ final class MediaBridge: ObservableObject {
     }
 
     private func poll() {
+        guard !sampleMode else { return }
         guard !polling else { return }
         guard let player = activePlayer else {
             if nowPlaying != nil {
