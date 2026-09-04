@@ -121,6 +121,9 @@ struct NotchView: View {
         }
         .frame(width: shapeSize.width, height: shapeSize.height)
         .clipShape(NotchExpandedShape()) // nada asoma fuera del negro durante la animación
+        // Un solo plano antes de la sombra: así la sombra se calcula del conjunto y no
+        // de cada subvista (con contenido semitransparente animándose, se «rompía»).
+        .compositingGroup()
         // Sombra exterior en dos capas: una pegada al borde (marca hasta dónde llega
         // el notch) y otra amplia y suave (le da peso). Solo expandido (o en el vistazo).
         .shadow(color: .black.opacity(model.expanded ? 0.55 : (model.peek != nil ? 0.4 : 0)),
