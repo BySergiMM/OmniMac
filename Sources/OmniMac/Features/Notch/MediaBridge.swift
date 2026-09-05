@@ -32,7 +32,9 @@ final class MediaBridge: ObservableObject {
     /// Última pulsación de play/pausa: mientras sea reciente, la UI se fía del
     /// estado optimista y no de sondeos que aún traen el estado anterior.
     private var lastPlayPauseAt: Date = .distantPast
-    private let queue = DispatchQueue(label: "com.seergiii.omnimac.media")
+    /// Todos los AppleScript van por el hilo de scripts (ver `ScriptThread`): nunca
+    /// bloquean la interfaz y no dejan restos en hilos de GCD.
+    private let scripts = ScriptThread.shared
     /// Solo para las capturas de la web (`--snapshots`): datos fijos, sin sondear.
     private var sampleMode = false
 
@@ -133,7 +135,7 @@ final class MediaBridge: ObservableObject {
         guard !launching else { return }
         launching = true
 
-        queue.async { [weak self] in
+        scripts.async { [weak self] in
             // `launch` de AppleScript abre la app; después reintentamos `play`
             // hasta que el proceso esté listo (Spotify tarda un par de segundos).
             _ = self?.runOnce("tell application \"\(player.scriptName)\" to launch")
@@ -161,7 +163,7 @@ final class MediaBridge: ObservableObject {
 
     private func command(_ command: String, on player: MusicPlayer) {
         let script = "tell application \"\(player.scriptName)\" to \(command)"
-        queue.async { [weak self] in
+        scripts.async { [weak self] in
             _ = self?.runOnce(script)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 self?.poll()
@@ -212,7 +214,7 @@ final class MediaBridge: ObservableObject {
         }
 
         polling = true
-        queue.async { [weak self] in
+        scripts.async { [weak self] in
             let output = self?.runCached(script)
             DispatchQueue.main.async {
                 guard let self else { return }
@@ -259,7 +261,7 @@ final class MediaBridge: ObservableObject {
             let key = "music:" + info.title + "\u{1}" + info.artist
             guard key != lastArtworkURL else { return }
             lastArtworkURL = key
-            queue.async { [weak self] in
+            scripts.async { [weak self] in
                 let image = self?.musicArtworkData().flatMap { NSImage(data: $0) }
                 DispatchQueue.main.async { self?.artwork = image }
             }
@@ -302,14 +304,14 @@ final class MediaBridge: ObservableObject {
 
     // MARK: - AppleScript en proceso
     // Antes cada consulta lanzaba un proceso `osascript` (fork+exec, ~50 ms de CPU).
-    // NSAppleScript en una cola en serie cuesta ~1 ms, y los scripts calientes del
+    // NSAppleScript en el hilo de scripts cuesta ~1 ms, y los scripts calientes del
     // poll se compilan una sola vez.
 
     private var cachedScripts: [String: NSAppleScript] = [:]
 
     /// Para los scripts del poll: compilados una vez y reutilizados.
     private func runCached(_ source: String) -> String? {
-        dispatchPrecondition(condition: .onQueue(queue))
+        assert(scripts.isCurrent, "los AppleScript se ejecutan en ScriptThread")
         let script: NSAppleScript
         if let cached = cachedScripts[source] {
             script = cached
@@ -325,7 +327,7 @@ final class MediaBridge: ObservableObject {
     /// Para órdenes puntuales (play, seek…): compilar y tirar — no se cachean
     /// porque el seek genera un script distinto por posición.
     private func runOnce(_ source: String) -> String? {
-        dispatchPrecondition(condition: .onQueue(queue))
+        assert(scripts.isCurrent, "los AppleScript se ejecutan en ScriptThread")
         guard let script = NSAppleScript(source: source) else { return nil }
         return Self.execute(script)
     }
@@ -337,3 +339,4 @@ final class MediaBridge: ObservableObject {
         return result.stringValue ?? ""
     }
 }
+

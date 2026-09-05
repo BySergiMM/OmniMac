@@ -64,9 +64,6 @@ struct NotchView: View {
             // Con notch físico, plegado no se dibuja nada (el notch ya es negro); el
             // negro aparece sin animación justo al empezar a abrir. En pantallas sin
             // notch, la "isla" sí se ve siempre.
-            // Con notch físico, plegado no se dibuja nada (el notch ya es negro); el
-            // negro aparece sin animación justo al empezar a abrir. En pantallas sin
-            // notch, la "isla" sí se ve siempre.
             NotchExpandedShape()
                 .fill(Color.black.opacity(model.blackVisible || !model.hasNotch ? 1 : 0))
                 .overlay(NotchExpandedShape().stroke(.white.opacity(model.expanded ? 0.08 : 0), lineWidth: 1))
