@@ -96,6 +96,14 @@ Hecho:
 - Temas del repositorio, Discussions, botón Sponsor (`.github/FUNDING.yml`), imagen social (`docs/site/img/social-preview.png`).
 - Tap de Homebrew: https://github.com/BySergiMM/homebrew-tap → `brew install --cask BySergiMM/tap/omnimac` (release.sh lo actualiza al publicar).
 - Pull requests a las listas: https://github.com/jaywcjlove/awesome-mac/pull/2765 · https://github.com/iCHAIT/awesome-macOS/pull/1072 · https://github.com/serhii-londar/open-source-mac-os-apps/pull/1331
+- Material preparado el 5 de septiembre de 2026 (0.4.1):
+  - GIF del notch para el README y Reddit: `docs/site/img/demo.gif` (ES) y `docs/site/img/en/demo.gif` (EN); se regeneran con `scripts/dev/hero-gif.swift` a partir de la animación de la web.
+  - Guion del vídeo de 30 s y versión vertical: `docs/VIDEO.md`.
+  - Kit de Product Hunt (textos, galería 1270×760, primer comentario, respuestas): `docs/producthunt/`.
+  - Fichas para AlternativeTo, MacUpdate y MacMenuBar: `docs/DIRECTORIOS.md`.
+  - Páginas comparativas «OmniMac frente a X» en español e inglés, con sitemap y datos estructurados: `docs/site/vs/` y `docs/site/en/vs/` (generador `docs/site/tools/make_vs.py`).
+  - Artículo para blog y correos para Applesfera, Hipertextual, 9to5Mac y MacStories: `docs/prensa/`.
+  - Recordatorios programados en la app de Claude: Reddit el martes 8 de septiembre a las 15:00 y Show HN el miércoles 9 a las 15:00, con los textos listos (no publican nada solos).
 
 ### Reddit · r/macapps (inglés)
 

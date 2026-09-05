@@ -31,6 +31,10 @@
 </p>
 
 <p align="center">
+  <img src="docs/site/img/demo.gif" width="900" alt="El notch de OmniMac abriéndose con la tarjeta de AirPods">
+</p>
+
+<p align="center">
   <img src="docs/site/img/notch-media.png" width="681" alt="El notch de OmniMac desplegado con la música">
 </p>
 
