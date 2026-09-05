@@ -37,16 +37,21 @@ func background(_ ctx: CGContext) {
     let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1])!
     ctx.drawRadialGradient(gradient, startCenter: CGPoint(x: Double(W) * 0.3, y: Double(H) * 1.15), startRadius: 0, endCenter: CGPoint(x: Double(W) * 0.3, y: Double(H) * 1.15), endRadius: Double(max(W, H)) * 0.95, options: [])
 }
-func text(_ ctx: CGContext, _ string: String, size: CGFloat, weight: NSFont.Weight, color: NSColor, y: CGFloat, alpha: CGFloat = 1, maxWidth: CGFloat? = nil) {
+/// Dibuja texto centrado con el borde superior del bloque en `top` (coordenadas de
+/// CoreGraphics, origen abajo). Devuelve la altura real del bloque, que puede ocupar
+/// varias líneas, para colocar debajo lo siguiente sin solaparse.
+@discardableResult
+func text(_ ctx: CGContext, _ string: String, size: CGFloat, weight: NSFont.Weight, color: NSColor, top: CGFloat, alpha: CGFloat = 1, maxWidth: CGFloat? = nil) -> CGFloat {
     let ns = NSGraphicsContext(cgContext: ctx, flipped: false)
     NSGraphicsContext.saveGraphicsState(); NSGraphicsContext.current = ns
     let paragraph = NSMutableParagraphStyle(); paragraph.alignment = .center
     let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: size, weight: weight), .foregroundColor: color.withAlphaComponent(alpha), .paragraphStyle: paragraph, .kern: -size * 0.02]
     let width = maxWidth ?? CGFloat(W) * 0.86
-    let rect = CGRect(x: (CGFloat(W) - width) / 2, y: y, width: width, height: size * 3)
     let bounding = (string as NSString).boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], attributes: attributes)
-    (string as NSString).draw(with: CGRect(x: rect.minX, y: y - bounding.height, width: width, height: bounding.height), options: [.usesLineFragmentOrigin], attributes: attributes)
+    let height = ceil(bounding.height)
+    (string as NSString).draw(with: CGRect(x: (CGFloat(W) - width) / 2, y: top - height, width: width, height: height), options: [.usesLineFragmentOrigin], attributes: attributes)
     NSGraphicsContext.restoreGraphicsState()
+    return height
 }
 func rounded(_ ctx: CGContext, _ image: CGImage, in rect: CGRect, radius: CGFloat, alpha: CGFloat) {
     ctx.saveGState()
@@ -97,16 +102,23 @@ func card(_ c: Card, isOutro: Bool) {
         let t = Double(i) / Double(fps)
         let fadeIn = ease(t / 0.5), fadeOut = isOutro ? 1 : ease((c.seconds - t) / 0.4)
         let a = min(fadeIn, fadeOut)
-        let titleSize: CGFloat = vertical ? 92 : 96, subSize: CGFloat = vertical ? 40 : 40
-        var baseline = CGFloat(H) * (vertical ? 0.55 : 0.56)
+        let titleSize: CGFloat = vertical ? 78 : 96, subSize: CGFloat = vertical ? 36 : 40
+        // El bloque (icono + título + subtítulo) se centra en vertical según su altura real.
+        let attributesT: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: titleSize, weight: .bold)]
+        let attributesS: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: subSize, weight: .medium)]
+        let width = CGFloat(W) * 0.86
+        let hT = ceil((c.title as NSString).boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], attributes: attributesT).height)
+        let hS = ceil((c.subtitle as NSString).boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], attributes: attributesS).height)
+        let side: CGFloat = icon == nil ? 0 : (vertical ? 240 : 200)
+        let gapIcon: CGFloat = icon == nil ? 0 : 44, gapText: CGFloat = 18
+        let total = side + gapIcon + hT + gapText + hS
+        var top = CGFloat(H) / 2 + total / 2
         if let icon {
-            let side: CGFloat = vertical ? 260 : 200
-            let rect = CGRect(x: (CGFloat(W) - side) / 2, y: baseline + 40, width: side, height: side)
-            rounded(ctx, icon, in: rect, radius: side * 0.22, alpha: a)
-            baseline -= 30
+            rounded(ctx, icon, in: CGRect(x: (CGFloat(W) - side) / 2, y: top - side, width: side, height: side), radius: side * 0.22, alpha: a)
+            top -= side + gapIcon
         }
-        text(ctx, c.title, size: titleSize, weight: .bold, color: .white, y: baseline, alpha: a)
-        text(ctx, c.subtitle, size: subSize, weight: .medium, color: NSColor(white: 0.78, alpha: 1), y: baseline - titleSize * 1.15 - 10, alpha: a)
+        top -= text(ctx, c.title, size: titleSize, weight: .bold, color: .white, top: top, alpha: a) + gapText
+        text(ctx, c.subtitle, size: subSize, weight: .medium, color: NSColor(white: 0.78, alpha: 1), top: top, alpha: a)
         emit(ctx)
     }
 }
@@ -141,10 +153,12 @@ func scene(_ s: Scene) {
         let local = Double(i) / Double(fps), remaining = Double(total - i) / Double(fps)
         let a = min(ease(local / 0.35), ease(remaining / 0.3))
         if let current { rounded(ctx, current, in: rect, radius: vertical ? 22 : 18, alpha: a) }
-        let titleSize: CGFloat = vertical ? 64 : 58, subSize: CGFloat = vertical ? 34 : 30
-        let titleY = vertical ? rect.minY - 90 : CGFloat(H) * 0.20
-        text(ctx, s.title, size: titleSize, weight: .bold, color: .white, y: titleY, alpha: a * ease((local - 0.15) / 0.35))
-        text(ctx, s.subtitle, size: subSize, weight: .medium, color: NSColor(white: 0.78, alpha: 1), y: titleY - titleSize * 1.2, alpha: a * ease((local - 0.3) / 0.35))
+        let titleSize: CGFloat = vertical ? 56 : 58, subSize: CGFloat = vertical ? 32 : 30
+        // Título bajo el clip (vertical) o en la banda inferior (horizontal); el subtítulo
+        // va justo debajo del título, a la distancia que marque su altura real.
+        var top = vertical ? rect.minY - 70 : CGFloat(H) * 0.20 + titleSize * 1.2
+        top -= text(ctx, s.title, size: titleSize, weight: .bold, color: .white, top: top, alpha: a * ease((local - 0.15) / 0.35)) + 14
+        text(ctx, s.subtitle, size: subSize, weight: .medium, color: NSColor(white: 0.78, alpha: 1), top: top, alpha: a * ease((local - 0.3) / 0.35))
         emit(ctx)
     }
     reader.cancelReading()
