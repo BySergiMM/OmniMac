@@ -134,3 +134,22 @@ telemetría. Se actualiza sola.
 💻 Código: github.com/BySergiMM/OmniMac
 
 Cada café paga horas de las próximas funciones. ¡Gracias por pasar por aquí!
+
+## Post: el vídeo (6 de septiembre de 2026) · tipo «Image post», imagen destacada `docs/site/img/video-poster.jpg`
+
+**Título:** OmniMac en vídeo: todo lo que hace, en minuto y medio
+
+**Texto:**
+
+Grabé un recorrido completo de OmniMac con la app real, sin trucos: la música en el notch, el vistazo rápido al cambiar de canción, arrastrar archivos a la bandeja y a AirDrop, el volumen por app, el temporizador con el tiempo en la barra de menús, la tarjeta de los AirPods, el botón de café, ⌘Tab por ventanas, los atajos de ventanas, el ajuste arrastrando a los bordes, el historial del portapapeles, las utilidades y la ventana de Ajustes. Ciento seis segundos.
+
+Lo curioso: el vídeo lo grabó un script. La misma tubería que uso para probar la app mueve el ratón, pulsa los atajos y graba cada escena; el montaje lo hace un pequeño programa de AVFoundation. Cuando cambie la interfaz, el vídeo se regenera solo.
+
+Verlo: https://bysergimm.github.io/OmniMac/#video
+Versión vertical y en inglés: https://github.com/BySergiMM/OmniMac/releases/tag/media
+
+Si te gusta lo que ves, un café ayuda a pagar la cuenta de desarrollador de Apple para poder notarizar la app. Gracias.
+
+**Etiquetas:** OmniMac, macOS, vídeo, código abierto
+
+**Enlace del vídeo (campo «Embedded content URL»):** Ko-fi solo acepta YouTube, Vimeo y similares; si subes el vídeo a YouTube, pega aquí su URL y el post llevará el reproductor.
