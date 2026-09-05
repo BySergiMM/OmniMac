@@ -1,0 +1,96 @@
+{
+ "width": 1280,
+ "height": 720,
+ "fps": 30,
+ "output": "docs/video/omnimac-readme-es.mp4",
+ "intro": {
+  "title": "Tu Mac puede hacer esto",
+  "subtitle": "OmniMac · gratis y de código abierto",
+  "seconds": 2.2,
+  "icon": null
+ },
+ "outro": {
+  "title": "OmniMac",
+  "subtitle": "Gratis y de código abierto · bysergimm.github.io/OmniMac",
+  "seconds": 3.0,
+  "icon": "docs/site/img/icon-512.png"
+ },
+ "scenes": [
+  {
+   "clip": "CLIPS/01-music.mov",
+   "from": 1.0,
+   "to": 10.4,
+   "title": "Música en el notch",
+   "subtitle": "Pasa el ratón: carátula, progreso y controles",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/02c-tabs.mov",
+   "from": 1.2,
+   "to": 12.6,
+   "title": "AirDrop, volumen por app, temporizador",
+   "subtitle": "Cada pestaña se activa o desactiva en Ajustes",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/03c-airpods.mov",
+   "from": 1.9,
+   "to": 5.6,
+   "title": "Como en el iPhone",
+   "subtitle": "Al conectar AirPods o Beats: batería de cada pieza",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/04c-cmdtab.mov",
+   "from": 2.4,
+   "to": 8.6,
+   "crop": [
+    560,
+    300,
+    1904,
+    1120
+   ],
+   "width": 0.66,
+   "y": 0.6,
+   "title": "⌘Tab por ventanas",
+   "subtitle": "Miniaturas en vivo; escribe para filtrar"
+  },
+  {
+   "clip": "CLIPS/05c-snap.mov",
+   "from": 1.6,
+   "to": 10.6,
+   "crop": [
+    0,
+    0,
+    3024,
+    1964
+   ],
+   "width": 0.66,
+   "y": 0.6,
+   "title": "Atajos de ventanas",
+   "subtitle": "⌃⌥→ mitad derecha · ⌃⌥← izquierda · ⌃⌥↩ casi maximizar"
+  }
+ ],
+ "bitrate": 1500000
+}
