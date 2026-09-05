@@ -24,6 +24,25 @@ if mode == "height" {
 }
 let windows = (attr(ax, "AXWindows") as? [AXUIElement]) ?? []
 guard let notch = windows.first(where: { (frame($0)?.minY ?? -1) == 0 }) else { print("sin panel"); exit(0) }
+// slider:<texto>=<valor 0-1>: mueve el deslizador cuyo nombre o descripción contenga el texto.
+if mode.hasPrefix("slider:") {
+    let spec = String(mode.dropFirst(7)); let parts = spec.split(separator: "=", maxSplits: 1).map(String.init)
+    guard parts.count == 2, let value = Double(parts[1]) else { print("uso: slider:Spotify=0.4"); exit(1) }
+    var found = false
+    func walkSliders(_ e: AXUIElement, _ depth: Int) {
+        guard depth < 30, !found else { return }
+        let role = attr(e, "AXRole") as? String ?? ""
+        let name = [attr(e, "AXTitle") as? String, attr(e, "AXDescription") as? String, attr(e, "AXHelp") as? String].compactMap { $0 }.joined(separator: " · ")
+        if role == "AXSlider", name.localizedCaseInsensitiveContains(parts[0]) {
+            let ok = AXUIElementSetAttributeValue(e, "AXValue" as CFString, value as CFTypeRef)
+            print(ok == .success ? "deslizador «\(name)» → \(value)" : "no se pudo mover «\(name)» (\(ok.rawValue))"); found = true; return
+        }
+        for child in (attr(e, "AXChildren") as? [AXUIElement]) ?? [] { walkSliders(child, depth + 1) }
+    }
+    walkSliders(notch, 0)
+    if !found { print("sin deslizador que contenga «\(parts[0])»") }
+    exit(0)
+}
 var items: [(String, String, AXUIElement)] = []
 func walk(_ e: AXUIElement, _ depth: Int) {
     let role = attr(e, "AXRole") as? String ?? "?"
