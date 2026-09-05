@@ -30,14 +30,9 @@
   <a href="https://ko-fi.com/seergiii"><img src="https://img.shields.io/badge/Inv%C3%ADtame%20a%20un%20caf%C3%A9-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"></a>
 </p>
 
-<p align="center">
-  <img src="docs/site/img/demo.gif" width="900" alt="El notch de OmniMac abriéndose con la tarjeta de AirPods">
-</p>
+https://github.com/user-attachments/assets/757ab088-c1fa-416d-9d5c-fb8088834c68
 
-<p align="center">
-  <a href="https://bysergimm.github.io/OmniMac/#video"><img src="docs/site/img/video-poster.jpg" width="900" alt="Vídeo: recorrido completo de OmniMac (106 s)"></a><br>
-  <sub>▶ <a href="https://bysergimm.github.io/OmniMac/#video">Vídeo del recorrido completo (106 s)</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-vertical-es.mp4">vertical</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">todos los vídeos, también en inglés</a></sub>
-</p>
+<p align="center"><sub>▶ Recorrido completo (106 s): <a href="https://bysergimm.github.io/OmniMac/#video">en la web</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">todos los vídeos, también en inglés y en vertical</a></sub></p>
 
 <p align="center">
   <img src="docs/site/img/notch-media.png" width="681" alt="El notch de OmniMac desplegado con la música">
