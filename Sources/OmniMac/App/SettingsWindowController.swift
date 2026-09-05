@@ -20,8 +20,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         super.init(window: window)
         window.delegate = self
-        window.contentView = NSHostingView(rootView: SettingsView(manager: FeatureManager.shared))
         window.center()
+    }
+
+    /// La vista se crea al mostrar la ventana y se destruye al cerrarla: así las páginas
+    /// que muestrean (Rendimiento, volumen por app) paran de verdad al cerrar Ajustes.
+    /// (Con la ventana solo oculta, SwiftUI no llama a `onDisappear` y seguían midiendo.)
+    private func installFreshContent() {
+        window?.contentView = NSHostingView(rootView: SettingsView(manager: FeatureManager.shared))
     }
 
     required init?(coder: NSCoder) {
@@ -32,6 +38,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         PermissionsMonitor.shared.startWatching()
         NSApp.activate(ignoringOtherApps: true)
         if let window, !window.isVisible {
+            installFreshContent()
             window.center()
         }
         window?.makeKeyAndOrderFront(nil)
@@ -39,5 +46,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         PermissionsMonitor.shared.stopWatching()
+        FeatureManager.shared.sound.mixer.endWatching()   // por si se cerró con la página Sonido a la vista
+        window?.contentView = nil
     }
 }

@@ -95,6 +95,12 @@ swift test            # unit tests (needs Xcode)
 Snapshots for the website: `dist/OmniMac.app/Contents/MacOS/OmniMac --snapshots <dir> [--lang en]`.
 Releases: `scripts/release.sh <version> --publish` (Sparkle appcast, GitHub release, Homebrew tap).
 
+Development helpers live in `scripts/dev`: `quickbuild.sh` (Apple silicon-only rebuild into `dist/`
+in seconds), `measure.sh` (60 s idle CPU/memory), `wakeups.sh` (idle wake-ups before and after
+opening the notch three times), plus `mouse.swift`, `notch.swift` and `settings.swift` to drive the
+app from the terminal. When measuring, remember that `top -l`'s `IDLEW`/`CSW` columns are cumulative
+counters, not rates, and that Accessibility queries cost the queried app CPU.
+
 ## Architecture
 
 `Sources/OmniMac/App` (app lifecycle), `Support` (shared helpers: Accessibility, hotkeys,

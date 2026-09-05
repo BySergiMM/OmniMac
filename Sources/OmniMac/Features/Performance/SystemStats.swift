@@ -28,6 +28,8 @@ final class SystemStats: ObservableObject {
         self.networkOut = networkOut
     }
 
+    deinit { stop() }   // un Timer repetitivo se retiene solo: hay que invalidarlo
+
     func start() {
         guard !sampleMode else { return }
         guard timer == nil else { return }

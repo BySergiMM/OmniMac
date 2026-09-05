@@ -14,9 +14,16 @@ func frame(_ e: AXUIElement) -> CGRect? {
     AXValueGetValue(pv as! AXValue, .cgPoint, &p); AXValueGetValue(sv as! AXValue, .cgSize, &s)
     return CGRect(origin: p, size: s)
 }
+if mode == "height" {
+    // Sin Accesibilidad: CGWindowList da los marcos sin despertar a la app (las consultas AX
+    // le costaban ~3 ms cada una y falseaban las medidas de reposo).
+    let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+    let mine = list.filter { ($0[kCGWindowOwnerPID as String] as? Int32) == app.processIdentifier }
+    let notch = mine.compactMap { $0[kCGWindowBounds as String] as? [String: CGFloat] }.first { ($0["Y"] ?? -1) == 0 }
+    print(Int(notch?["Height"] ?? 0)); exit(0)
+}
 let windows = (attr(ax, "AXWindows") as? [AXUIElement]) ?? []
 guard let notch = windows.first(where: { (frame($0)?.minY ?? -1) == 0 }) else { print("sin panel"); exit(0) }
-if mode == "height" { print(Int(frame(notch)!.height)); exit(0) }
 var items: [(String, String, AXUIElement)] = []
 func walk(_ e: AXUIElement, _ depth: Int) {
     let role = attr(e, "AXRole") as? String ?? "?"

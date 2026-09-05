@@ -40,6 +40,38 @@ temporizador, disposiciones y Sparkle (7 módulos frente a 5):
   descarta o comparte con otras apps sin coste.
 - Los 7 MB de disco son 5 MB de Sparkle (actualizaciones) + 2 MB de app.
 
+## Medición 0.4.1 (5 de septiembre de 2026)
+
+Misma metodología (60 s de reposo con el cursor lejos del notch, `ps -o cputime`, `footprint`),
+más dos cosas nuevas: despertares por segundo (diferencia de `IDLEW` entre dos muestras de `top`)
+y recuento de objetos con `heap` antes y después de abrir y cerrar el notch 10 veces con Spotify.
+
+| Escenario | CPU media | RSS | Memoria física real | Despertares | Hilos |
+|---|---|---|---|---|---|
+| **Reposo** (notch plegado, 60 s) | **0,017 %** | 64 MB | **19 MB** | **0,7/s** | 6 |
+| Plegado con Spotify en pausa (30 s) | 0,000 % | 64 MB | 19 MB | 1,0/s | 6 |
+| Tras abrir y cerrar el notch 10 veces | — | — | 27 MB | 0,7/s | 6 |
+| **Expandido + música** (pestaña Música, Spotify sonando, 30 s) | 2,1 % | — | 25 MB | — | 8 |
+
+- La memoria física real baja de 50 a 19 MB frente a 0.3.0 porque ahora la ventana de Ajustes
+  destruye su vista al cerrarse (antes quedaba oculta con sus gráficos vivos) y porque esta medida
+  es de un arranque limpio sin haber abierto Ajustes; con el notch usado sube a 25–27 MB y ahí se queda.
+- Los objetos que antes crecían con cada apertura ya no crecen: `NSMachPort` y `CFRunLoopSource`
+  (el tap de clics del notch no se invalidaba) y `CFRunLoop`/`CFRunLoopMode`/colas de run loop
+  (los AppleScript en GCD dejaban un run loop por hilo de trabajo; ahora corren en `ScriptThread`).
+- Ajustes: al cerrar la ventana con la página Rendimiento o Sonido a la vista seguían muestreando
+  (0,37 % de CPU con la ventana oculta). Ahora la vista se destruye al cerrar y se crea al abrir.
+
+**Dos trampas de medición que nos engañaron** (documentadas para no repetirlas):
+
+1. Consultar la app por Accesibilidad (para leer la altura del notch) le cuesta a *ella* unos 3 ms
+   por consulta: un sondeo cada 10 s inflaba el reposo a 0,047 %. `scripts/dev/notch.swift height`
+   lee ahora el marco con `CGWindowList`, que no despierta a la app.
+2. Las columnas `IDLEW` y `CSW` de `top -l N` son contadores acumulados desde que arrancó el
+   proceso (el «+» solo indica que han crecido). Tomar el valor bruto como tasa «descubrió» una
+   fuga de 35 despertares por segundo por cada apertura del notch que no existía: `proc_pidinfo`
+   daba 4 cambios de contexto por segundo y 0 ms de CPU. `scripts/dev/wakeups.sh` resta dos muestras.
+
 ## Corto plazo (mientras la usas)
 
 - La interacción es fluida.

@@ -1,5 +1,14 @@
 # Cambios
 
+## 0.4.1 — 2026-09-05
+
+- Ajustes: al cambiar el idioma, OmniMac se reinicia y vuelve a abrir Ajustes ya en el idioma nuevo; los selectores de las filas quedan centrados en vertical.
+- Ajustes: al cerrar la ventana se destruye su contenido, así las páginas Rendimiento y Sonido dejan de muestrear de verdad (antes seguían midiendo con la ventana oculta: 0,37 % de CPU).
+- Notch: el tap de clics se invalida al plegar (antes cada apertura dejaba un puerto Mach y una fuente del run loop huérfanos) y el reencuadre del panel espera a que termine la animación de plegado.
+- Música: los AppleScript corren en un hilo propio con run loop (`ScriptThread`) en vez de en GCD, que iba acumulando run loops y fuentes por cada sondeo.
+- Rendimiento medido de nuevo (`docs/PERFORMANCE.md`): reposo 0,02 % de CPU, menos de un despertar por segundo, sin crecimiento de memoria tras abrir y cerrar el notch.
+- Código: comentarios de cabecera en todos los archivos, herramientas de prueba en `scripts/dev` (`quickbuild.sh`, `wakeups.sh`, `measure.sh`…) y generador de la web inglesa en `docs/site/tools`.
+
 ## 0.4.0 — 2026-09-04
 
 - **Interfaz en inglés y español**: sigue el idioma del Mac y se puede fijar en Ajustes › Inicio › General › Idioma (cambiarlo reinicia la app). Textos de permisos localizados.

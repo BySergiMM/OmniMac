@@ -667,9 +667,18 @@ final class NotchWindowController {
         guard model.expanded else { return }
 
         withAnimation(.easeIn(duration: 0.1)) { model.showContent = false }
-        // Plegado un poco más ágil que la apertura.
-        withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+        // Plegado un poco más ágil que la apertura. El reencuadre del panel (estado de
+        // reposo) se hace cuando el muelle ha terminado de verdad (`completion`), no
+        // tras un retardo fijo: así nunca recortamos la animación si un fotograma llega
+        // tarde y no hay que ajustar el retardo a mano si se cambia el muelle.
+        withAnimation(.spring(response: 0.24, dampingFraction: 0.9), completionCriteria: .removed) {
             model.expanded = false
+        } completion: { [weak self] in
+            guard let self else { return }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { self.model.deviceCard = nil }
+            self.applyRestingState()   // no hace nada si se ha vuelto a abrir mientras tanto
         }
         model.hover.point = nil
         media.stopPolling()
@@ -677,13 +686,6 @@ final class NotchWindowController {
         removeForwardingTap()
         stopWatchdog()
         updateWatch()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) { [weak self] in
-            guard let self else { return }
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) { self.model.deviceCard = nil }
-            self.applyRestingState()
-        }
     }
 
     /// Plegado inmediato (sin animación) al cambiar de escritorio.
@@ -922,11 +924,16 @@ final class NotchWindowController {
     }
 
     private func removeForwardingTap() {
+        // Invalidar, no solo soltar: el sistema conserva el puerto del tap hasta que
+        // se invalida, y sin esto cada apertura del notch dejaba un puerto Mach y una
+        // fuente del run loop huérfanos.
         if let forwardTapSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), forwardTapSource, .commonModes)
+            CFRunLoopSourceInvalidate(forwardTapSource)
         }
         if let forwardTap {
             CGEvent.tapEnable(tap: forwardTap, enable: false)
+            CFMachPortInvalidate(forwardTap)
         }
         forwardTapSource = nil
         forwardTap = nil

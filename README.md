@@ -298,8 +298,14 @@ Pequeñas utilidades de prueba que usan la API de Accesibilidad, sin permisos de
 swift scripts/dev/mouse.swift hover|park        # llevar el ratón al notch o apartarlo
 swift scripts/dev/notch.swift height|dump|press:Música
 swift scripts/dev/settings.swift dump|press:English|near:Mantener despierto|click:Notch
-scripts/dev/measure.sh                           # consumo en reposo 60 s (vigila que el notch siga plegado)
+zsh scripts/dev/quickbuild.sh                    # recompila solo Apple silicon y sustituye el binario de dist/ (segundos)
+zsh scripts/dev/measure.sh                       # consumo en reposo 60 s (vigila que el notch siga plegado)
+zsh scripts/dev/wakeups.sh                       # despertares/s en reposo antes y después de abrir el notch 3 veces
 ```
+
+Al medir, ojo con dos trampas que ya nos han engañado: las consultas de Accesibilidad a la app
+le cuestan CPU a ella (por eso `notch.swift height` usa `CGWindowList`), y las columnas `IDLEW`
+y `CSW` de `top -l` son contadores acumulados, no tasas (hay que restar dos muestras).
 
 ## Capturas para la web
 
