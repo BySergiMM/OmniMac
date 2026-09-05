@@ -1,0 +1,95 @@
+{
+ "width": 1920,
+ "height": 1080,
+ "fps": 30,
+ "output": "docs/video/omnimac-16x9-en.mp4",
+ "intro": {
+  "title": "Your Mac can do this",
+  "subtitle": "OmniMac · free and open source",
+  "seconds": 2.2,
+  "icon": null
+ },
+ "outro": {
+  "title": "OmniMac",
+  "subtitle": "Free and open source · bysergimm.github.io/OmniMac",
+  "seconds": 3.0,
+  "icon": "docs/site/img/icon-512.png"
+ },
+ "scenes": [
+  {
+   "clip": "CLIPS/01-music.mov",
+   "from": 1.0,
+   "to": 10.4,
+   "title": "Music in the notch",
+   "subtitle": "Hover the notch: artwork, progress and controls",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/02c-tabs.mov",
+   "from": 1.2,
+   "to": 12.6,
+   "title": "AirDrop, per-app volume, timer",
+   "subtitle": "Every tab can be switched on or off",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/03c-airpods.mov",
+   "from": 1.9,
+   "to": 5.6,
+   "title": "iPhone-style",
+   "subtitle": "When AirPods or Beats connect: battery of each piece",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/04c-cmdtab.mov",
+   "from": 2.4,
+   "to": 8.6,
+   "crop": [
+    560,
+    300,
+    1904,
+    1120
+   ],
+   "width": 0.66,
+   "y": 0.6,
+   "title": "⌘Tab by windows",
+   "subtitle": "Live thumbnails; type to filter"
+  },
+  {
+   "clip": "CLIPS/05c-snap.mov",
+   "from": 1.6,
+   "to": 10.6,
+   "crop": [
+    0,
+    0,
+    3024,
+    1964
+   ],
+   "width": 0.66,
+   "y": 0.6,
+   "title": "Window shortcuts",
+   "subtitle": "⌃⌥→ right half · ⌃⌥← left · ⌃⌥↩ almost maximise"
+  }
+ ]
+}
