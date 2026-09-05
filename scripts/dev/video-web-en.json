@@ -1,0 +1,231 @@
+{
+ "width": 1280,
+ "height": 720,
+ "fps": 30,
+ "output": "docs/site/video/omnimac-tour-en.mp4",
+ "intro": {
+  "title": "Your Mac can do this",
+  "subtitle": "OmniMac · seven modules, free and open source",
+  "seconds": 2.4,
+  "icon": null
+ },
+ "outro": {
+  "title": "OmniMac",
+  "subtitle": "Free and open source · bysergimm.github.io/OmniMac",
+  "seconds": 3.2,
+  "icon": "docs/site/img/icon-512.png"
+ },
+ "scenes": [
+  {
+   "clip": "CLIPS/01-music.mov",
+   "from": 1.0,
+   "to": 10.4,
+   "title": "Music in the notch",
+   "subtitle": "Hover the notch: artwork, progress and controls for Spotify or Music",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/06b-peek.mov",
+   "from": 0.8,
+   "to": 6.5,
+   "title": "Sneak peek on track change",
+   "subtitle": "Without opening the notch: title and artist for a few seconds",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/10-tray.mov",
+   "from": 1.0,
+   "to": 10.0,
+   "title": "Drag files to the notch",
+   "subtitle": "A tray to keep them handy and an AirDrop zone to send them",
+   "crop": [
+    700,
+    0,
+    1624,
+    1000
+   ],
+   "width": 0.78,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/02c-tabs.mov",
+   "from": 1.2,
+   "to": 12.6,
+   "title": "Tray, per-app volume, timer",
+   "subtitle": "Every tab can be switched on or off in Settings",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/08-timer.mov",
+   "from": 1.0,
+   "to": 9.5,
+   "title": "Timer and Pomodoro",
+   "subtitle": "The remaining time stays next to the menu-bar icon",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/09-perf.mov",
+   "from": 1.0,
+   "to": 6.5,
+   "title": "Performance",
+   "subtitle": "CPU, memory and network for the last minute; it only samples while shown",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/03c-airpods.mov",
+   "from": 1.9,
+   "to": 5.6,
+   "title": "iPhone-style",
+   "subtitle": "When AirPods or Beats connect: battery of each piece",
+   "crop": [
+    612,
+    0,
+    1800,
+    660
+   ],
+   "width": 0.9,
+   "y": 0.56
+  },
+  {
+   "clip": "CLIPS/11-coffee.mov",
+   "from": 1.0,
+   "to": 9.5,
+   "title": "Keep awake",
+   "subtitle": "One click on the notch's coffee; sessions until a given time from the menu",
+   "crop": [
+    300,
+    0,
+    2724,
+    1120
+   ],
+   "width": 0.86,
+   "y": 0.58
+  },
+  {
+   "clip": "CLIPS/04c-cmdtab.mov",
+   "from": 2.4,
+   "to": 8.6,
+   "title": "⌘Tab by windows",
+   "subtitle": "Live thumbnails; type to filter; ⌘W, ⌘M, ⌘H and ⌘Q on the selected one",
+   "crop": [
+    560,
+    300,
+    1904,
+    1120
+   ],
+   "width": 0.66,
+   "y": 0.6
+  },
+  {
+   "clip": "CLIPS/05c-snap.mov",
+   "from": 1.6,
+   "to": 10.6,
+   "crop": [
+    0,
+    0,
+    3024,
+    1964
+   ],
+   "width": 0.66,
+   "y": 0.6,
+   "title": "Window shortcuts",
+   "subtitle": "⌃⌥→ right half · ⌃⌥← left · ⌃⌥↩ almost maximise; thirds, corners and ⌃⌥1…9 layouts"
+  },
+  {
+   "clip": "CLIPS/12-snapdrag.mov",
+   "from": 1.0,
+   "to": 7.5,
+   "crop": [
+    0,
+    0,
+    3024,
+    1964
+   ],
+   "width": 0.66,
+   "y": 0.6,
+   "title": "Drag-to-edge snapping",
+   "subtitle": "With a preview footprint; halves, quarters and maximise"
+  },
+  {
+   "clip": "CLIPS/13c-clipboard.mov",
+   "from": 1.6,
+   "to": 6.5,
+   "title": "Clipboard history",
+   "subtitle": "⇧⌘V: text, images and files; search and pin with ⌥P",
+   "crop": [
+    700,
+    200,
+    1624,
+    1300
+   ],
+   "width": 0.45,
+   "y": 0.6
+  },
+  {
+   "clip": "CLIPS/15-lock-mic.mov",
+   "from": 1.0,
+   "to": 5.5,
+   "crop": [
+    0,
+    0,
+    3024,
+    1964
+   ],
+   "width": 0.66,
+   "y": 0.6,
+   "title": "Tools",
+   "subtitle": "Lock the keyboard to clean it · screen OCR ⇧⌘2 · colour ⇧⌘6 · microphone ⌃⌥⌘M · accidental-⌘Q guard"
+  },
+  {
+   "clip": "CLIPS/16-settings.mov",
+   "from": 1.0,
+   "to": 8.5,
+   "crop": [
+    560,
+    150,
+    1904,
+    1480
+   ],
+   "width": 0.5,
+   "y": 0.6,
+   "title": "System-style Settings",
+   "subtitle": "Every module can be switched off; what is off costs nothing"
+  }
+ ],
+ "bitrate": 2400000
+}

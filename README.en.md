@@ -35,8 +35,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-16x9-en.mp4"><img src="docs/site/img/en/video-poster.jpg" width="900" alt="Video: full tour of OmniMac (106 s)"></a><br>
-  <sub>▶ <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-16x9-en.mp4">Full-tour video (106 s)</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-vertical-en.mp4">vertical</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">all videos, also in Spanish</a></sub>
+  <a href="https://bysergimm.github.io/OmniMac/en/#video"><img src="docs/site/img/en/video-poster.jpg" width="900" alt="Video: full tour of OmniMac (106 s)"></a><br>
+  <sub>▶ <a href="https://bysergimm.github.io/OmniMac/en/#video">Full-tour video (106 s)</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-vertical-en.mp4">vertical</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">all videos, also in Spanish</a></sub>
 </p>
 
 <p align="center">

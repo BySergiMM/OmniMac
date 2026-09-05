@@ -16,7 +16,7 @@ struct Scene: Decodable {
     let width: Double?            // ancho del clip en el lienzo (por defecto 90 %)
     let y: Double?                // centro vertical del clip (0–1, por defecto 0.42)
 }
-struct Spec: Decodable { let width: Int; let height: Int; let fps: Int; let output: String; let intro: Card; let outro: Card; let scenes: [Scene] }
+struct Spec: Decodable { let width: Int; let height: Int; let fps: Int; let output: String; let intro: Card; let outro: Card; let scenes: [Scene]; let bitrate: Int? }   // bitrate en bits/s (10 Mb/s por defecto)
 
 let args = CommandLine.arguments
 guard args.count == 2, let data = FileManager.default.contents(atPath: args[1]), let spec = try? JSONDecoder().decode(Spec.self, from: data) else {
@@ -72,7 +72,7 @@ let output = URL(fileURLWithPath: spec.output)
 try? FileManager.default.removeItem(at: output)
 let writer = try! AVAssetWriter(outputURL: output, fileType: .mp4)
 let settings: [String: Any] = [AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: W, AVVideoHeightKey: H,
-                               AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: 10_000_000, AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel, AVVideoMaxKeyFrameIntervalKey: fps]]
+                               AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: spec.bitrate ?? 10_000_000, AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel, AVVideoMaxKeyFrameIntervalKey: fps]]
 let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
 input.expectsMediaDataInRealTime = false
 let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: W, kCVPixelBufferHeightKey as String: H])
