@@ -7,7 +7,7 @@ import AppKit
 //
 // Uso: swift scripts/dev/video.swift <spec.json>
 // El JSON describe tamaño, fps, tarjetas y escenas (ver docs/VIDEO.md y el ejemplo en
-// scripts/dev/video-es.json). Coordenadas de recorte en píxeles del clip original.
+// scripts/dev/video/16x9-es.json). Coordenadas de recorte en píxeles del clip original.
 struct Card: Decodable { let title: String; let subtitle: String; let seconds: Double; let icon: String? }
 struct Scene: Decodable {
     let clip: String; let from: Double; let to: Double
