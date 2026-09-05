@@ -90,7 +90,7 @@ La regla que protege la marca: **lo gratuito nunca empeora**. Pro añade, no rec
 
 En `docs/kofi/`: `posts.md` (cuatro posts en español e inglés y el texto del perfil), `cover.png` y `avatar.png` para el perfil, `post-*.png` como portadas de cada post y `galeria-*.png` para la pestaña Galería. Todo generado a partir de capturas reales de la app.
 
-## Promoción en GitHub y fuera (4 de septiembre de 2026)
+## Promoción en GitHub y fuera (4 de septiembre de 2026; cifras actualizadas a 0.4.1 el 5)
 
 Hecho:
 - Temas del repositorio, Discussions, botón Sponsor (`.github/FUNDING.yml`), imagen social (`docs/site/img/social-preview.png`).
@@ -101,13 +101,13 @@ Hecho:
 
 **Título:** I built OmniMac: seven Mac utilities (keep-awake, ⌘Tab by windows, dynamic notch, window snapping, clipboard, OCR, per-app volume) in one free, open-source menu-bar app
 
-**Texto:** I got tired of running Amphetamine, AltTab, Rectangle, Maccy and a notch app side by side, so I wrote one native Swift app that does all of it and stays out of the way: 0.017 % CPU and 50 MB of real memory at idle (measurements and methodology in the repo). It also does per-app volume, screen OCR, a colour picker and an iPhone-style card when your AirPods connect. Free, MIT, universal binary, macOS 14.2+. Heads-up: the interface is in Spanish for now; English is next. Website: https://bysergimm.github.io/OmniMac/en/ · Code: https://github.com/BySergiMM/OmniMac
+**Texto:** I got tired of running Amphetamine, AltTab, Rectangle, Maccy and a notch app side by side, so I wrote one native Swift app that does all of it and stays out of the way: 0.017 % CPU, 19–27 MB of real memory and under one wake-up per second at idle (measurements and methodology in the repo). It also does per-app volume, screen OCR, a colour picker and an iPhone-style card when your AirPods connect. Free, MIT, universal binary, macOS 14.2+, interface in English and Spanish. Website: https://bysergimm.github.io/OmniMac/en/ · Code: https://github.com/BySergiMM/OmniMac
 
-### Hacker News · Show HN (guardar hasta que la app esté en inglés)
+### Hacker News · Show HN (la app ya está en inglés desde 0.4.0)
 
-**Título:** Show HN: OmniMac – seven Mac utilities in one 50 MB open-source menu-bar app
+**Título:** Show HN: OmniMac – seven Mac utilities in one 25 MB open-source menu-bar app
 
-**Texto:** OmniMac replaces the five utilities I kept installing on every Mac (keep-awake, ⌘Tab by windows, a notch companion, window snapping, a clipboard manager) with a single native Swift/SwiftUI app, and adds per-app volume, screen OCR, a colour picker and an AirPods card in the notch. I measured it against the apps it replaces with the same method: 636 MB for the five together vs 119 MB RSS / 50 MB real memory for OmniMac, at 0.017 % CPU idle. MIT, no accounts, no telemetry, universal binary, macOS 14.2+. https://bysergimm.github.io/OmniMac/en/
+**Texto:** OmniMac replaces the five utilities I kept installing on every Mac (keep-awake, ⌘Tab by windows, a notch companion, window snapping, a clipboard manager) with a single native Swift/SwiftUI app, and adds per-app volume, screen OCR, a colour picker and an AirPods card in the notch. I measured it against the apps it replaces with the same method: 636 MB for the five together vs 119 MB RSS / 19–27 MB real memory for OmniMac, at 0.017 % CPU idle and under one wake-up per second. MIT, no accounts, no telemetry, universal binary, macOS 14.2+. https://bysergimm.github.io/OmniMac/en/
 
 ### MacUpdate / AlternativeTo (requieren cuenta)
 

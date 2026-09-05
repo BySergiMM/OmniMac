@@ -228,6 +228,8 @@ en cuanto aparece (experimental: solo pulsa un botón llamado cerrar/descartar).
   con enlaces a Ko-fi y GitHub Sponsors (`Brand.coffeeURL` / `Brand.sponsorsURL`).
 - Plan de lanzamiento y monetización: [docs/MARKETING.md](docs/MARKETING.md)
 - Estudio de consumo y comparativa con Amphetamine, AltTab, Rectangle, Maccy y BoringNotch: [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
+  Última medición (0.4.1, 5 de septiembre de 2026): reposo **0,017 % de CPU, 19–27 MB de memoria real y 0,7 despertares/s**;
+  con el notch abierto y música sonando, 2,1 %. Sin crecimiento de memoria tras abrir y cerrar el notch 10 veces.
 - Radiografía de la competencia (todas sus funciones frente a OmniMac y qué añadir): [docs/COMPETENCIA.md](docs/COMPETENCIA.md)
 
 ## Arquitectura
