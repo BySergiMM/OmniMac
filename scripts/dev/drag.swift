@@ -11,8 +11,10 @@ let points = stride(from: 0, to: nums.count, by: 2).map { CGPoint(x: nums[$0], y
 let seconds = Double(ProcessInfo.processInfo.environment["DRAG_SECONDS"] ?? "") ?? 1.2
 let hold = Double(ProcessInfo.processInfo.environment["DRAG_HOLD"] ?? "") ?? 0.8
 let source = CGEventSource(stateID: .hidSystemState)
-func post(_ type: CGEventType, _ p: CGPoint) { CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: p, mouseButton: .left)?.post(tap: .cghidEventTap) }
+let right = ProcessInfo.processInfo.environment["DRAG_BUTTON"] == "right"   // DRAG_BUTTON=right: clic derecho en el primer punto
+func post(_ type: CGEventType, _ p: CGPoint) { CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: p, mouseButton: right ? .right : .left)?.post(tap: .cghidEventTap) }
 post(.mouseMoved, points[0]); usleep(150_000)
+if right { post(.rightMouseDown, points[0]); usleep(120_000); post(.rightMouseUp, points[0]); print("clic derecho en \(points[0])"); exit(0) }
 post(.leftMouseDown, points[0]); usleep(250_000)
 for (from, to) in zip(points, points.dropFirst()) {
     let steps = 60
