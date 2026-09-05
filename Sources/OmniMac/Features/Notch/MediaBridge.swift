@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 
+/// Lo que suena ahora en el reproductor: título, artista, estado, carátula y progreso.
 struct NowPlayingInfo: Equatable {
     let playerName: String
     let bundleID: String

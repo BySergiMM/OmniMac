@@ -1,5 +1,6 @@
 import AppKit
 
+/// Arranque de la app: icono de la barra, módulos, permisos, actualizaciones y ventana de Ajustes.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController?
 
@@ -20,9 +21,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Permissions.requestAccessibility()
         }
 
-        // Primera vez: abrimos Ajustes para que el usuario vea qué hay.
+        // Primera vez: abrimos Ajustes para que el usuario vea qué hay. También tras un
+        // reinicio por cambio de idioma, para que siga donde estaba, ya en el idioma nuevo.
         let defaults = UserDefaults.standard
-        if !defaults.bool(forKey: "didFinishOnboarding") {
+        let reopenAfterLanguageChange = defaults.bool(forKey: Localization.reopenSettingsKey)
+        if reopenAfterLanguageChange { defaults.removeObject(forKey: Localization.reopenSettingsKey) }
+        if !defaults.bool(forKey: "didFinishOnboarding") || reopenAfterLanguageChange {
             defaults.set(true, forKey: "didFinishOnboarding")
             SettingsWindowController.shared.show()
         }

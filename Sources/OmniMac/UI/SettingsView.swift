@@ -200,16 +200,19 @@ struct SettingToggle: View {
 }
 
 /// Etiqueta a la izquierda + cualquier control a la derecha.
+/// Fila de Ajustes: título (y subtítulo opcional) a la izquierda y el control a la
+/// derecha, centrado en vertical aunque el texto ocupe dos líneas. (`LabeledContent`
+/// alineaba el control con la primera línea y los selectores quedaban altos.)
 struct SettingRow<Control: View>: View {
     let title: String
     var subtitle: String? = nil
     @ViewBuilder var control: Control
 
     var body: some View {
-        LabeledContent {
-            control
-        } label: {
+        HStack(alignment: .center, spacing: 12) {
             SettingLabel(title: title, subtitle: subtitle)
+            Spacer(minLength: 16)
+            control
         }
     }
 }

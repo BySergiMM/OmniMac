@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Símbolos SF que usa el notch (pestañas y zonas).
 enum NotchSymbols {
     /// El símbolo "airdrop" existe desde SF Symbols 6; si no está, usamos uno parecido.
     static let airdrop: String =

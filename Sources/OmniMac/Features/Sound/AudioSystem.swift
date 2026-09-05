@@ -2,6 +2,7 @@ import AudioToolbox
 import CoreAudio
 import Foundation
 
+/// Acceso a CoreAudio: dispositivos de entrada y salida, volumen, balance, silencio y avisos de cambio.
 struct AudioDevice: Identifiable, Hashable {
     let id: AudioDeviceID
     let name: String

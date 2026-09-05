@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+/// Ventana de Ajustes (una sola instancia): la crea la primera vez, la muestra y la trae al frente.
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     static let shared = SettingsWindowController()
 

@@ -241,7 +241,8 @@ Sources/OmniMac/
 │   ├── FeatureManager.swift    Registro de módulos
 │   ├── StatusItemController    Menú de la barra de menús
 │   ├── SettingsWindowController   Ventana de Ajustes
-│   └── UpdaterController       Sparkle (actualizaciones automáticas)
+│   ├── UpdaterController       Sparkle (actualizaciones automáticas)
+│   └── Snapshots.swift         `--snapshots`: capturas reales para la web (y `--lang en`)
 ├── Support/                    Ayudas compartidas por todos los módulos
 │   ├── AX.swift                API de Accesibilidad (leer/colocar ventanas)
 │   ├── HotKeyCenter.swift      Atajos globales (Carbon), con pulsar y soltar
@@ -249,6 +250,8 @@ Sources/OmniMac/
 │   ├── Notifier.swift          Notificaciones locales
 │   ├── Toast.swift             Avisos breves (pastilla abajo o en el notch)
 │   ├── FilePicker.swift        Diálogo del Finder para elegir archivos
+│   ├── Localization.swift      Idioma: L("es", "en"), el del Mac o el fijado en Ajustes
+│   ├── SystemBannerDismisser   Cierra el aviso de AirPods de Control Center (experimental)
 │   └── HostingViews.swift      NSHostingView que acepta el primer clic
 ├── UI/                         Ajustes (SwiftUI): SettingsView, SoundView,
 │                               PerformanceView, Brand (colores y textos)
@@ -282,7 +285,21 @@ Reglas de la casa:
   pestaña abierta. Por eso el consumo en reposo es de 0,017 % de CPU (`docs/PERFORMANCE.md`).
 - **Sin código repetido entre módulos**: lo común vive en `Support/` (`AX.setFrame`,
   `Notifier.post`, `Toast.show`, `FilePicker.choose`, `HotKeyCenter.register`).
+- **Idioma**: cada texto de la interfaz se escribe una vez en cada idioma, `L("Guardar", "Save")`
+  (`Support/Localization.swift`). Sin archivos `.strings`: el texto español queda a la vista en el
+  código y es fácil de editar. Los textos de permisos van en `Resources/{es,en}.lproj/InfoPlist.strings`.
 - Los cambios de cada versión van en `CHANGELOG.md`. Licencia MIT.
+
+## Herramientas de desarrollo (`scripts/dev`)
+
+Pequeñas utilidades de prueba que usan la API de Accesibilidad, sin permisos de grabación:
+
+```bash
+swift scripts/dev/mouse.swift hover|park        # llevar el ratón al notch o apartarlo
+swift scripts/dev/notch.swift height|dump|press:Música
+swift scripts/dev/settings.swift dump|press:English|near:Mantener despierto|click:Notch
+scripts/dev/measure.sh                           # consumo en reposo 60 s (vigila que el notch siga plegado)
+```
 
 ## Capturas para la web
 
