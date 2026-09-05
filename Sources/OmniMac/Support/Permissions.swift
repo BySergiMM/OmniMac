@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 
+/// Permisos del sistema (Accesibilidad y Grabación de pantalla): comprobar si los tenemos y pedirlos.
 enum Permissions {
     /// Permiso de Accesibilidad: necesario para el selector ⌘Tab, mover ventanas
     /// y simular el pegado del portapapeles.

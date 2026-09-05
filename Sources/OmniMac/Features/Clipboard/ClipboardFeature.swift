@@ -2,6 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import Combine
 
+/// Módulo Portapapeles: vigila lo que copias y guarda el historial (texto, imágenes y archivos).
 struct ClipItem: Identifiable, Equatable {
     enum Content: Equatable {
         case text(String)

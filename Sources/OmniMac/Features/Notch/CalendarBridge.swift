@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import EventKit
 
+/// Un evento de hoy, tal como lo enseña la pestaña Calendario del notch.
 struct CalendarEvent: Identifiable {
     let id: String
     let title: String

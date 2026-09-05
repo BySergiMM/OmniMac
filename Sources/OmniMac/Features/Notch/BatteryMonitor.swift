@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import IOKit.ps
 
+/// Estado de la batería: nivel, si está cargando y si está enchufada.
 struct BatteryState: Equatable {
     var hasBattery = false
     var level = 0          // 0–100

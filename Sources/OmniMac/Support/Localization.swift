@@ -19,6 +19,8 @@ enum AppLanguage: String, CaseIterable {
 
 enum Localization {
     static let key = "app.language"
+    /// Marca para que, tras reiniciar por un cambio de idioma, Ajustes vuelva a abrirse.
+    static let reopenSettingsKey = "app.reopenSettingsAfterRelaunch"
 
     static var preference: AppLanguage {
         AppLanguage(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .automatic
@@ -28,6 +30,7 @@ enum Localization {
     static func setPreference(_ language: AppLanguage) {
         guard language != preference else { return }
         UserDefaults.standard.set(language.rawValue, forKey: key)
+        UserDefaults.standard.set(true, forKey: reopenSettingsKey)
         relaunch()
     }
 

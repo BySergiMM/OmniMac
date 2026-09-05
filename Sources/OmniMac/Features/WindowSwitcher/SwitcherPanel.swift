@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+/// Panel del selector ⌘Tab: cuadrícula de ventanas con miniaturas, búsqueda al escribir y manejo por teclado.
 final class SwitcherModel: ObservableObject {
     @Published var windows: [SwitcherWindow] = []
     @Published var selection = 0

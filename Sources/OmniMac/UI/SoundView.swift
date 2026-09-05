@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Página Sonido de Ajustes: dispositivo de salida y entrada, volumen, balance, silencio y volumen por app.
 struct SoundPage: View {
     @ObservedObject var feature: SoundFeature
 
