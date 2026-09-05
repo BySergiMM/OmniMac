@@ -133,8 +133,12 @@ func scene(_ s: Scene) {
     var current: CGImage? = nil
     var nextSample = out.copyNextSampleBuffer()
     let crop = CGRect(x: s.crop[0], y: s.crop[1], width: s.crop[2], height: s.crop[3])
-    let targetWidth = CGFloat(W) * CGFloat(s.width ?? 0.9)
-    let targetHeight = targetWidth * crop.height / crop.width
+    var targetWidth = CGFloat(W) * CGFloat(s.width ?? 0.9)
+    var targetHeight = targetWidth * crop.height / crop.width
+    // El clip nunca invade la banda del título: en horizontal como mucho el 60 % de la
+    // altura; en vertical, el 50 % (los recortes altos se reducen de ancho).
+    let maxHeight = CGFloat(H) * (vertical ? 0.50 : 0.60)
+    if targetHeight > maxHeight { targetWidth *= maxHeight / targetHeight; targetHeight = maxHeight }
     let centerY = CGFloat(H) * CGFloat(s.y ?? (vertical ? 0.60 : 0.44))
     let rect = CGRect(x: (CGFloat(W) - targetWidth) / 2, y: centerY - targetHeight / 2, width: targetWidth, height: targetHeight)
     for i in 0..<total {
