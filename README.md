@@ -35,6 +35,11 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-16x9-es.mp4"><img src="docs/site/img/video-poster.jpg" width="900" alt="Vídeo: recorrido completo de OmniMac (106 s)"></a><br>
+  <sub>▶ <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-16x9-es.mp4">Vídeo del recorrido completo (106 s)</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/download/media/omnimac-tour-vertical-es.mp4">vertical</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">todos los vídeos, también en inglés</a></sub>
+</p>
+
+<p align="center">
   <img src="docs/site/img/notch-media.png" width="681" alt="El notch de OmniMac desplegado con la música">
 </p>
 

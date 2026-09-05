@@ -121,3 +121,107 @@ Hecho:
 
 Nombre: OmniMac · Categoría: Utilidades / Menú · Precio: gratis · Licencia: MIT · Web: https://bysergimm.github.io/OmniMac/ · Descarga: https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg · Descripción corta: la del post de Reddit. Alternativa a: Amphetamine, AltTab, Rectangle, Maccy, BoringNotch.
 
+
+## LinkedIn (ideas de posts · nada se publica sin que Sergi lo diga)
+
+Reglas que funcionan en LinkedIn: la primera línea decide si alguien pulsa «ver más», así que
+es un gancho, no un título; vídeo subido directamente (no un enlace de YouTube), mejor el
+vertical o el 16:9 con subtítulos; el enlace externo va en el primer comentario, no en el
+cuerpo (LinkedIn recorta el alcance de los posts con enlaces); 3–5 hashtags al final; publicar
+de martes a jueves entre las 8 y las 10; contestar todos los comentarios la primera hora;
+terminar con una pregunta. Un post cada 4–7 días, no todos el mismo día.
+
+### 1 · Lanzamiento (con el vídeo vertical o el tráiler 16:9)
+
+> Tenía cinco apps en la barra de menús del Mac. Ahora tengo una. La he hecho yo.
+>
+> Amphetamine para que no se durmiera, AltTab para cambiar de ventana, Rectangle para
+> colocarlas, Maccy para el portapapeles y otra para el notch. Cinco iconos, cinco
+> actualizadores, 636 MB de memoria entre todas.
+>
+> OmniMac hace todo eso en una sola app nativa (Swift), y añade lo que echaba de menos:
+> volumen por app, OCR de la pantalla, un selector de color y una tarjeta como la del iPhone
+> cuando conecto los AirPods.
+>
+> En reposo: 0,017 % de CPU y 25 MB de memoria. Medido, no prometido: la metodología está en el
+> repositorio.
+>
+> Gratis, de código abierto (MIT), en español e inglés. Enlace en el primer comentario.
+>
+> ¿Qué utilidad no te quitarías nunca del Mac?
+>
+> #macOS #Swift #OpenSource #Productividad #IndieDev
+
+### 2 · La fuga que no existía (aprendizaje técnico)
+
+> Perdí una tarde entera persiguiendo una fuga de memoria que no existía.
+>
+> Medía los «despertares» de mi app con `top` y cada vez que abría el notch subían 35 por
+> segundo. Tres horas de heap dumps, lldb y teorías sobre run loops.
+>
+> La causa: la columna IDLEW de `top -l` es un contador acumulado desde que arranca el proceso,
+> no una tasa. Estaba dividiendo un total por tres segundos.
+>
+> Lo que sí encontré por el camino y arreglé: un puerto Mach que se filtraba en cada apertura y
+> un run loop por hilo que dejaba AppleScript en GCD.
+>
+> Moraleja: antes de optimizar, comprueba que la métrica mide lo que crees que mide. Lo dejé
+> documentado en el repo para que nadie repita el tropiezo.
+>
+> ¿Cuál ha sido tu «fuga» fantasma?
+>
+> #Swift #macOS #Performance #Debugging
+
+### 3 · Comparativa con datos (imagen: gráfico de barras de la web)
+
+> 636 MB frente a 25 MB. Mismo Mac, mismo método, cada app medida sola.
+>
+> Comparé OmniMac con las cinco utilidades a las que sustituye. No es magia: es no hacer nada
+> cuando no se usa. Nada sondea en reposo, cada módulo apagado no consume, y el trabajo por
+> fotograma va a CoreAnimation, no al hilo principal.
+>
+> La comparativa completa, con lo que cada app hace mejor que la mía, está en la web. Porque
+> AltTab, Rectangle, Maccy y Amphetamine son muy buenas en lo suyo; yo solo quería una sola app.
+>
+> #macOS #Swift #OpenSource
+
+### 4 · Este vídeo lo grabó un script (detrás de las cámaras; adjuntar el vídeo)
+
+> Este vídeo de mi app no lo grabé yo. Lo grabó un script.
+>
+> Quería un vídeo de demostración limpio y no tenía ganas de repetir 14 escenas a mano. Así
+> que la propia tubería de pruebas mueve el ratón, pulsa los atajos, arrastra archivos al
+> notch y graba cada escena con `screencapture`. El montaje (fondo, recortes, títulos) lo hace
+> un script de AVFoundation sin ninguna dependencia.
+>
+> Lo mejor: cuando cambie la interfaz, el vídeo se regenera solo.
+>
+> ¿Automatizáis las demos de vuestros productos?
+>
+> #Automation #Swift #macOS #IndieDev
+
+### 5 · Por qué no está en la App Store (transparencia)
+
+> Me preguntan por qué OmniMac no está en la App Store.
+>
+> Porque la mitad de lo que hace (colocar ventanas de otras apps, ⌘Tab por ventanas, mantener
+> el Mac despierto con la tapa cerrada) necesita permisos que el sandbox no permite. Así que
+> es código abierto, se instala con un .pkg o con Homebrew, y todo lo que hace está a la vista.
+>
+> Lo que aún no tiene: la notarización de Apple (99 €/año que todavía no he pagado). La primera
+> vez hay que abrirla con clic derecho › Abrir. Si el proyecto crece, será lo primero.
+>
+> Si la pruebas y te falta algo, dímelo: el backlog público está en GitHub.
+>
+> #OpenSource #macOS #Swift
+
+### 6 · Carrusel (PDF con las cinco imágenes de `docs/producthunt/`)
+
+LinkedIn muestra los PDF como carrusel: portada «Todo lo que le falta a tu Mac», una página por
+bloque (notch, AirPods, módulos, consumo) y una última con la web. Texto corto: «7 utilidades en
+una app. Desliza.» Es el formato con más alcance orgánico ahora mismo.
+
+### Versión en inglés
+
+Los mismos posts en inglés valen para X y para el público internacional de LinkedIn; el
+tráiler `omnimac-16x9-en.mp4` y la web en inglés ya están listos.
