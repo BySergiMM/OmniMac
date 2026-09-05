@@ -56,7 +56,7 @@
 Keep-awake, ⌘Tab by windows, a dynamic notch, window shortcuts and layouts, clipboard
 history, tools (OCR, colour picker, mic mute…) and sound with per-app volume. It uses
 **0.017 % CPU and 50 MB of real memory at idle**: 81 % less than the five apps it replaces
-([study](docs/PERFORMANCE.md), in Spanish). No accounts, no telemetry; it updates itself.
+([study](docs/PERFORMANCE.md), in Spanish; 0.4.1 measurement: 0.017 % CPU, 19–27 MB of real memory and 0.7 wake-ups/s at idle, 2.1 % with the notch open and music playing). No accounts, no telemetry; it updates itself.
 The interface follows your Mac's language (English or Spanish) and can be forced in Settings.
 
 **Install**: download [`OmniMac.pkg`](https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg)
