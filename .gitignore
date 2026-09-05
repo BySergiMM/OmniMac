@@ -2,3 +2,6 @@
 .swiftpm/
 dist/
 .DS_Store
+
+# Vídeos montados (pesados): se generan con scripts/dev/video.swift
+docs/video/*.mp4
