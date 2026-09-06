@@ -1,6 +1,6 @@
 # Cambios
 
-## 0.4.2 — sin publicar
+## 0.4.2 — 2026-09-06
 
 - Ajustes › Inicio › Almacenamiento: muestra lo que ocupa la app y la caché (carátulas descargadas y restos de actualizaciones de Sparkle), un botón «Limpiar ahora» que avisa de cuánto ha liberado, y limpieza automática una vez al día (activada por defecto, se puede apagar). La caché web queda acotada a 16 MB en disco.
 
