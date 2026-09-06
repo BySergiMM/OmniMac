@@ -71,6 +71,11 @@ final class NotchFeature: BaseFeature {
     private let keepAwake: KeepAwakeFeature
     private let sound: SoundFeature
     private var screenObserver: Any?
+    private var activationObserver: Any?
+    /// Reconstrucción pendiente. Sirve para dos cosas: agrupar las ráfagas de avisos
+    /// de cambio de pantalla (llegan varios seguidos) y reintentar cuando todavía no
+    /// hay ninguna pantalla utilizable.
+    private var pendingRebuild: DispatchWorkItem?
 
     init(keepAwake: KeepAwakeFeature, sound: SoundFeature) {
         self.keepAwake = keepAwake
@@ -128,21 +133,64 @@ final class NotchFeature: BaseFeature {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.rebuild()
+            // Los avisos llegan en ráfaga (resolución, disposición, monitor nuevo):
+            // esperamos un momento y reconstruimos una sola vez, ya con todo en su
+            // sitio.
+            self?.scheduleRebuild(after: 0.3, attempt: 0)
         }
+        // Red de seguridad: si el notch se quedó sin ventana (una reconstrucción que
+        // cayó en mal momento y agotó los reintentos), vuelve solo al primer cambio de
+        // app. No cuesta nada: el aviso ya lo manda el sistema y aquí solo se mira si
+        // falta el panel.
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.ensureController()
+        }
+    }
+
+    /// Reconstruye el notch si se quedó sin ventana y hay pantalla donde ponerlo.
+    private func ensureController() {
+        guard controller == nil, pendingRebuild == nil else { return }
+        let usable = NSScreen.screens.contains { $0.safeAreaInsets.top > 0 }
+            || (showWithoutNotch && !NSScreen.screens.isEmpty)
+        guard usable else { return }
+        rebuild()
     }
 
     override func stop() {
         headphones.stop()
+        pendingRebuild?.cancel()
+        pendingRebuild = nil
         if let screenObserver {
             NotificationCenter.default.removeObserver(screenObserver)
         }
         screenObserver = nil
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        }
+        activationObserver = nil
         controller?.close()
         controller = nil
     }
 
-    private func rebuild() {
+    /// Programa una reconstrucción (o un reintento) cancelando la que hubiera pendiente.
+    private func scheduleRebuild(after delay: TimeInterval, attempt: Int) {
+        pendingRebuild?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.pendingRebuild = nil
+            self.rebuild(attempt: attempt)
+        }
+        pendingRebuild = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    private func rebuild(attempt: Int = 0) {
+        pendingRebuild?.cancel()
+        pendingRebuild = nil
         controller?.close()
         controller = nil
 
@@ -150,7 +198,14 @@ final class NotchFeature: BaseFeature {
         // Sin notch físico usamos la pantalla principal (la de la barra de menús),
         // no la que tenga el foco en ese momento.
         let screen = notchScreen ?? (showWithoutNotch ? NSScreen.screens.first : nil)
-        guard let screen else { return }
+        guard let screen else {
+            // Al despertar el Mac, al abrir la tapa o al enchufar un monitor, macOS
+            // avisa del cambio antes de que las pantallas estén listas y aquí todavía
+            // no hay ninguna. Sin este reintento el notch se quedaba sin ventana hasta
+            // apagar y encender el módulo a mano.
+            if attempt < 5 { scheduleRebuild(after: 1.0, attempt: attempt + 1) }
+            return
+        }
         let controller = NotchWindowController(screen: screen, keepAwake: keepAwake, sound: sound)
         controller.hideInFullscreen = hideInFullscreen
         controller.sneakPeekEnabled = sneakPeek
@@ -399,6 +454,11 @@ final class NotchWindowController {
     private var deviceWork: DispatchWorkItem?
     /// Tras un cambio de escritorio, nada se abre solo hasta que el ratón se mueva de verdad.
     private var expandBlockedUntilMouseMoves = false
+    /// Cuándo se miró por última vez si hay algo a pantalla completa, para no repetir
+    /// la consulta de accesibilidad (unos 3 ms) en cada movimiento del ratón.
+    private var lastVisibilityCheck = Date.distantPast
+    /// Comprobaciones de visibilidad programadas tras un cambio de escritorio.
+    private var visibilityRechecks: [DispatchWorkItem] = []
     var showCoffee = true { didSet { model.showCoffee = showCoffee } }
     var showSettings = true { didSet { model.showSettings = showSettings } }
     var showBattery = true { didSet { model.showBattery = showBattery } }
@@ -516,7 +576,14 @@ final class NotchWindowController {
                 guard let self else { return }
                 // Al cambiar de escritorio, el panel abierto se quedaba quieto mientras todo
                 // se deslizaba: se pliega en el acto y no se reabre hasta que muevas el ratón.
-                if note.name == NSWorkspace.activeSpaceDidChangeNotification { self.collapseForSpaceChange() }
+                if note.name == NSWorkspace.activeSpaceDidChangeNotification {
+                    self.collapseForSpaceChange()
+                    // Entrar y salir de pantalla completa dura casi un segundo, y este
+                    // aviso llega al principio: si preguntamos solo ahora, la app aún
+                    // responde que sigue a pantalla completa y el notch se quedaría
+                    // escondido para siempre (había que apagar y encender el módulo).
+                    self.scheduleVisibilityRecheck()
+                }
                 self.refreshVisibility()
             })
         }
@@ -532,6 +599,7 @@ final class NotchWindowController {
         removeForwardingTap()
         stopWatchdog()
         cancelExpand()
+        cancelVisibilityRechecks()
         peekWork?.cancel()
         moveMonitors.forEach { NSEvent.removeMonitor($0) }
         moveMonitors = []
@@ -550,9 +618,18 @@ final class NotchWindowController {
     /// Reacciona al movimiento del ratón: expande al entrar en la zona del notch
     /// y programa el plegado al salir del panel expandido.
     private func mouseMoved() {
-        guard !hiddenForFullscreen else { return }
-        expandBlockedUntilMouseMoves = false
         let mouse = NSEvent.mouseLocation
+        // Escondido por pantalla completa: volvemos a comprobarlo solo si el ratón sube
+        // a la zona del notch, y como mucho una vez por segundo. Es la red de seguridad
+        // final: si algún estado se quedó pegado, el notch revive justo cuando el
+        // usuario va a buscarlo, sin sondear nada el resto del tiempo.
+        if hiddenForFullscreen {
+            if Self.reaches(hoverZone, mouse), Date().timeIntervalSince(lastVisibilityCheck) > 1.0 {
+                refreshVisibility()
+            }
+            return
+        }
+        expandBlockedUntilMouseMoves = false
         if model.expanded {
             updateHover(screenPoint: mouse)
             if model.deviceCard != nil { return }   // la tarjeta se cierra sola
@@ -620,6 +697,11 @@ final class NotchWindowController {
         collapseWork = nil
         cancelExpand()
         guard !model.expanded, !hiddenForFullscreen else { return }
+        // Al abrir, reafirmamos capa y orden: si algo se puso por encima del notch (o
+        // el panel se quedó fuera de pantalla tras una transición), se desplegaría sin
+        // verse y parecería que no responde.
+        panel.level = .popUpMenu
+        panel.orderFrontRegardless()
         // Vibración del trackpad al abrirse (intensidad configurable en Ajustes).
         NotchHaptics.play()
 
@@ -767,9 +849,26 @@ final class NotchWindowController {
 
     // MARK: - Pantalla completa y escritorios
 
+    /// Vuelve a preguntar por la pantalla completa un par de veces más, por si la
+    /// transición todavía no había terminado cuando llegó el aviso.
+    private func scheduleVisibilityRecheck() {
+        cancelVisibilityRechecks()
+        for delay in [0.8, 2.0] {
+            let work = DispatchWorkItem { [weak self] in self?.refreshVisibility() }
+            visibilityRechecks.append(work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+        }
+    }
+
+    private func cancelVisibilityRechecks() {
+        visibilityRechecks.forEach { $0.cancel() }
+        visibilityRechecks = []
+    }
+
     /// Con una app a pantalla completa delante, el notch se esconde (si así está
     /// configurado); si no, se asegura de estar visible y por encima.
     private func refreshVisibility() {
+        lastVisibilityCheck = Date()
         let shouldHide = hideInFullscreen && Self.frontmostIsFullscreen()
         if shouldHide != hiddenForFullscreen {
             hiddenForFullscreen = shouldHide
