@@ -105,6 +105,10 @@ opening the notch three times), plus `mouse.swift`, `notch.swift` and `settings.
 app from the terminal. When measuring, remember that `top -l`'s `IDLEW`/`CSW` columns are cumulative
 counters, not rates, and that Accessibility queries cost the queried app CPU.
 
+## Disk space
+
+The app takes 12 MB. Its cache (downloaded artwork and update leftovers) is capped at 16 MB and cleaned once a day, or by hand from Settings › Home › Storage, which shows what is freed.
+
 ## Architecture
 
 `Sources/OmniMac/App` (app lifecycle), `Support` (shared helpers: Accessibility, hotkeys,

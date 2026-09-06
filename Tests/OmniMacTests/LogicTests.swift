@@ -90,3 +90,24 @@ final class MiscTests: XCTestCase {
         XCTAssertEqual(Set(NotchTab.leftTabs).union([.performance]), Set(NotchTab.allCases))
     }
 }
+
+final class CacheCleanerTests: XCTestCase {
+    override class func setUp() { setenv("OMNIMAC_LANG", "es", 1) }
+
+    func testDirectorySizeSumsRegularFilesRecursively() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("omnimac-cache-test-\(UUID().uuidString)")
+        let inner = root.appendingPathComponent("fsCachedData", isDirectory: true)
+        try FileManager.default.createDirectory(at: inner, withIntermediateDirectories: true)
+        try Data(count: 1500).write(to: root.appendingPathComponent("Cache.db"))
+        try Data(count: 2500).write(to: inner.appendingPathComponent("A"))
+        try Data(count: 4000).write(to: inner.appendingPathComponent("B"))
+        defer { try? FileManager.default.removeItem(at: root) }
+        XCTAssertEqual(CacheCleaner.directorySize(root), 8000)
+        XCTAssertEqual(CacheCleaner.directorySize(root.appendingPathComponent("no-existe")), 0)
+    }
+
+    func testFormatUsesFileStyle() {
+        XCTAssertFalse(CacheCleaner.format(0).isEmpty)
+        XCTAssertTrue(CacheCleaner.format(12_300_000).contains("MB"))
+    }
+}

@@ -1,5 +1,9 @@
 # Cambios
 
+## 0.4.2 — sin publicar
+
+- Ajustes › Inicio › Almacenamiento: muestra lo que ocupa la app y la caché (carátulas descargadas y restos de actualizaciones de Sparkle), un botón «Limpiar ahora» que avisa de cuánto ha liberado, y limpieza automática una vez al día (activada por defecto, se puede apagar). La caché web queda acotada a 16 MB en disco.
+
 ## 0.4.1 — 2026-09-05
 
 - Ajustes: al cambiar el idioma, OmniMac se reinicia y vuelve a abrir Ajustes ya en el idioma nuevo; los selectores de las filas quedan centrados en vertical.

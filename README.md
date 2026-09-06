@@ -294,6 +294,7 @@ Reglas de la casa:
   (`Support/Localization.swift`). Sin archivos `.strings`: el texto español queda a la vista en el
   código y es fácil de editar. Los textos de permisos van en `Resources/{es,en}.lproj/InfoPlist.strings`.
 - Los cambios de cada versión van en `CHANGELOG.md`. Licencia MIT.
+- Espacio: la app ocupa 12 MB; la caché (carátulas y restos de actualizaciones) está acotada a 16 MB y se limpia sola a diario, o a mano desde Ajustes › Inicio › Almacenamiento.
 
 ## Herramientas de desarrollo (`scripts/dev`)
 
