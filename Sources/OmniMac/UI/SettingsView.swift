@@ -296,6 +296,7 @@ struct HomePage: View {
     @ObservedObject var manager: FeatureManager
     let axGranted: Bool
     @ObservedObject private var updater = UpdaterController.shared
+    @ObservedObject private var cache = CacheCleaner.shared
     @State private var loginEnabled = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
@@ -350,6 +351,20 @@ struct HomePage: View {
                         .disabled(!updater.canCheck)
                 }
             }
+
+            Section {
+                SettingRow(title: L("Espacio en disco", "Disk space"),
+                           subtitle: L("La app ocupa \(CacheCleaner.format(cache.appSize)). \(cache.statusText)", "The app takes \(CacheCleaner.format(cache.appSize)). \(cache.statusText)")) {
+                    Button(L("Limpiar ahora", "Clean now")) { cache.cleanNow() }
+                        .disabled(cache.cacheSize == 0)
+                }
+                SettingToggle(title: L("Limpiar la caché automáticamente", "Clean the cache automatically"),
+                              subtitle: L("Una vez al día, sin que lo notes. Todo se regenera solo cuando hace falta.", "Once a day, without you noticing. Everything regenerates when needed."),
+                              isOn: $cache.automatic)
+            } header: {
+                Text(L("Almacenamiento", "Storage"))
+            }
+            .onAppear { cache.refresh() }
 
             Section {
                 HStack(spacing: 14) {

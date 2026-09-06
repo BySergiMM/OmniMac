@@ -16,6 +16,8 @@ final class UpdaterController: ObservableObject {
 
     var lastCheck: Date? { controller.updater.lastUpdateCheckDate }
     var canCheck: Bool { controller.updater.canCheckForUpdates }
+    /// true mientras Sparkle descarga o instala algo (la limpieza de caché no toca su carpeta entonces).
+    var sessionInProgress: Bool { controller.updater.sessionInProgress }
 
     private init() {
         controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)

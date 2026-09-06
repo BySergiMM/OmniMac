@@ -72,6 +72,22 @@ y recuento de objetos con `heap` antes y después de abrir y cerrar el notch 10 
    fuga de 35 despertares por segundo por cada apertura del notch que no existía: `proc_pidinfo`
    daba 4 cambios de contexto por segundo y 0 ms de CPU. `scripts/dev/wakeups.sh` resta dos muestras.
 
+## Espacio en disco (6 de septiembre de 2026)
+
+| Qué | Cuánto | Notas |
+|---|---|---|
+| La app instalada | **12 MB** | 8 MB de binario universal (Apple silicon + Intel), 3 MB de Sparkle, 1 MB de recursos |
+| Preferencias y disposiciones | < 10 KB | `~/Library/Preferences` y `~/Library/Application Support/OmniMac` |
+| Historial del portapapeles en disco | 0 por defecto | Solo si se activa la opción en Ajustes › Portapapeles |
+| Caché (`~/Library/Caches/com.seergiii.omnimac`) | **antes: 20 MB** · ahora ≤ 16 MB y limpiada a diario | 10 MB de restos del instalador de Sparkle y ~10 MB de carátulas de Spotify (146 imágenes) que la caché web guardaba sin tope útil |
+
+Desde 0.4.2 la caché web está acotada (16 MB en disco, 4 MB en memoria) y Ajustes › Inicio ›
+Almacenamiento enseña los tamaños, limpia a mano («Limpiar ahora» dice cuánto ha liberado) y
+limpia sola una vez al día con un único temporizador de un solo disparo y una hora de
+tolerancia: coste en reposo, cero. Nada de lo que se borra es necesario: las carátulas se
+vuelven a descargar (100–300 KB cada una) y Sparkle recrea su carpeta cuando hay una
+actualización; si hay una en marcha, esa carpeta no se toca.
+
 ## Corto plazo (mientras la usas)
 
 - La interacción es fluida.
