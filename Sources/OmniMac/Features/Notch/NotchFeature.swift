@@ -212,6 +212,7 @@ final class NotchFeature: BaseFeature {
     /// justo el momento en el que el sistema va más apretado.
     func setMouseTrackingPaused(_ paused: Bool) {
         controller?.mouseTrackingPaused = paused
+        controller?.setHiddenForMenu(paused)
     }
 
     private func rebuild(attempt: Int = 0) {
@@ -497,6 +498,8 @@ final class NotchWindowController {
     private var dragCandidate: (tab: NotchTab, startX: CGFloat)?
     /// Mientras hay un menú abierto no hace falta seguir el ratón.
     var mouseTrackingPaused = false
+    /// Escondido mientras hay un menú de OmniMac abierto (ver `setHiddenForMenu`).
+    private var hiddenForMenu = false
     /// Cuándo se miró por última vez si hay algo a pantalla completa, para no repetir
     /// la consulta de accesibilidad (unos 3 ms) en cada movimiento del ratón.
     private var lastVisibilityCheck = Date.distantPast
@@ -582,17 +585,7 @@ final class NotchWindowController {
         model.onCollapseRequest = { [weak self] in self?.collapseNow() }
         media.onTrackChange = { [weak self] info in self?.showPeek(for: info) }
 
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] _ in
-            self?.mouseMoved()
-        }) {
-            moveMonitors.append(global)
-        }
-        if let local = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] event in
-            self?.mouseMoved()
-            return event
-        }) {
-            moveMonitors.append(local)
-        }
+        installMoveMonitors()
 
         // Cambios de escritorio y de app en primer plano: recolocar el panel (algunas
         // transiciones lo dejan atrás) y decidir si toca esconderse por pantalla completa.
@@ -627,8 +620,7 @@ final class NotchWindowController {
         cancelExpand()
         cancelVisibilityRechecks()
         peekWork?.cancel()
-        moveMonitors.forEach { NSEvent.removeMonitor($0) }
-        moveMonitors = []
+        removeMoveMonitors()
         workspaceObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         workspaceObservers = []
         panel.orderOut(nil)
@@ -639,6 +631,50 @@ final class NotchWindowController {
     /// "subir del todo" cuente como estar dentro (antes no abría o se cerraba).
     private static func reaches(_ rect: CGRect, _ point: CGPoint) -> Bool {
         CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height + 60).contains(point)
+    }
+
+    /// Empieza a seguir el ratón para saber cuándo entra en la zona del notch.
+    private func installMoveMonitors() {
+        guard moveMonitors.isEmpty else { return }
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] _ in
+            self?.mouseMoved()
+        }) {
+            moveMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] event in
+            self?.mouseMoved()
+            return event
+        }) {
+            moveMonitors.append(local)
+        }
+    }
+
+    /// Deja de seguirlo del todo.
+    ///
+    /// No basta con ignorar los movimientos: mientras el monitor existe, macOS
+    /// despierta a OmniMac en **cada** movimiento del ratón de todo el sistema,
+    /// y eso, con un menú abierto, se nota aunque nuestro código no haga nada.
+    private func removeMoveMonitors() {
+        moveMonitors.forEach { NSEvent.removeMonitor($0) }
+        moveMonitors = []
+    }
+
+    /// Con un menú abierto, el panel se quita de en medio del todo.
+    ///
+    /// Es la misma razón que `lowerWhenIdle`, llevada al extremo: mientras se navega
+    /// un menú no hay nada que el notch tenga que enseñar, y quitando su ventana el
+    /// compositor no tiene que contar con ella en cada fotograma del menú.
+    func setHiddenForMenu(_ hidden: Bool) {
+        guard hiddenForMenu != hidden else { return }
+        hiddenForMenu = hidden
+        // Mientras dure el menú, ni panel ni seguimiento del ratón.
+        if hidden { removeMoveMonitors() } else { installMoveMonitors() }
+        if hidden {
+            guard !model.expanded, model.peek == nil, model.deviceCard == nil else { return }
+            panel.orderOut(nil)
+        } else if !hiddenForFullscreen {
+            panel.orderFrontRegardless()
+        }
     }
 
     /// Reacciona al movimiento del ratón: expande al entrar en la zona del notch
@@ -681,6 +717,25 @@ final class NotchWindowController {
         guard !model.expanded, model.peek == nil else { return }
         panel.setFrame(collapsedFrame, display: true)
         setBlack(false)
+        lowerWhenIdle()
+    }
+
+    /// En reposo, y solo si no está dibujando nada, el panel baja de capa.
+    ///
+    /// El panel vive en `popUpMenu` para poder taparse con la barra de menús cuando
+    /// se despliega. Pero **esa es la capa de los menús**, y tener ahí una ventana
+    /// permanente hacía que los menús de OmniMac fueran a tirones: el compositor
+    /// tiene que mezclarlos con ella en cada fotograma. En un Mac con notch, plegado
+    /// no se dibuja nada (el notch ya es negro), así que ahí no cuesta nada apartarse.
+    private func lowerWhenIdle() {
+        guard !model.blackVisible, !model.expanded, model.peek == nil, model.deviceCard == nil else { return }
+        panel.level = .statusBar
+    }
+
+    /// Vuelve a la capa alta justo antes de enseñar algo.
+    private func raiseForDisplay() {
+        guard panel.level != .popUpMenu else { return }
+        panel.level = .popUpMenu
     }
 
     // MARK: - Expandir / plegar
@@ -727,7 +782,7 @@ final class NotchWindowController {
         // Al abrir, reafirmamos capa y orden: si algo se puso por encima del notch (o
         // el panel se quedó fuera de pantalla tras una transición), se desplegaría sin
         // verse y parecería que no responde.
-        panel.level = .popUpMenu
+        raiseForDisplay()
         panel.orderFrontRegardless()
         // Vibración del trackpad al abrirse (intensidad configurable en Ajustes).
         NotchHaptics.play()
@@ -869,6 +924,7 @@ final class NotchWindowController {
     /// Cambia la visibilidad del negro sin animación (ver `NotchModel.blackVisible`).
     private func setBlack(_ visible: Bool) {
         guard model.blackVisible != visible else { return }
+        if visible { raiseForDisplay() }
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) { model.blackVisible = visible }
