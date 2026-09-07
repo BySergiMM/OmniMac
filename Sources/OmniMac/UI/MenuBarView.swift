@@ -20,8 +20,8 @@ struct MenuBarPage: View {
             if feature.isEnabled {
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
-                        Label(L("Mantén ⌘ pulsado y arrastra los iconos que quieras esconder a la **izquierda** de la flecha.",
-                                "Hold ⌘ and drag the icons you want hidden to the **left** of the arrow."),
+                        Label(L("Mantén ⌘ pulsado y arrastra los iconos que quieras esconder a la **izquierda de la línea** ❘.",
+                                "Hold ⌘ and drag the icons you want hidden to the **left of the line** ❘."),
                               systemImage: "hand.draw")
                         Label(L("Pulsa la flecha (o ⌃⌥⌘B) para verlos un momento.",
                                 "Click the arrow (or press ⌃⌥⌘B) to peek at them."),
@@ -43,6 +43,11 @@ struct MenuBarPage: View {
                                : L("Esconder los iconos", "Hide the icons")) {
                             feature.toggle()
                         }
+                    }
+                    SettingRow(title: L("Recolocar los iconos", "Put the icons back"),
+                               subtitle: L("Deja la línea, la flecha y el icono de OmniMac en su sitio, por si algún arrastre los dejó desordenados.",
+                                           "Puts the line, the arrow and OmniMac's own icon back in order, in case a drag left them tangled.")) {
+                        Button(L("Recolocar", "Rearrange")) { feature.rearrange() }
                     }
                     SettingToggle(title: L("Volver a esconderlos solos", "Hide them again on their own"),
                                   subtitle: L("Después de mirarlos, se cierran pasado un rato.",

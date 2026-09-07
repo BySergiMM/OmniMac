@@ -3,6 +3,10 @@ import Combine
 
 /// Icono y menú de OmniMac en la barra de menús.
 final class StatusItemController: NSObject, NSMenuDelegate {
+    /// Nombre con el que macOS recuerda dónde dejó el usuario este icono. Lo usa
+    /// también el módulo de la barra de menús para recolocarlo.
+    static let autosaveName = "com.seergiii.omnimac.main"
+
     private let statusItem: NSStatusItem
     private let manager = FeatureManager.shared
     private var cancellables: Set<AnyCancellable> = []
@@ -10,6 +14,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.autosaveName = Self.autosaveName
         super.init()
 
         updateIcon()
