@@ -48,6 +48,9 @@ final class SoundFeature: BaseFeature {
     ]
 
     var outputDevices: [AudioDevice] { devices.filter(\.hasOutput) }
+
+    /// Qué salida se elige al conectar o desconectar algo.
+    let priority = OutputPriority()
     var inputDevices: [AudioDevice] { devices.filter(\.hasInput) }
     var outputName: String { devices.first { $0.id == output }?.name ?? "—" }
     var inputName: String { devices.first { $0.id == input }?.name ?? "—" }
@@ -95,6 +98,10 @@ final class SoundFeature: BaseFeature {
         refreshing = true
         defer { refreshing = false }
         devices = AudioSystem.devices()
+        // La lista de prioridad se mantiene al día sola y decide si toca cambiar de
+        // salida (solo cuando aparece o desaparece un dispositivo).
+        priority.addMissing(from: outputDevices)
+        priority.devicesChanged(devices)
         output = AudioSystem.defaultDevice(input: false)
         input = AudioSystem.defaultDevice(input: true)
         if let output {

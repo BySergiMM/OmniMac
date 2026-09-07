@@ -24,7 +24,6 @@ struct PreferredOutput: Identifiable, Equatable, Codable {
 /// **Solo actúa cuando aparece o desaparece un dispositivo**, nunca cuando eres tú
 /// quien cambia la salida a mano: si no, sería imposible poner una salida que no
 /// fuera la primera de la lista.
-@MainActor
 final class OutputPriority: ObservableObject {
     static let enabledKey = "sound.priority.enabled"
     static let listKey = "sound.priority.list"
@@ -64,15 +63,22 @@ final class OutputPriority: ObservableObject {
 
     // MARK: - Editar la lista
 
-    /// Añade a la lista los dispositivos que aún no estén, al final.
+    /// Añade a la lista los dispositivos que aún no estén.
+    ///
+    /// Lo que se enchufa (AirPods, un monitor, una barra de sonido) entra **arriba**,
+    /// y los altavoces del propio Mac **abajo**. Si no, los altavoces internos, que
+    /// siempre están disponibles, serían siempre los primeros y al conectar unos
+    /// AirPods te devolvería a ellos al instante.
     func addMissing(from devices: [AudioDevice]) {
         for device in devices where device.hasOutput {
             guard let uid = AudioSystem.uid(of: device.id) else { continue }
             if let index = order.firstIndex(where: { $0.uid == uid }) {
                 // El nombre puede haber cambiado (un monitor renombrado, por ejemplo).
                 if order[index].name != device.name { order[index].name = device.name }
-            } else {
+            } else if AudioSystem.isBuiltIn(device.id) {
                 order.append(PreferredOutput(uid: uid, name: device.name))
+            } else {
+                order.insert(PreferredOutput(uid: uid, name: device.name), at: 0)
             }
         }
     }
