@@ -64,7 +64,9 @@ struct SoundPage: View {
                 }
 
                 Section {
-                    EqualizerView(mixer: feature.mixer)
+                    EqualizerView(gains: feature.mixer.eqGains,
+                                  setBand: { feature.mixer.setEQ(band: $0, gain: $1) },
+                                  setAll: { feature.mixer.setEQ($0) })
                 } header: {
                     Text(L("Ecualizador", "Equalizer"))
                 } footer: {
@@ -116,6 +118,9 @@ struct SoundPage: View {
 /// Apps que están sonando (o tienen volumen propio) con su deslizador.
 struct AppVolumeList: View {
     @ObservedObject var mixer: AppVolumeMixer
+    /// App cuyo ecualizador está desplegado (solo uno a la vez, que si no la lista
+    /// se vuelve un muro de deslizadores).
+    @State private var expanded: String?
 
     var body: some View {
         Group {
@@ -142,6 +147,31 @@ struct AppVolumeList: View {
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                             .frame(width: 44, alignment: .trailing)
+
+                        // Ecualizador propio de esta app.
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                expanded = expanded == app.key ? nil : app.key
+                            }
+                        } label: {
+                            Image(systemName: "slider.vertical.3")
+                                .foregroundStyle(mixer.hasEQ(app) || expanded == app.key ? Color.accentColor : .secondary)
+                                // Sin esto el sitio donde hay que pulsar es de 12×11
+                                // puntos, la mitad de lo que Apple recomienda.
+                                .frame(width: 26, height: 22)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.borderless)
+                        .help(L("Ecualizador solo para \(app.name)", "Equalizer just for \(app.name)"))
+                    }
+
+                    if expanded == app.key {
+                        EqualizerView(gains: mixer.eq(for: app),
+                                      setBand: { mixer.setEQ(band: $0, gain: $1, for: app) },
+                                      setAll: { mixer.setEQ($0, for: app) },
+                                      compact: true)
+                            .padding(.leading, 32)
+                            .transition(.opacity)
                     }
                 }
             }

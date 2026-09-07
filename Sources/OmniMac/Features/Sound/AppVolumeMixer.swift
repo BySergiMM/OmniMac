@@ -50,6 +50,8 @@ final class AppVolumeMixer: ObservableObject {
 
     /// Ganancias del ecualizador, en dB, una por banda (Ajustes › Sonido).
     @Published private(set) var eqGains: [Double]
+    /// Ecualizador propio de cada app, por su identificador.
+    @Published private(set) var appEQ: [String: [Double]]
     /// Con todas a cero no hace falta captar nada para ecualizar.
     var isEQActive: Bool { eqGains.contains { abs($0) > 0.01 } }
     private var watchers = 0
@@ -65,6 +67,10 @@ final class AppVolumeMixer: ObservableObject {
         volumes = stored.mapValues { Float($0) }
         let storedEQ = UserDefaults.standard.array(forKey: Self.eqKey) as? [Double] ?? []
         eqGains = (0..<EqualizerBands.count).map { $0 < storedEQ.count ? storedEQ[$0] : 0 }
+        let storedAppEQ = UserDefaults.standard.dictionary(forKey: Self.appEQKey) as? [String: [Double]] ?? [:]
+        appEQ = storedAppEQ.compactMapValues { gains in
+            gains.contains { abs($0) > 0.01 } ? (0..<EqualizerBands.count).map { $0 < gains.count ? gains[$0] : 0 } : nil
+        }
     }
 
     func start() {
@@ -132,6 +138,64 @@ final class AppVolumeMixer: ObservableObject {
     }
 
     static let eqKey = "sound.eq"
+    static let appEQKey = "sound.appEQ"
+
+    /// Ganancias del ecualizador de una app (todo a cero si no tiene).
+    func eq(for app: AudioApp) -> [Double] {
+        appEQ[app.key] ?? [Double](repeating: 0, count: EqualizerBands.count)
+    }
+
+    func hasEQ(_ app: AudioApp) -> Bool {
+        appEQ[app.key]?.contains { abs($0) > 0.01 } ?? false
+    }
+
+    /// Cambia una banda del ecualizador de una app. Si pasa a tener ecualizador (o
+    /// deja de tenerlo) hay que rehacer el motor, porque cambia a quién se capta.
+    func setEQ(band: Int, gain: Double, for app: AudioApp) {
+        guard (0..<EqualizerBands.count).contains(band) else { return }
+        let had = hasEQ(app)
+        var gains = eq(for: app)
+        gains[band] = min(max(gain, -EqualizerBands.limitDB), EqualizerBands.limitDB)
+        if gains.contains(where: { abs($0) > 0.01 }) {
+            appEQ[app.key] = gains
+        } else {
+            appEQ.removeValue(forKey: app.key)
+        }
+        saveAppEQ()
+        if hasEQ(app) != had { syncEngine(force: true) } else { pushAppEQ() }
+    }
+
+    /// Todas las bandas de una app de golpe (un ajuste preparado).
+    func setEQ(_ gains: [Double], for app: AudioApp) {
+        let had = hasEQ(app)
+        let clean = (0..<EqualizerBands.count).map {
+            $0 < gains.count ? min(max(gains[$0], -EqualizerBands.limitDB), EqualizerBands.limitDB) : 0
+        }
+        if clean.contains(where: { abs($0) > 0.01 }) {
+            appEQ[app.key] = clean
+        } else {
+            appEQ.removeValue(forKey: app.key)
+        }
+        saveAppEQ()
+        if hasEQ(app) != had { syncEngine(force: true) } else { pushAppEQ() }
+    }
+
+    private func saveAppEQ() {
+        UserDefaults.standard.set(appEQ, forKey: Self.appEQKey)
+    }
+
+    /// Lleva al motor el ecualizador de cada app captada, en el mismo orden que las
+    /// ganancias de volumen.
+    private func pushAppEQ() {
+        let flat = [Double](repeating: 0, count: EqualizerBands.count)
+        engine.setAppEQ(tappedApps().map { appEQ[$0.key] ?? flat })
+    }
+
+    /// Las apps que hay que captar: las que tienen volumen propio y las que tienen
+    /// ecualizador propio.
+    private func tappedApps() -> [AudioApp] {
+        apps.filter { volumes[$0.key] != nil || (appEQ[$0.key]?.contains { abs($0) > 0.01 } ?? false) }
+    }
 
     /// Cambia una banda del ecualizador. Si estaba plano y deja de estarlo (o al
     /// revés), hay que rehacer el motor: con el ecualizador activo se capta también
@@ -223,7 +287,7 @@ final class AppVolumeMixer: ObservableObject {
     /// Un tap por app con volumen personalizado; ganancias en vivo sin reconstruir.
     private func syncEngine(force: Bool = false) {
         let output = AudioSystem.defaultDevice(input: false) ?? 0
-        let tapped = apps.filter { volumes[$0.key] != nil }
+        let tapped = tappedApps()
         let eqActive = isEQActive
         // La firma incluye el ecualizador: al encenderlo o apagarlo cambia qué se capta.
         let signature = tapped.map { "\($0.key):\($0.processObjects)" } + (eqActive ? ["eq"] : [])
@@ -237,6 +301,8 @@ final class AppVolumeMixer: ObservableObject {
         guard !tapped.isEmpty || eqActive, output != 0 else { return }
         do {
             engine.setEQ(eqGains)
+            let flatEQ = [Double](repeating: 0, count: EqualizerBands.count)
+            engine.setAppEQ(tapped.map { appEQ[$0.key] ?? flatEQ })
             // Con el ecualizador activo se añade un tap del resto del sistema (todo
             // menos las apps que ya se captan aparte), para que ecualice todo lo que
             // suena y no solo lo que tiene volumen propio.
@@ -333,12 +399,19 @@ final class MixEngine {
     /// Ecualizador de la salida. Igual que el limitador, vive mientras vive el motor
     /// porque lo usa el hilo de audio.
     private let equalizer = Equalizer()
+    /// Un ecualizador por app captada, para poder darle a cada una su sonido.
+    private var appEqualizers: [Equalizer] = []
+    /// Sitio donde filtrar la aportación de una app antes de sumarla. Reservado de
+    /// una vez: en el hilo de audio no se puede pedir memoria.
+    private static let scratchCapacity = 16_384
+    private let scratch = UnsafeMutablePointer<Float>.allocate(capacity: MixEngine.scratchCapacity)
     private static let maxTaps = 64
 
     init() { limiter.initialize(to: Limiter()) }
 
     deinit {
         stop()
+        scratch.deallocate()
         gains.deallocate()
         limiter.deinitialize(count: 1)
         limiter.deallocate()
@@ -350,6 +423,16 @@ final class MixEngine {
         currentEQ = gains
         equalizer.setGains(gains)
     }
+
+    /// Ecualizador de cada app captada, en el mismo orden que las ganancias.
+    func setAppEQ(_ perTap: [[Double]]) {
+        currentAppEQ = perTap
+        for (index, gains) in perTap.enumerated() where index < appEqualizers.count {
+            appEqualizers[index].setGains(gains)
+        }
+    }
+
+    private var currentAppEQ: [[Double]] = []
 
     /// Últimas ganancias pedidas, para reaplicarlas al arrancar con la frecuencia real.
     private var currentEQ: [Double] = []
@@ -428,6 +511,14 @@ final class MixEngine {
         let interleaved = format.mFormatFlags & kAudioFormatFlagIsNonInterleaved == 0
         let tapChannels = max(1, Int(format.mChannelsPerFrame))
         let buffersPerTap = interleaved ? 1 : tapChannels
+        // Un ecualizador por tap (el global, si lo hay, va sin ecualizar: ya lo
+        // ecualiza el de la salida).
+        appEqualizers = (0..<groups.count).map { _ in Equalizer() }
+        for (index, gains) in currentAppEQ.enumerated() where index < appEqualizers.count {
+            appEqualizers[index].setGains(gains, sampleRate: format.mSampleRate)
+        }
+        let appEqualizerList = appEqualizers
+        let scratch = self.scratch
         let gains = self.gains
         let limiter = self.limiter
         let equalizer = self.equalizer
@@ -439,7 +530,8 @@ final class MixEngine {
         var procID: AudioDeviceIOProcID?
         let procStatus = AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, nil) { _, inputData, _, outputData, _ in
             MixEngine.mix(input: inputData, output: outputData, gains: gains, limiter: limiter,
-                          equalizer: equalizer, tapCount: tapCount,
+                          equalizer: equalizer, appEqualizers: appEqualizerList, scratch: scratch,
+                          tapCount: tapCount,
                           buffersPerTap: buffersPerTap, tapChannels: tapChannels, interleaved: interleaved)
         }
         guard procStatus == noErr, let procID else {
@@ -476,6 +568,8 @@ final class MixEngine {
                             gains: UnsafeMutablePointer<Float>,
                             limiter: UnsafeMutablePointer<Limiter>,
                             equalizer: Equalizer,
+                            appEqualizers: [Equalizer],
+                            scratch: UnsafeMutablePointer<Float>,
                             tapCount: Int, buffersPerTap: Int, tapChannels: Int, interleaved: Bool) {
         let outputs = UnsafeMutableAudioBufferListPointer(output)
         let inputs = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input))
@@ -505,12 +599,25 @@ final class MixEngine {
                     let offset = interleaved ? min(tapChannel, inChannels - 1) : 0
                     let frames = min(outFrames, inFrames)
                     guard frames > 0 else { continue }
-                    // out[oc] += in[canal] × ganancia, vectorizado (con saltos entre canales).
                     var scale = gain
-                    vDSP_vsma(inData + offset, stride, &scale,
-                              outData + oc, outChannels,
-                              outData + oc, outChannels,
-                              vDSP_Length(frames))
+                    // Si esta app tiene su propio ecualizador, su aportación se copia
+                    // aparte, se filtra y luego se suma. Sin ecualizador (lo normal)
+                    // se suma directamente, que es más rápido.
+                    let appEqualizer = tap < appEqualizers.count ? appEqualizers[tap] : nil
+                    if let appEqualizer, !appEqualizer.isFlat, frames <= MixEngine.scratchCapacity {
+                        cblas_scopy(Int32(frames), inData + offset, Int32(stride), scratch, 1)
+                        appEqualizer.process(scratch, stride: 1, count: frames, channel: channel)
+                        vDSP_vsma(scratch, 1, &scale,
+                                  outData + oc, outChannels,
+                                  outData + oc, outChannels,
+                                  vDSP_Length(frames))
+                    } else {
+                        // out[oc] += in[canal] × ganancia, vectorizado (con saltos entre canales).
+                        vDSP_vsma(inData + offset, stride, &scale,
+                                  outData + oc, outChannels,
+                                  outData + oc, outChannels,
+                                  vDSP_Length(frames))
+                    }
                 }
             }
             // Ecualizador antes del limitador: primero se le da forma al sonido y

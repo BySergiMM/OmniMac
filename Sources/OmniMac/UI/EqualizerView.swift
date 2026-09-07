@@ -2,13 +2,18 @@ import SwiftUI
 
 /// Los diez deslizadores del ecualizador, con sus ajustes preparados.
 ///
-/// Van en vertical, como en cualquier ecualizador: SwiftUI solo trae el deslizador
-/// horizontal, así que se giran 90°, que es lo que hace todo el mundo.
+/// No sabe de dónde salen las ganancias: se le pasan y se le dice qué hacer al
+/// cambiarlas. Así vale igual para el ecualizador general y para el de cada app.
 struct EqualizerView: View {
-    @ObservedObject var mixer: AppVolumeMixer
+    let gains: [Double]
+    let setBand: (Int, Double) -> Void
+    let setAll: ([Double]) -> Void
+    var compact = false
+
+    private var isActive: Bool { gains.contains { abs($0) > 0.01 } }
 
     private var selectedPreset: String {
-        EqualizerPreset.matching(mixer.eqGains)?.id ?? "custom"
+        EqualizerPreset.matching(gains)?.id ?? "custom"
     }
 
     var body: some View {
@@ -18,7 +23,7 @@ struct EqualizerView: View {
                     get: { selectedPreset },
                     set: { id in
                         if let preset = EqualizerPreset.all.first(where: { $0.id == id }) {
-                            mixer.setEQ(preset.gains)
+                            setAll(preset.gains)
                         }
                     })) {
                     ForEach(EqualizerPreset.all) { preset in
@@ -34,16 +39,19 @@ struct EqualizerView: View {
 
                 Spacer()
 
-                Button(L("Poner a cero", "Reset")) { mixer.setEQ(EqualizerPreset.flat.gains) }
-                    .disabled(!mixer.isEQActive)
+                Button(L("Poner a cero", "Reset")) { setAll(EqualizerPreset.flat.gains) }
+                    .disabled(!isActive)
             }
 
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(0..<EqualizerBands.count, id: \.self) { band in
-                    BandSlider(band: band, mixer: mixer)
+                    BandSlider(band: band,
+                               gain: band < gains.count ? gains[band] : 0,
+                               trackHeight: compact ? 84 : 120,
+                               onChange: { setBand(band, $0) })
                 }
             }
-            .frame(height: 172)
+            .frame(height: compact ? 136 : 172)
         }
         .padding(.vertical, 4)
     }
@@ -56,12 +64,11 @@ struct EqualizerView: View {
 /// marcar el centro (0 dB) y volver a él con doble clic.
 private struct BandSlider: View {
     let band: Int
-    @ObservedObject var mixer: AppVolumeMixer
+    let gain: Double
+    let trackHeight: CGFloat
+    let onChange: (Double) -> Void
 
-    private static let trackHeight: CGFloat = 120
     private static let knob: CGFloat = 15
-
-    private var gain: Double { mixer.eqGains.indices.contains(band) ? mixer.eqGains[band] : 0 }
 
     /// 0 arriba (+12 dB) … 1 abajo (−12 dB).
     private var fraction: CGFloat {
@@ -115,12 +122,12 @@ private struct BandSlider: View {
                             let db = EqualizerBands.limitDB - ratio * EqualizerBands.limitDB * 2
                             // Redondeo a medio decibelio y enganche en el cero.
                             let rounded = (db * 2).rounded() / 2
-                            mixer.setEQ(band: band, gain: abs(rounded) < 0.8 ? 0 : rounded)
+                            onChange(abs(rounded) < 0.8 ? 0 : rounded)
                         }
                 )
-                .onTapGesture(count: 2) { mixer.setEQ(band: band, gain: 0) }
+                .onTapGesture(count: 2) { onChange(0) }
             }
-            .frame(width: 26, height: Self.trackHeight)
+            .frame(width: 26, height: trackHeight)
 
             Text(EqualizerBands.label(band))
                 .font(.caption2)
