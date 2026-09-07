@@ -191,7 +191,7 @@ struct AppCleanerPage: View {
         .toggleStyle(.checkbox)
     }
 
-    /// `/Users/sergi/Library/Caches/x` → `~/Library/Caches/x`
+    /// `/Users/<usuario>/Library/Caches/x` → `~/Library/Caches/x`
     private func friendlyPath(_ url: URL) -> String {
         let home = NSHomeDirectory()
         return url.path.hasPrefix(home) ? "~" + url.path.dropFirst(home.count) : url.path
