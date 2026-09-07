@@ -370,7 +370,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     private func updateIcon() {
-        let symbol = manager.keepAwake.isActive ? "cup.and.saucer.fill" : "switch.2"
+        // Los destellos del icono de la app, no unos deslizadores: «switch.2» era
+        // casi igual que el icono del Centro de Control y se confundían en la barra.
+        let symbol = manager.keepAwake.isActive ? "cup.and.saucer.fill" : "sparkles"
         let description = manager.keepAwake.isActive ? L("OmniMac (mantener despierto activo)", "OmniMac (keep awake on)") : "OmniMac"
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: description)
         statusItem.button?.imagePosition = .imageLeading
