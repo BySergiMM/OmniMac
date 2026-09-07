@@ -46,7 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// Se enciende con `OMNIMAC_HEARTBEAT=1` al arrancar la app desde el Terminal y
     /// anota en el registro del sistema cada vez que el hilo principal se queda
-    /// parado más de 180 ms, que es cuando se empieza a notar. Apagado no cuesta nada
+    /// parado más de 60 ms, que es cuando se pierde un fotograma y se empieza a
+    /// notar el tirón. Apagado no cuesta nada
     /// porque ni siquiera crea el temporizador.
     ///
     ///     OMNIMAC_HEARTBEAT=1 /Applications/OmniMac.app/Contents/MacOS/OmniMac
@@ -55,10 +56,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startHeartbeatIfAsked() {
         guard ProcessInfo.processInfo.environment["OMNIMAC_HEARTBEAT"] != nil else { return }
         var last = CFAbsoluteTimeGetCurrent()
-        let beat = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+        let beat = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in
             let now = CFAbsoluteTimeGetCurrent()
             let gap = (now - last) * 1000
-            if gap > 180 { NSLog("OmniMac: hilo principal parado %.0f ms", gap) }
+            if gap > 60 { NSLog("OmniMac: hilo principal parado %.0f ms", gap) }
             last = now
         }
         RunLoop.main.add(beat, forMode: .common)
