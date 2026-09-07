@@ -315,21 +315,32 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             off.target = self
             menu.addItem(off)
         } else {
-            let options: [(String, Int?)] = [
-                (L("Activar sin límite", "Keep awake indefinitely"), nil),
-                (L("Activar 15 minutos", "Keep awake for 15 minutes"), 15),
-                (L("Activar 30 minutos", "Keep awake for 30 minutes"), 30),
-                (L("Activar 1 hora", "Keep awake for 1 hour"), 60),
-                (L("Activar 2 horas", "Keep awake for 2 hours"), 120),
-                (L("Activar 4 horas", "Keep awake for 4 hours"), 240),
-                (L("Activar 8 horas", "Keep awake for 8 hours"), 480),
+            // Lo más usado, a la vista; las duraciones, en un submenú. El menú entero
+            // pasaba de 40 filas, y una lista translúcida tan larga tarda en
+            // redibujarse cada vez que se mueve el resaltado.
+            let activate = NSMenuItem(title: L("Activar sin límite", "Keep awake indefinitely"),
+                                      action: #selector(keepAwakeOn(_:)), keyEquivalent: "")
+            activate.target = self
+            menu.addItem(activate)
+
+            let durations: [(String, Int)] = [
+                (L("15 minutos", "15 minutes"), 15),
+                (L("30 minutos", "30 minutes"), 30),
+                (L("1 hora", "1 hour"), 60),
+                (L("2 horas", "2 hours"), 120),
+                (L("4 horas", "4 hours"), 240),
+                (L("8 horas", "8 hours"), 480),
             ]
-            for (title, minutes) in options {
+            let durationsItem = NSMenuItem(title: L("Activar durante", "Keep awake for"), action: nil, keyEquivalent: "")
+            let durationsMenu = NSMenu()
+            for (title, minutes) in durations {
                 let item = NSMenuItem(title: title, action: #selector(keepAwakeOn(_:)), keyEquivalent: "")
                 item.target = self
                 item.representedObject = minutes
-                menu.addItem(item)
+                durationsMenu.addItem(item)
             }
+            durationsItem.submenu = durationsMenu
+            menu.addItem(durationsItem)
 
             // Hasta una hora concreta: las próximas 12 horas en punto.
             let until = NSMenuItem(title: L("Activar hasta las…", "Keep awake until…"), action: nil, keyEquivalent: "")
@@ -351,8 +362,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
     }
 
+    /// Los ocho módulos, en un submenú: son ajustes, no acciones, y ocupaban nueve
+    /// filas del menú principal.
     private func buildFeatureToggles(_ menu: NSMenu) {
-        menu.addItem(NSMenuItem.sectionHeader(title: L("Módulos", "Modules")))
+        let modulesItem = NSMenuItem(title: L("Módulos", "Modules"), action: nil, keyEquivalent: "")
+        let modules = NSMenu()
         for feature in manager.all {
             let item = NSMenuItem(title: feature.displayName,
                                   action: #selector(toggleFeature(_:)),
@@ -360,8 +374,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             item.target = self
             item.representedObject = feature
             item.state = feature.isEnabled ? .on : .off
-            menu.addItem(item)
+            modules.addItem(item)
         }
+        modulesItem.submenu = modules
+        menu.addItem(modulesItem)
     }
 
     // MARK: - Acciones
