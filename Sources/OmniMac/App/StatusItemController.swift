@@ -16,19 +16,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Vigila el hilo principal mientras el menú está abierto (ver `startMenuWatchdog`).
     private var menuWatchdog: Timer?
 
-    /// Crea un menú nuestro.
-    ///
-    /// `autoenablesItems = false` es la clave: con la validación automática (que es
-    /// lo de fábrica) AppKit pregunta por **cada** elemento si debe estar activo
-    /// mientras te mueves por el menú. En una app de barra de menús, que para macOS
-    /// es una app de fondo, esas consultas se pagan caras y el resaltado va a
-    /// tirones. Nuestros elementos ya dicen ellos mismos si están activos o no.
-    static func makeMenu() -> NSMenu {
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        return menu
-    }
-
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.autosaveName = Self.autosaveName
@@ -36,7 +23,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         updateIcon()
 
-        let menu = Self.makeMenu()
+        let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
 
@@ -225,7 +212,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem.sectionHeader(title: L("Sonido", "Sound")))
         let outputItem = NSMenuItem(title: L("Salida: \(manager.sound.outputName)", "Output: \(manager.sound.outputName)"), action: nil, keyEquivalent: "")
-        let outputMenu = Self.makeMenu()
+        let outputMenu = NSMenu()
         for device in manager.sound.outputDevices {
             let item = NSMenuItem(title: device.name, action: #selector(selectOutput(_:)), keyEquivalent: "")
             item.target = self
@@ -236,7 +223,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         outputItem.submenu = outputMenu
         menu.addItem(outputItem)
         let inputItem = NSMenuItem(title: L("Entrada: \(manager.sound.inputName)", "Input: \(manager.sound.inputName)"), action: nil, keyEquivalent: "")
-        let inputMenu = Self.makeMenu()
+        let inputMenu = NSMenu()
         for device in manager.sound.inputDevices {
             let item = NSMenuItem(title: device.name, action: #selector(selectInput(_:)), keyEquivalent: "")
             item.target = self
@@ -256,7 +243,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private func buildLayoutsSection(_ menu: NSMenu) {
         menu.addItem(.separator())
         let layoutsItem = NSMenuItem(title: L("Disposiciones de ventanas", "Window layouts"), action: nil, keyEquivalent: "")
-        let layoutsMenu = Self.makeMenu()
+        let layoutsMenu = NSMenu()
         for layout in WindowLayoutStore.shared.layouts {
             let shortcut = layout.shortcutLabel.map { "   \($0)" } ?? ""
             let item = NSMenuItem(title: "\(layout.name)\(shortcut)", action: #selector(applyLayout(_:)), keyEquivalent: "")
@@ -314,7 +301,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
                 (L("8 horas", "8 hours"), 480),
             ]
             let durationsItem = NSMenuItem(title: L("Activar durante", "Keep awake for"), action: nil, keyEquivalent: "")
-            let durationsMenu = Self.makeMenu()
+            let durationsMenu = NSMenu()
             for (title, minutes) in durations {
                 let item = NSMenuItem(title: title, action: #selector(keepAwakeOn(_:)), keyEquivalent: "")
                 item.target = self
@@ -326,7 +313,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
             // Hasta una hora concreta: las próximas 12 horas en punto.
             let until = NSMenuItem(title: L("Activar hasta las…", "Keep awake until…"), action: nil, keyEquivalent: "")
-            let submenu = Self.makeMenu()
+            let submenu = NSMenu()
             let formatter = DateFormatter()
             formatter.dateFormat = "HH:mm"
             var next = Calendar.current.nextDate(after: Date(),
@@ -348,7 +335,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// filas del menú principal.
     private func buildFeatureToggles(_ menu: NSMenu) {
         let modulesItem = NSMenuItem(title: L("Módulos", "Modules"), action: nil, keyEquivalent: "")
-        let modules = Self.makeMenu()
+        let modules = NSMenu()
         for feature in manager.all {
             let item = NSMenuItem(title: feature.displayName,
                                   action: #selector(toggleFeature(_:)),
