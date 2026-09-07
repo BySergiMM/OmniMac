@@ -36,9 +36,9 @@ struct SoundPage: View {
                     if feature.balanceSupported {
                         SettingRow(title: "Balance", subtitle: L("Izquierda – derecha", "Left – right")) {
                             HStack(spacing: 8) {
-                                Text("I").font(.caption).foregroundStyle(.secondary)
+                                Text(L("I", "L")).font(.caption).foregroundStyle(.secondary)
                                 Slider(value: $feature.balance, in: 0...1).frame(width: 140)
-                                Text("D").font(.caption).foregroundStyle(.secondary)
+                                Text(L("D", "R")).font(.caption).foregroundStyle(.secondary)
                                 Button(L("Centrar", "Centre")) { feature.balance = 0.5 }.controlSize(.small)
                             }
                         }

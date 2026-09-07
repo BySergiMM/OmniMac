@@ -258,7 +258,7 @@ final class AppVolumeMixer: ObservableObject {
             guard ownerPID != myPID else { continue }
             let app = NSRunningApplication(processIdentifier: ownerPID)
             let key = app?.bundleIdentifier ?? process.bundleID ?? "pid:\(ownerPID)"
-            let fallbackName = processName(ownerPID) ?? process.bundleID?.components(separatedBy: ".").last ?? "Proceso \(ownerPID)"
+            let fallbackName = processName(ownerPID) ?? process.bundleID?.components(separatedBy: ".").last ?? L("Proceso \(ownerPID)", "Process \(ownerPID)")
             if groups[key] == nil {
                 groups[key] = Group(pid: ownerPID, name: app?.localizedName ?? fallbackName, icon: app?.icon)
                 order.append(key)

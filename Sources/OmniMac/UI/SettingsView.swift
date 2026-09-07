@@ -805,7 +805,7 @@ struct NotchPage: View {
                     SettingRow(title: L("Descanso largo", "Long break")) { minutesStepper($timer.longRestMinutes, range: 5...90) }
                     SettingRow(title: L("Descanso largo cada", "Long break every"), subtitle: L("Pomodoros seguidos antes del descanso largo (0 = nunca).", "Pomodoros in a row before a long break (0 = never).")) {
                         Stepper(value: $timer.longRestEvery, in: 0...10) {
-                            Text(timer.longRestEvery == 0 ? "nunca" : "\(timer.longRestEvery) pomodoros")
+                            Text(timer.longRestEvery == 0 ? L("nunca", "never") : "\(timer.longRestEvery) pomodoros")
                                 .monospacedDigit()
                                 .frame(width: 96, alignment: .trailing)
                         }

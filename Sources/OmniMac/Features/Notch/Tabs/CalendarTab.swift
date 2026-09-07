@@ -89,7 +89,7 @@ struct CalendarTab: View {
 
     private static func relative(_ event: CalendarEvent) -> String {
         let now = Date()
-        if event.start <= now { return "ahora" }
+        if event.start <= now { return L("ahora", "now") }
         let minutes = Int(event.start.timeIntervalSince(now) / 60)
         if minutes < 60 { return L("en \(max(1, minutes)) min", "in \(max(1, minutes)) min") }
         return L("en \(minutes / 60) h", "in \(minutes / 60) h")

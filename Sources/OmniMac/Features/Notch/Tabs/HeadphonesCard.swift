@@ -32,9 +32,9 @@ struct HeadphonesCard: View {
 
             if info.hasBattery {
                 HStack(spacing: 14) {
-                    if let level = info.left { gauge(level, symbol: info.leftSymbol, fallback: "I") }
-                    if let level = info.right { gauge(level, symbol: info.rightSymbol, fallback: "D") }
-                    if let level = info.caseLevel { gauge(level, symbol: info.caseSymbol, fallback: "E") }
+                    if let level = info.left { gauge(level, symbol: info.leftSymbol, fallback: L("I", "L")) }
+                    if let level = info.right { gauge(level, symbol: info.rightSymbol, fallback: L("D", "R")) }
+                    if let level = info.caseLevel { gauge(level, symbol: info.caseSymbol, fallback: L("E", "C")) }
                     if let level = info.main { gauge(level, symbol: info.symbol, fallback: "") }
                 }
                 .padding(.top, 5)
