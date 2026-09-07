@@ -3,9 +3,26 @@ import SwiftUI
 /// Página «Rendimiento»: tres gráficos básicos del último minuto.
 struct PerformancePage: View {
     @StateObject private var stats = SystemStats()
+    @State private var placement = MenuBarStats.placement
 
     var body: some View {
         Form {
+            Section {
+                SettingRow(title: L("Dónde se enseñan", "Where to show them"),
+                           subtitle: placement.hint) {
+                    Picker("", selection: $placement) {
+                        ForEach(PerformancePlacement.allCases) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 190)
+                }
+                .onChange(of: placement) { _, new in MenuBarStats.placement = new }
+            } header: {
+                Text(L("Gráficas", "Graphs"))
+            }
+
             Section {
                 HStack(spacing: 14) {
                     SettingsIcon(symbol: "gauge.with.dots.needle.33percent", color: .green, size: 44)
