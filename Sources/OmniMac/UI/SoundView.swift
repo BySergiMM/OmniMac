@@ -39,7 +39,7 @@ struct SoundPage: View {
                                 Text("I").font(.caption).foregroundStyle(.secondary)
                                 Slider(value: $feature.balance, in: 0...1).frame(width: 140)
                                 Text("D").font(.caption).foregroundStyle(.secondary)
-                                Button(L("Centrar", "Center")) { feature.balance = 0.5 }.controlSize(.small)
+                                Button(L("Centrar", "Centre")) { feature.balance = 0.5 }.controlSize(.small)
                             }
                         }
                     }
@@ -60,7 +60,7 @@ struct SoundPage: View {
                 } header: {
                     Text(L("Volumen por app", "Per-app volume"))
                 } footer: {
-                    Text(L("Capta el audio de esa app (macOS pide permiso una vez, «grabar el audio del sistema») y lo reproduce al nivel elegido; las apps al 100 % no se tocan. También desde la pestaña Sonido del notch.", "Captures that app's audio (macOS asks once for “record system audio”) and plays it at the chosen level; apps at 100 % are left alone. Also from the notch's Sound tab."))
+                    Text(L("Capta el audio de esa app (macOS pide permiso una vez, «grabar el audio del sistema») y lo reproduce al nivel elegido; las apps al 100 % no se tocan. También desde la pestaña Sonido del notch.", "Captures that app's audio (macOS asks once for “record system audio”) and plays it at the chosen level; apps at 100% are left alone. Also from the notch's Sound tab."))
                 }
 
                 Section {

@@ -105,8 +105,8 @@ struct BatteryBadge: View {
     }
 
     private var batteryHelp: String {
-        if state.isCharging { return L("Batería al \(state.level) % · cargando", "Battery at \(state.level) % · charging") }
-        if state.isPluggedIn { return L("Batería al \(state.level) % · enchufado", "Battery at \(state.level) % · plugged in") }
-        return L("Batería al \(state.level) %", "Battery at \(state.level) %")
+        if state.isCharging { return L("Batería al \(state.level) % · cargando", "Battery at \(state.level)% · charging") }
+        if state.isPluggedIn { return L("Batería al \(state.level) % · enchufado", "Battery at \(state.level)% · plugged in") }
+        return L("Batería al \(state.level) %", "Battery at \(state.level)%")
     }
 }
