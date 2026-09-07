@@ -11,8 +11,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let manager = FeatureManager.shared
     private var cancellables: Set<AnyCancellable> = []
     private var titleTimer: Timer?
-    /// Iconos sueltos de los módulos que el usuario haya sacado a la barra.
-    private var moduleItems: [String: NSStatusItem] = [:]
     /// Mientras hay un menú abierto le pedimos al sistema que no nos frene.
     private var menuActivity: NSObjectProtocol?
     /// Vigila el hilo principal mientras el menú está abierto (ver `startMenuWatchdog`).
@@ -29,18 +27,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
-        // Iconos por módulo: se crean y se quitan según lo que elija el usuario.
-        ModuleIcons.shared.$enabled
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] ids in self?.refreshModuleItems(ids) }
-            .store(in: &cancellables)
-
         manager.keepAwake.$isActive
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateIcon()
                 self?.updateTitle()
-                self?.updateModuleIcons()
             }
             .store(in: &cancellables)
         manager.keepAwake.$deadline
@@ -88,11 +79,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             // que hay que mirar cuando alguien dice que se ha quedado colgado.
             let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
             if ms > 200 { NSLog("OmniMac: construir el menú tardó %.0f ms", ms) }
-        }
-        // Los iconos sueltos de cada módulo llevan su propio menú, con lo suyo y nada más.
-        if let identifier = menu.identifier?.rawValue, identifier.hasPrefix("module.") {
-            buildModuleMenu(menu, id: String(identifier.dropFirst("module.".count)))
-            return
         }
         buildMainMenu(menu)
     }
@@ -193,70 +179,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         RunLoop.main.add(timer, forMode: .common)
         menuWatchdog = timer
-    }
-
-    // MARK: - Iconos sueltos por módulo
-
-    /// Crea o quita los iconos sueltos según los módulos elegidos.
-    private func refreshModuleItems(_ ids: Set<String>) {
-        for (id, item) in moduleItems where !ids.contains(id) {
-            NSStatusBar.system.removeStatusItem(item)
-            moduleItems[id] = nil
-        }
-        for id in ModuleIcons.available where ids.contains(id) && moduleItems[id] == nil {
-            guard let feature = manager.all.first(where: { $0.featureID == id }) else { continue }
-            // Sitio reservado a la derecha de la flecha del escondedor: los iconos
-            // nuevos nacen a la izquierda del todo y ahí se los tragaría.
-            let name = "omnimac.module.\(id)"
-            let positionKey = "NSStatusItem Preferred Position \(name)"
-            if UserDefaults.standard.object(forKey: positionKey) == nil {
-                UserDefaults.standard.set(ModuleIcons.position(id), forKey: positionKey)
-            }
-            let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            item.autosaveName = name
-            item.button?.image = NSImage(systemSymbolName: feature.symbol, accessibilityDescription: feature.displayName)
-            item.button?.toolTip = feature.displayName
-            let menu = NSMenu()
-            menu.delegate = self
-            menu.identifier = NSUserInterfaceItemIdentifier("module.\(id)")
-            item.menu = menu
-            moduleItems[id] = item
-        }
-        updateModuleIcons()
-    }
-
-    /// Refresca lo que enseñan los iconos sueltos (la taza encendida, por ejemplo).
-    private func updateModuleIcons() {
-        guard let item = moduleItems["keepawake"] else { return }
-        let active = manager.keepAwake.isActive
-        item.button?.image = NSImage(systemSymbolName: active ? "cup.and.saucer.fill" : "cup.and.saucer",
-                                     accessibilityDescription: manager.keepAwake.displayName)
-    }
-
-    /// El menú de un icono suelto: las acciones de ese módulo y poco más.
-    private func buildModuleMenu(_ menu: NSMenu, id: String) {
-        menu.removeAllItems()
-        switch id {
-        case "keepawake": buildKeepAwakeSection(menu)
-        case "clipboard":
-            let history = NSMenuItem(title: L("Historial del portapapeles…", "Clipboard history…"),
-                                     action: #selector(showClipboard), keyEquivalent: "")
-            history.target = self
-            menu.addItem(history)
-            let pause = NSMenuItem(title: L("Pausar el historial", "Pause the history"),
-                                   action: #selector(toggleClipboardPause), keyEquivalent: "")
-            pause.target = self
-            pause.state = manager.clipboard.paused ? .on : .off
-            menu.addItem(pause)
-        case "tools": buildToolsSection(menu)
-        case "sound": buildSoundSection(menu)
-        case "snapping": buildLayoutsSection(menu)
-        default: break
-        }
-        menu.addItem(.separator())
-        let settings = NSMenuItem(title: L("Ajustes…", "Settings…"), action: #selector(showSettings), keyEquivalent: "")
-        settings.target = self
-        menu.addItem(settings)
     }
 
     // MARK: - Secciones

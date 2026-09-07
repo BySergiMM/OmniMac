@@ -81,8 +81,7 @@ final class MenuBarFeature: BaseFeature {
         let limit = position(arrangement[0].name) ?? Double(arrangement[0].position)
 
         // De izquierda a derecha, en el orden en que los queremos ver.
-        var names = [arrangement[1].name, arrangement[2].name, arrangement[3].name]
-        names += ModuleIcons.available.map { "omnimac.module.\($0)" }
+        let names = [arrangement[1].name, arrangement[2].name, arrangement[3].name]
 
         var next = limit - 18
         for name in names {
