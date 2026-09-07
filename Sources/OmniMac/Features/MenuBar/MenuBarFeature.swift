@@ -19,8 +19,8 @@ final class MenuBarFeature: BaseFeature {
     /// Ancho al que crece el expansor. Cualquier cosa mayor que la pantalla vale:
     /// lo que sobra se sale por la izquierda, que es justo lo que queremos.
     private static let pushWidth: CGFloat = 10_000
-    /// Cuando está desplegado el expansor casi no ocupa, para no dejar un hueco raro.
-    private static let restWidth: CGFloat = 1
+    /// Ancho de la barrita que marca el límite cuando los iconos están a la vista.
+    private static let dividerWidth: CGFloat = 10
 
     /// ¿Están los iconos escondidos ahora mismo?
     @Published private(set) var collapsed: Bool {
@@ -47,6 +47,15 @@ final class MenuBarFeature: BaseFeature {
     }
 
     static let collapsedKey = "menubar.collapsed"
+
+    /// Colocación de los tres iconos de OmniMac, en «distancia al borde derecho»
+    /// (a más número, más a la izquierda): línea, flecha y el icono de OmniMac, que
+    /// se queda a la derecha de la flecha para no esconderse nunca.
+    private static let arrangement: [(name: String, position: Int)] = [
+        ("com.seergiii.omnimac.menubar.expander", 380),
+        ("com.seergiii.omnimac.menubar.separator", 362),
+        (StatusItemController.autosaveName, 340),
+    ]
 
     private var separator: NSStatusItem?
     private var expander: NSStatusItem?
@@ -78,11 +87,15 @@ final class MenuBarFeature: BaseFeature {
                                       "Show or hide the icons on the left")
         self.separator = separator
 
-        let expander = NSStatusBar.system.statusItem(withLength: Self.restWidth)
+        let expander = NSStatusBar.system.statusItem(withLength: Self.dividerWidth)
         expander.autosaveName = "com.seergiii.omnimac.menubar.expander"
-        // Sin imagen ni acción: es solo espacio. Si tuviera acción, pulsar en
-        // cualquier hueco de la barra haría algo, y eso desconcierta.
-        expander.button?.image = nil
+        // El expansor es el límite de verdad, así que se ve: una barrita. Antes era
+        // invisible y el usuario se guiaba por la flecha, que está a su derecha; lo
+        // que arrastrara entre las dos no se escondía nunca.
+        expander.button?.image = Self.dividerImage()
+        expander.button?.toolTip = L("Todo lo que quede a la izquierda de esta línea se esconde",
+                                     "Everything to the left of this line gets hidden")
+        // Sin acción: es una marca, no un botón.
         expander.button?.isEnabled = false
         self.expander = expander
 
@@ -102,6 +115,22 @@ final class MenuBarFeature: BaseFeature {
         if let expander { NSStatusBar.system.removeStatusItem(expander) }
         self.separator = nil
         self.expander = nil
+    }
+
+    /// Devuelve los tres iconos de OmniMac a su sitio.
+    ///
+    /// Hace falta porque macOS recuerda dónde dejó el usuario cada icono, y basta un
+    /// arrastre desafortunado para que el de OmniMac acabe entre la línea y la
+    /// flecha: entonces lo que sueltes ahí en medio no se esconde y parece que la
+    /// función está rota.
+    func rearrange() {
+        for item in Self.arrangement {
+            UserDefaults.standard.set(item.position, forKey: "NSStatusItem Preferred Position \(item.name)")
+        }
+        // Las posiciones se leen al crear cada icono, así que hay que rehacerlos.
+        guard isEnabled else { return }
+        stop()
+        start()
     }
 
     // MARK: - Abrir y cerrar
@@ -152,7 +181,7 @@ final class MenuBarFeature: BaseFeature {
 
     /// Lleva el estado a los iconos de la barra.
     private func apply() {
-        expander?.length = collapsed ? Self.pushWidth : Self.restWidth
+        expander?.length = collapsed ? Self.pushWidth : Self.dividerWidth
         let symbol = collapsed ? "chevron.left" : "chevron.right"
         let image = NSImage(systemSymbolName: symbol,
                             accessibilityDescription: collapsed
@@ -161,6 +190,20 @@ final class MenuBarFeature: BaseFeature {
         image?.isTemplate = true
         separator?.button?.image = image
         scheduleAutoHide()
+    }
+
+    /// La marca del límite: una barrita vertical discreta.
+    private static func dividerImage() -> NSImage {
+        let image = NSImage(size: CGSize(width: 3, height: 13), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: CGRect(x: rect.midX - 0.75, y: 0, width: 1.5, height: rect.height),
+                         xRadius: 0.75, yRadius: 0.75).fill()
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = L("Límite: lo que quede a la izquierda se esconde",
+                                           "Boundary: anything to the left gets hidden")
+        return image
     }
 
     /// Cuando se abre, se vuelve a cerrar solo pasado el rato configurado.
