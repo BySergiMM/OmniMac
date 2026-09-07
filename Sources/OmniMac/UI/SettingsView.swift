@@ -450,6 +450,8 @@ struct HomePage: View {
             }
             .onAppear { cache.refresh() }
 
+            ModuleIconsSection(manager: manager)
+
             Section {
                 HStack(spacing: 14) {
                     Text("☕️").font(.system(size: 28))

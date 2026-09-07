@@ -11,6 +11,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let manager = FeatureManager.shared
     private var cancellables: Set<AnyCancellable> = []
     private var titleTimer: Timer?
+    /// Iconos sueltos de los módulos que el usuario haya sacado a la barra.
+    private var moduleItems: [String: NSStatusItem] = [:]
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -23,11 +25,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
+        // Iconos por módulo: se crean y se quitan según lo que elija el usuario.
+        ModuleIcons.shared.$enabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] ids in self?.refreshModuleItems(ids) }
+            .store(in: &cancellables)
+
         manager.keepAwake.$isActive
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateIcon()
                 self?.updateTitle()
+                self?.updateModuleIcons()
             }
             .store(in: &cancellables)
         manager.keepAwake.$deadline
@@ -44,6 +53,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
+        // Los iconos sueltos de cada módulo llevan su propio menú, con lo suyo y nada más.
+        if let identifier = menu.identifier?.rawValue, identifier.hasPrefix("module.") {
+            buildModuleMenu(menu, id: String(identifier.dropFirst("module.".count)))
+            return
+        }
+        buildMainMenu(menu)
+    }
+
+    /// El menú del icono general: todo lo que está activo, por secciones.
+    private func buildMainMenu(_ menu: NSMenu) {
         menu.removeAllItems()
 
         if manager.keepAwake.isEnabled {
@@ -82,78 +101,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
 
         if manager.tools.isEnabled {
-            menu.addItem(.separator())
-            menu.addItem(NSMenuItem.sectionHeader(title: L("Utilidades", "Tools")))
-            let ocr = NSMenuItem(title: L("Copiar texto de la pantalla…", "Copy text from the screen…"), action: #selector(captureText), keyEquivalent: "")
-            ocr.target = self
-            menu.addItem(ocr)
-            let mic = NSMenuItem(title: L("Silenciar el micrófono", "Mute the microphone"), action: #selector(toggleMicrophone), keyEquivalent: "")
-            mic.target = self
-            mic.state = manager.tools.microphoneMuted ? .on : .off
-            menu.addItem(mic)
-            let lock = NSMenuItem(title: L("Bloquear el teclado 30 s (para limpiarlo)", "Lock the keyboard for 30 s (to clean it)"), action: #selector(lockKeyboard), keyEquivalent: "")
-            lock.target = self
-            menu.addItem(lock)
-            let desktop = NSMenuItem(title: L("Ocultar los iconos del escritorio", "Hide desktop icons"), action: #selector(toggleDesktopIcons), keyEquivalent: "")
-            desktop.target = self
-            desktop.state = manager.tools.desktopIconsHidden ? .on : .off
-            menu.addItem(desktop)
+            buildToolsSection(menu)
         }
 
         if manager.sound.isEnabled {
-            manager.sound.refresh()
-            menu.addItem(.separator())
-            menu.addItem(NSMenuItem.sectionHeader(title: L("Sonido", "Sound")))
-            let outputItem = NSMenuItem(title: L("Salida: \(manager.sound.outputName)", "Output: \(manager.sound.outputName)"), action: nil, keyEquivalent: "")
-            let outputMenu = NSMenu()
-            for device in manager.sound.outputDevices {
-                let item = NSMenuItem(title: device.name, action: #selector(selectOutput(_:)), keyEquivalent: "")
-                item.target = self
-                item.representedObject = NSNumber(value: device.id)
-                item.state = device.id == manager.sound.output ? .on : .off
-                outputMenu.addItem(item)
-            }
-            outputItem.submenu = outputMenu
-            menu.addItem(outputItem)
-            let inputItem = NSMenuItem(title: L("Entrada: \(manager.sound.inputName)", "Input: \(manager.sound.inputName)"), action: nil, keyEquivalent: "")
-            let inputMenu = NSMenu()
-            for device in manager.sound.inputDevices {
-                let item = NSMenuItem(title: device.name, action: #selector(selectInput(_:)), keyEquivalent: "")
-                item.target = self
-                item.representedObject = NSNumber(value: device.id)
-                item.state = device.id == manager.sound.input ? .on : .off
-                inputMenu.addItem(item)
-            }
-            inputItem.submenu = inputMenu
-            menu.addItem(inputItem)
-            let muteOutput = NSMenuItem(title: L("Silenciar la salida", "Mute the output"), action: #selector(toggleOutputMute), keyEquivalent: "")
-            muteOutput.target = self
-            muteOutput.state = manager.sound.outputMuted ? .on : .off
-            menu.addItem(muteOutput)
+            buildSoundSection(menu)
         }
 
         if manager.snapping.isEnabled {
-            menu.addItem(.separator())
-            let layoutsItem = NSMenuItem(title: L("Disposiciones de ventanas", "Window layouts"), action: nil, keyEquivalent: "")
-            let layoutsMenu = NSMenu()
-            for layout in WindowLayoutStore.shared.layouts {
-                let shortcut = layout.shortcutLabel.map { "   \($0)" } ?? ""
-                let item = NSMenuItem(title: "\(layout.name)\(shortcut)", action: #selector(applyLayout(_:)), keyEquivalent: "")
-                item.target = self
-                item.representedObject = layout
-                layoutsMenu.addItem(item)
-            }
-            if !WindowLayoutStore.shared.layouts.isEmpty { layoutsMenu.addItem(.separator()) }
-            if WindowLayoutStore.shared.canUndo {
-                let undo = NSMenuItem(title: L("Deshacer la última disposición   ⌃⌥ 0", "Undo the last layout   ⌃⌥ 0"), action: #selector(undoLayout), keyEquivalent: "")
-                undo.target = self
-                layoutsMenu.addItem(undo)
-            }
-            let save = NSMenuItem(title: L("Guardar la disposición actual…", "Save the current layout…"), action: #selector(saveLayoutPrompt), keyEquivalent: "")
-            save.target = self
-            layoutsMenu.addItem(save)
-            layoutsItem.submenu = layoutsMenu
-            menu.addItem(layoutsItem)
+            buildLayoutsSection(menu)
         }
 
         if !Permissions.hasAccessibility {
@@ -184,7 +140,149 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(quit)
     }
 
+    // MARK: - Iconos sueltos por módulo
+
+    /// Crea o quita los iconos sueltos según los módulos elegidos.
+    private func refreshModuleItems(_ ids: Set<String>) {
+        for (id, item) in moduleItems where !ids.contains(id) {
+            NSStatusBar.system.removeStatusItem(item)
+            moduleItems[id] = nil
+        }
+        for id in ModuleIcons.available where ids.contains(id) && moduleItems[id] == nil {
+            guard let feature = manager.all.first(where: { $0.featureID == id }) else { continue }
+            // Sitio reservado a la derecha de la flecha del escondedor: los iconos
+            // nuevos nacen a la izquierda del todo y ahí se los tragaría.
+            let name = "omnimac.module.\(id)"
+            let positionKey = "NSStatusItem Preferred Position \(name)"
+            if UserDefaults.standard.object(forKey: positionKey) == nil {
+                UserDefaults.standard.set(ModuleIcons.position(id), forKey: positionKey)
+            }
+            let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            item.autosaveName = name
+            item.button?.image = NSImage(systemSymbolName: feature.symbol, accessibilityDescription: feature.displayName)
+            item.button?.toolTip = feature.displayName
+            let menu = NSMenu()
+            menu.delegate = self
+            menu.identifier = NSUserInterfaceItemIdentifier("module.\(id)")
+            item.menu = menu
+            moduleItems[id] = item
+        }
+        updateModuleIcons()
+    }
+
+    /// Refresca lo que enseñan los iconos sueltos (la taza encendida, por ejemplo).
+    private func updateModuleIcons() {
+        guard let item = moduleItems["keepawake"] else { return }
+        let active = manager.keepAwake.isActive
+        item.button?.image = NSImage(systemSymbolName: active ? "cup.and.saucer.fill" : "cup.and.saucer",
+                                     accessibilityDescription: manager.keepAwake.displayName)
+    }
+
+    /// El menú de un icono suelto: las acciones de ese módulo y poco más.
+    private func buildModuleMenu(_ menu: NSMenu, id: String) {
+        menu.removeAllItems()
+        switch id {
+        case "keepawake": buildKeepAwakeSection(menu)
+        case "clipboard":
+            let history = NSMenuItem(title: L("Historial del portapapeles…", "Clipboard history…"),
+                                     action: #selector(showClipboard), keyEquivalent: "")
+            history.target = self
+            menu.addItem(history)
+            let pause = NSMenuItem(title: L("Pausar el historial", "Pause the history"),
+                                   action: #selector(toggleClipboardPause), keyEquivalent: "")
+            pause.target = self
+            pause.state = manager.clipboard.paused ? .on : .off
+            menu.addItem(pause)
+        case "tools": buildToolsSection(menu)
+        case "sound": buildSoundSection(menu)
+        case "snapping": buildLayoutsSection(menu)
+        default: break
+        }
+        menu.addItem(.separator())
+        let settings = NSMenuItem(title: L("Ajustes…", "Settings…"), action: #selector(showSettings), keyEquivalent: "")
+        settings.target = self
+        menu.addItem(settings)
+    }
+
     // MARK: - Secciones
+
+    /// Utilidades: OCR, micrófono, teclado y escritorio.
+    private func buildToolsSection(_ menu: NSMenu) {
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem.sectionHeader(title: L("Utilidades", "Tools")))
+        let ocr = NSMenuItem(title: L("Copiar texto de la pantalla…", "Copy text from the screen…"), action: #selector(captureText), keyEquivalent: "")
+        ocr.target = self
+        menu.addItem(ocr)
+        let mic = NSMenuItem(title: L("Silenciar el micrófono", "Mute the microphone"), action: #selector(toggleMicrophone), keyEquivalent: "")
+        mic.target = self
+        mic.state = manager.tools.microphoneMuted ? .on : .off
+        menu.addItem(mic)
+        let lock = NSMenuItem(title: L("Bloquear el teclado 30 s (para limpiarlo)", "Lock the keyboard for 30 s (to clean it)"), action: #selector(lockKeyboard), keyEquivalent: "")
+        lock.target = self
+        menu.addItem(lock)
+        let desktop = NSMenuItem(title: L("Ocultar los iconos del escritorio", "Hide desktop icons"), action: #selector(toggleDesktopIcons), keyEquivalent: "")
+        desktop.target = self
+        desktop.state = manager.tools.desktopIconsHidden ? .on : .off
+        menu.addItem(desktop)
+    }
+
+    /// Sonido: salida, entrada y silencio.
+    private func buildSoundSection(_ menu: NSMenu) {
+        manager.sound.refresh()
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem.sectionHeader(title: L("Sonido", "Sound")))
+        let outputItem = NSMenuItem(title: L("Salida: \(manager.sound.outputName)", "Output: \(manager.sound.outputName)"), action: nil, keyEquivalent: "")
+        let outputMenu = NSMenu()
+        for device in manager.sound.outputDevices {
+            let item = NSMenuItem(title: device.name, action: #selector(selectOutput(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = NSNumber(value: device.id)
+            item.state = device.id == manager.sound.output ? .on : .off
+            outputMenu.addItem(item)
+        }
+        outputItem.submenu = outputMenu
+        menu.addItem(outputItem)
+        let inputItem = NSMenuItem(title: L("Entrada: \(manager.sound.inputName)", "Input: \(manager.sound.inputName)"), action: nil, keyEquivalent: "")
+        let inputMenu = NSMenu()
+        for device in manager.sound.inputDevices {
+            let item = NSMenuItem(title: device.name, action: #selector(selectInput(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = NSNumber(value: device.id)
+            item.state = device.id == manager.sound.input ? .on : .off
+            inputMenu.addItem(item)
+        }
+        inputItem.submenu = inputMenu
+        menu.addItem(inputItem)
+        let muteOutput = NSMenuItem(title: L("Silenciar la salida", "Mute the output"), action: #selector(toggleOutputMute), keyEquivalent: "")
+        muteOutput.target = self
+        muteOutput.state = manager.sound.outputMuted ? .on : .off
+        menu.addItem(muteOutput)
+    }
+
+    /// Disposiciones de ventanas guardadas.
+    private func buildLayoutsSection(_ menu: NSMenu) {
+        menu.addItem(.separator())
+        let layoutsItem = NSMenuItem(title: L("Disposiciones de ventanas", "Window layouts"), action: nil, keyEquivalent: "")
+        let layoutsMenu = NSMenu()
+        for layout in WindowLayoutStore.shared.layouts {
+            let shortcut = layout.shortcutLabel.map { "   \($0)" } ?? ""
+            let item = NSMenuItem(title: "\(layout.name)\(shortcut)", action: #selector(applyLayout(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = layout
+            layoutsMenu.addItem(item)
+        }
+        if !WindowLayoutStore.shared.layouts.isEmpty { layoutsMenu.addItem(.separator()) }
+        if WindowLayoutStore.shared.canUndo {
+            let undo = NSMenuItem(title: L("Deshacer la última disposición   ⌃⌥ 0", "Undo the last layout   ⌃⌥ 0"), action: #selector(undoLayout), keyEquivalent: "")
+            undo.target = self
+            layoutsMenu.addItem(undo)
+        }
+        let save = NSMenuItem(title: L("Guardar la disposición actual…", "Save the current layout…"), action: #selector(saveLayoutPrompt), keyEquivalent: "")
+        save.target = self
+        layoutsMenu.addItem(save)
+        layoutsItem.submenu = layoutsMenu
+        menu.addItem(layoutsItem)
+    }
 
     private func buildKeepAwakeSection(_ menu: NSMenu) {
         let keepAwake = manager.keepAwake
