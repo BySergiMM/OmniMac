@@ -11,7 +11,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // `OmniMac --snapshots <carpeta>`: renderiza el notch y el menú a PNG (para la web) y sale.
         if let controller = statusItemController, Snapshots.runIfRequested(menuSource: controller) { return }
         _ = UpdaterController.shared   // comprobación de actualizaciones programada
-        CacheCleaner.shared.startAutomaticCleaning()   // limpieza de caché diaria (si está activada)
+        CacheCleaner.shared.startAutomaticCleaning()
+        // Gráficas de rendimiento: notch, barra de menús o en ningún sitio.
+        MenuBarStats.apply()   // limpieza de caché diaria (si está activada)
         FeatureManager.shared.startEnabled()
 
         // Si algún módulo activado necesita Accesibilidad y no la tenemos, la pedimos:

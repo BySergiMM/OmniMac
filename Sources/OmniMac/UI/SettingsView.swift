@@ -724,17 +724,16 @@ struct NotchPage: View {
                     ForEach(feature.tabOrder, id: \.self) { tab in
                         TabOrderRow(tab: tab, feature: feature)
                     }
-                    // Rendimiento va siempre a la derecha del notch: el quinto icono
-                    // de la izquierda quedaría debajo del notch físico.
-                    SettingToggle(title: NotchTab.performance.title,
-                                  subtitle: NotchTab.performance.settingsHint,
-                                  isOn: Binding(
-                                    get: { feature.enabledTabs.contains(.performance) },
-                                    set: { on in
-                                        var tabs = feature.enabledTabs
-                                        if on { tabs.insert(.performance) } else { tabs.remove(.performance) }
-                                        feature.enabledTabs = tabs
-                                    }))
+                    // Rendimiento no está en la lista: va siempre a la derecha (el
+                    // quinto icono de la izquierda caería debajo del notch físico) y
+                    // se enciende desde su propia página, donde se elige si sale en el
+                    // notch, en la barra de menús o en ningún sitio.
+                    SettingRow(title: NotchTab.performance.title,
+                               subtitle: L("Se configura en Ajustes › Rendimiento: en el notch, en la barra de menús o en ningún sitio.",
+                                           "Set in Settings › Performance: in the notch, in the menu bar or nowhere.")) {
+                        Image(systemName: feature.enabledTabs.contains(.performance) ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(feature.enabledTabs.contains(.performance) ? Color.accentColor : .secondary)
+                    }
                 } header: {
                     Text(L("Pestañas", "Tabs"))
                 } footer: {

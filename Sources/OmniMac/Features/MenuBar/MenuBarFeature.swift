@@ -55,7 +55,12 @@ final class MenuBarFeature: BaseFeature {
         ("com.seergiii.omnimac.menubar.expander", 380),
         ("com.seergiii.omnimac.menubar.separator", 362),
         (StatusItemController.autosaveName, 340),
+        (MenuBarStats.autosaveName, 330),
     ]
+
+    /// Sitio de la gráfica de rendimiento, a la derecha de la flecha para que el
+    /// propio escondedor no se la trague.
+    static let statsPosition = 330
 
     private var separator: NSStatusItem?
     private var expander: NSStatusItem?
