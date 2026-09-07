@@ -33,7 +33,7 @@ struct MenuBarPage: View {
                     .font(.callout)
                     .labelStyle(.titleAndIcon)
                 } header: {
-                    Text(L("Cómo se usa", "How it works"))
+                    Text(L("Cómo se usa", "How to use it"))
                 }
 
                 Section {
@@ -46,8 +46,8 @@ struct MenuBarPage: View {
                     }
                     SettingRow(title: L("Recolocar los iconos", "Put the icons back"),
                                subtitle: L("Deja la línea, la flecha y el icono de OmniMac en su sitio, por si algún arrastre los dejó desordenados.",
-                                           "Puts the line, the arrow and OmniMac's own icon back in order, in case a drag left them tangled.")) {
-                        Button(L("Recolocar", "Rearrange")) { feature.rearrange() }
+                                           "Puts the line, the arrow and OmniMac's own icon back in order, in case a drag left them out of order.")) {
+                        Button(L("Recolocar", "Put back")) { feature.rearrange() }
                     }
                     SettingToggle(title: L("Volver a esconderlos solos", "Hide them again on their own"),
                                   subtitle: L("Después de mirarlos, se cierran pasado un rato.",

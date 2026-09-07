@@ -46,6 +46,18 @@ enum AudioSystem {
         return Int(size) / MemoryLayout<AudioStreamID>.size
     }
 
+    /// Identificador estable del dispositivo. El `AudioDeviceID` cambia cada vez que
+    /// se reconecta, así que para recordar preferencias hay que guardar esto.
+    static func uid(of device: AudioDeviceID) -> String? {
+        var addr = address(kAudioDevicePropertyDeviceUID)
+        var value: CFString = "" as CFString
+        var size = UInt32(MemoryLayout<CFString>.size)
+        let status = withUnsafeMutablePointer(to: &value) {
+            AudioObjectGetPropertyData(device, &addr, 0, nil, &size, $0)
+        }
+        return status == noErr ? value as String : nil
+    }
+
     static func name(of device: AudioDeviceID) -> String? {
         var addr = address(kAudioObjectPropertyName)
         var name: CFString = "" as CFString

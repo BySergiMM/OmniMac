@@ -227,7 +227,7 @@ final class KeepAwakeFeature: BaseFeature {
         case .timer:
             content.body = L("La sesión ha terminado: tu Mac volverá a dormirse con normalidad.", "The session has ended: your Mac will sleep normally again.")
         case .lowBattery:
-            content.body = L("Sesión detenida: batería al \(battery.state.level) %. Conecta el cargador para seguir.", "Session stopped: battery at \(battery.state.level) %. Connect the charger to continue.")
+            content.body = L("Sesión detenida: batería al \(battery.state.level) %. Conecta el cargador para seguir.", "Session stopped: battery at \(battery.state.level)%. Connect the charger to continue.")
         case .manual:
             return
         }

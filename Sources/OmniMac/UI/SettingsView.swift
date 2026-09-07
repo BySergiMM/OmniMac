@@ -433,7 +433,7 @@ struct HomePage: View {
 
             Section {
                 SettingRow(title: L("Espacio en disco", "Disk space"),
-                           subtitle: L("La app ocupa \(CacheCleaner.format(cache.appSize)). \(cache.statusText)", "The app takes \(CacheCleaner.format(cache.appSize)). \(cache.statusText)")) {
+                           subtitle: L("La app ocupa \(CacheCleaner.format(cache.appSize)). \(cache.statusText)", "The app takes up \(CacheCleaner.format(cache.appSize)). \(cache.statusText)")) {
                     Button(L("Limpiar ahora", "Clean now")) { cache.cleanNow() }
                         .disabled(cache.cacheSize == 0)
                 }
@@ -910,7 +910,7 @@ struct SnappingPage: View {
                             Spacer()
                             Button(L("Aplicar", "Apply")) { store.apply(layout) }
                             Button(L("Actualizar", "Update")) { store.refresh(layout) }
-                                .help(L("Vuelve a guardar dónde están las ventanas ahora", "Saves where the windows are now again"))
+                                .help(L("Vuelve a guardar dónde están las ventanas ahora", "Saves again where the windows are now"))
                             Button(L("Eliminar", "Delete"), role: .destructive) { store.delete(layout) }
                         }
                         .controlSize(.small)
@@ -1009,7 +1009,7 @@ struct ToolsPage: View {
             if feature.isEnabled {
                 if !screenGranted { Section { PermissionRow(kind: .screenRecording) } }
 
-                Section(L("Herramientas", "Tools")) {
+                Section(L("Herramientas", "What's included")) {
                     SettingRow(title: L("Copiar texto de la pantalla", "Copy text from the screen"),
                                subtitle: L("⇧⌘2: selecciona cualquier zona (una imagen, un vídeo, una app que no deja copiar) y el texto va al portapapeles.", "⇧⌘2: select any area (an image, a video, an app that won't let you copy) and the text goes to the clipboard.")) {
                         Button(L("Probar", "Try it")) { feature.captureText() }

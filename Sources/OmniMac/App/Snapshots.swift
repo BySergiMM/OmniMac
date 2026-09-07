@@ -196,9 +196,13 @@ enum Snapshots {
     }
 
     private static func sampleFiles(in dir: URL) -> [URL] {
-        let folder = dir.appendingPathComponent("bandeja", isDirectory: true)
+        let folder = dir.appendingPathComponent(L("bandeja", "tray"), isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        return ["Informe trimestral.pdf", "Portada.png", "Notas de la reunión.txt"].map { name in
+        // Se localizan como cualquier otro texto: estas capturas ilustran también
+        // la web en inglés.
+        return [L("Informe trimestral.pdf", "Quarterly report.pdf"),
+                L("Portada.png", "Cover.png"),
+                L("Notas de la reunión.txt", "Meeting notes.txt")].map { name in
             let url = folder.appendingPathComponent(name)
             if !FileManager.default.fileExists(atPath: url.path) { try? Data().write(to: url) }
             return url

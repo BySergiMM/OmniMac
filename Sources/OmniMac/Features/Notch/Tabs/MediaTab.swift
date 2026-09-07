@@ -260,7 +260,7 @@ struct PlayerPicker: View {
                         .buttonStyle(.plain)
                     }
                 }
-                Text(L("La podrás cambiar cuando quieras en Ajustes → Notch", "You can change it any time in Settings → Notch"))
+                Text(L("La podrás cambiar cuando quieras en Ajustes › Notch", "You can change it any time in Settings › Notch"))
                     .font(.system(size: 9.5))
                     .foregroundStyle(.white.opacity(0.35))
             }

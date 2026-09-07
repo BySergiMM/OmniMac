@@ -171,7 +171,7 @@ final class NotchTimer: ObservableObject {
                 let rest = isLongRest ? longRestMinutes : restMinutes
                 phase = .rest
                 notify(title: L("Pomodoro completado", "Pomodoro complete"),
-                       body: L("Llevas \(completedPomodoros). Ahora \(rest) minutos de descanso\(isLongRest ? " largo" : "").", "That makes \(completedPomodoros). Now \(rest) minutes of \(isLongRest ? "long " : "")break."))
+                       body: L("Llevas \(completedPomodoros). Ahora \(rest) minutos de descanso\(isLongRest ? " largo" : "").", "That makes \(completedPomodoros). Now a \(rest)-minute \(isLongRest ? "long " : "")break."))
                 Toast.show(L("Pomodoro \(completedPomodoros) completado · descanso de \(rest) min", "Pomodoro \(completedPomodoros) complete · \(rest) min break"), symbol: "cup.and.saucer.fill", duration: 3)
                 begin(seconds: TimeInterval(rest * 60))
             } else {
