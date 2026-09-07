@@ -27,7 +27,7 @@ struct AudioApp: Identifiable, Equatable {
     let icon: NSImage?
     let processObjects: [AudioObjectID]
     let isPlaying: Bool
-    var volume: Float               // 0–1 (1 = sin tocar)
+    var volume: Float               // 0–4 (1 = sin tocar; más de 1 solo con la amplificación activada)
 
     var id: String { key }
 
@@ -102,17 +102,39 @@ final class AppVolumeMixer: ObservableObject {
         }
     }
 
+    /// Tope del volumen por app. Con la amplificación activada se puede pasar del
+    /// 100 %, hasta cuatro veces; el limitador se encarga de que no cruja.
+    static let maxBoost: Float = 4
+    static var boostEnabled: Bool {
+        UserDefaults.standard.bool(forKey: "sound.boost")
+    }
+    static var maxVolume: Float { boostEnabled ? maxBoost : 1 }
+
     func setVolume(_ value: Float, for app: AudioApp) {
-        let clamped = min(1, max(0, value))
-        if clamped >= 0.995 {
+        let clamped = min(Self.maxVolume, max(0, value))
+        if abs(clamped - 1) < 0.005 {
             volumes.removeValue(forKey: app.key)
         } else {
             volumes[app.key] = clamped
         }
         UserDefaults.standard.set(volumes.mapValues { Double($0) }, forKey: Self.defaultsKey)
         if let index = apps.firstIndex(where: { $0.key == app.key }) {
-            apps[index].volume = clamped >= 0.995 ? 1 : clamped
+            apps[index].volume = abs(clamped - 1) < 0.005 ? 1 : clamped
         }
+        syncEngine()
+    }
+
+    /// Devuelve al 100 % todo lo que estuviera amplificado (al apagar la
+    /// amplificación, para no dejar apps sonando al 300 % sin que se vea por qué).
+    func clampToNormal() {
+        var changed = false
+        for (key, value) in volumes where value > 1 {
+            volumes.removeValue(forKey: key)
+            if let index = apps.firstIndex(where: { $0.key == key }) { apps[index].volume = 1 }
+            changed = true
+        }
+        guard changed else { return }
+        UserDefaults.standard.set(volumes.mapValues { Double($0) }, forKey: Self.defaultsKey)
         syncEngine()
     }
 
@@ -266,11 +288,17 @@ final class MixEngine {
     private var aggregate = AudioObjectID(kAudioObjectUnknown)
     private var proc: AudioDeviceIOProcID?
     private let gains = UnsafeMutablePointer<Float>.allocate(capacity: 64)
+    /// Limitador de la salida. Vive en memoria fija porque lo usa el hilo de audio.
+    private let limiter = UnsafeMutablePointer<Limiter>.allocate(capacity: 1)
     private static let maxTaps = 64
+
+    init() { limiter.initialize(to: Limiter()) }
 
     deinit {
         stop()
         gains.deallocate()
+        limiter.deinitialize(count: 1)
+        limiter.deallocate()
     }
 
     func updateGains(_ values: [Float]) {
@@ -334,9 +362,11 @@ final class MixEngine {
         let tapChannels = max(1, Int(format.mChannelsPerFrame))
         let buffersPerTap = interleaved ? 1 : tapChannels
         let gains = self.gains
+        let limiter = self.limiter
+        limiter.pointee.reset()
         var procID: AudioDeviceIOProcID?
         let procStatus = AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, nil) { _, inputData, _, outputData, _ in
-            MixEngine.mix(input: inputData, output: outputData, gains: gains, tapCount: tapCount,
+            MixEngine.mix(input: inputData, output: outputData, gains: gains, limiter: limiter, tapCount: tapCount,
                           buffersPerTap: buffersPerTap, tapChannels: tapChannels, interleaved: interleaved)
         }
         guard procStatus == noErr, let procID else {
@@ -371,6 +401,7 @@ final class MixEngine {
     private static func mix(input: UnsafePointer<AudioBufferList>,
                             output: UnsafeMutablePointer<AudioBufferList>,
                             gains: UnsafeMutablePointer<Float>,
+                            limiter: UnsafeMutablePointer<Limiter>,
                             tapCount: Int, buffersPerTap: Int, tapChannels: Int, interleaved: Bool) {
         let outputs = UnsafeMutableAudioBufferListPointer(output)
         let inputs = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input))
@@ -408,6 +439,10 @@ final class MixEngine {
                               vDSP_Length(frames))
                 }
             }
+            // Con el bloque ya mezclado, el limitador evita el recorte cuando alguna
+            // app va amplificada por encima del 100 %. Los canales van juntos para
+            // que no se mueva la imagen estéreo.
+            limiter.pointee.process(outData, stride: 1, count: outChannels * outFrames)
             globalChannel += outChannels
         }
     }

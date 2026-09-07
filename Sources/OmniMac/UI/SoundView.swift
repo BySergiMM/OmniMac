@@ -3,6 +3,7 @@ import SwiftUI
 /// Página Sonido de Ajustes: dispositivo de salida y entrada, volumen, balance, silencio y volumen por app.
 struct SoundPage: View {
     @ObservedObject var feature: SoundFeature
+    @State private var boost = AppVolumeMixer.boostEnabled
 
     var body: some View {
         Form {
@@ -46,6 +47,15 @@ struct SoundPage: View {
                 }
 
                 Section {
+                    SettingToggle(title: L("Amplificar por encima del 100 %", "Boost above 100%"),
+                                  subtitle: L("Sube una app hasta cuatro veces su volumen, para vídeos grabados muy bajos. Un limitador evita que cruja.",
+                                              "Raises an app up to four times its volume, for videos recorded too quietly. A limiter keeps it from crackling."),
+                                  isOn: $boost)
+                        .onChange(of: boost) { _, new in
+                            UserDefaults.standard.set(new, forKey: "sound.boost")
+                            // Al apagarla, lo que estuviera amplificado vuelve al 100 %.
+                            if !new { feature.mixer.clampToNormal() }
+                        }
                     AppVolumeList(mixer: feature.mixer)
                 } header: {
                     Text(L("Volumen por app", "Per-app volume"))
@@ -118,7 +128,7 @@ struct AppVolumeList: View {
                             .frame(width: 150, alignment: .leading)
                         Slider(value: Binding(get: { Double(app.volume) },
                                               set: { mixer.setVolume(Float($0), for: app) }),
-                               in: 0...1)
+                               in: 0...Double(AppVolumeMixer.maxVolume))
                         Text("\(Int(app.volume * 100)) %")
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
