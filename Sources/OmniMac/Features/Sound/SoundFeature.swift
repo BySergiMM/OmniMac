@@ -51,6 +51,8 @@ final class SoundFeature: BaseFeature {
 
     /// Qué salida se elige al conectar o desconectar algo.
     let priority = OutputPriority()
+    /// Qué dispositivos había en la última relectura, para no repetir trabajo.
+    private var lastDeviceSignature: [AudioDeviceID] = []
     var inputDevices: [AudioDevice] { devices.filter(\.hasInput) }
     var outputName: String { devices.first { $0.id == output }?.name ?? "—" }
     var inputName: String { devices.first { $0.id == input }?.name ?? "—" }
@@ -95,13 +97,25 @@ final class SoundFeature: BaseFeature {
     /// Relee todo desde CoreAudio (sin disparar los `didSet`).
     func refresh() {
         guard !sampleMode else { return }
+        let tRefresh = CFAbsoluteTimeGetCurrent()
         refreshing = true
-        defer { refreshing = false }
+        defer {
+            refreshing = false
+            let ms = (CFAbsoluteTimeGetCurrent() - tRefresh) * 1000
+            // Deja rastro si alguna vez tarda de verdad: es lo que hay que mirar si
+            // alguien dice que un menú se ha quedado colgado.
+            if ms > 100 { NSLog("OmniMac: releer el sonido tardó %.0f ms", ms) }
+        }
         devices = AudioSystem.devices()
-        // La lista de prioridad se mantiene al día sola y decide si toca cambiar de
-        // salida (solo cuando aparece o desaparece un dispositivo).
-        priority.addMissing(from: outputDevices)
-        priority.devicesChanged(devices)
+        // La prioridad de salidas solo se toca cuando la lista cambia de verdad:
+        // preguntar el identificador de cada dispositivo cuesta, y con Bluetooth
+        // puede costar mucho. Antes se hacía en cada relectura.
+        let signature = devices.map(\.id).sorted()
+        if signature != lastDeviceSignature {
+            lastDeviceSignature = signature
+            priority.addMissing(from: outputDevices)
+            priority.devicesChanged(devices)
+        }
         output = AudioSystem.defaultDevice(input: false)
         input = AudioSystem.defaultDevice(input: true)
         if let output {

@@ -15,6 +15,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var moduleItems: [String: NSStatusItem] = [:]
     /// Mientras hay un menú abierto le pedimos al sistema que no nos frene.
     private var menuActivity: NSObjectProtocol?
+    /// Vigila el hilo principal mientras el menú está abierto (ver `startMenuWatchdog`).
+    private var menuWatchdog: Timer?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -59,6 +61,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// justo cuando está ocupado dibujándolo.
     func menuWillOpen(_ menu: NSMenu) {
         manager.notch.setMouseTrackingPaused(true)
+        startMenuWatchdog()
         // OmniMac es una app de barra de menús y para macOS eso es «de fondo»: le
         // recorta prioridad y le agrupa los temporizadores (App Nap). Mientras el
         // menú está abierto pedimos trato de primer plano, que es lo que hace que el
@@ -72,11 +75,20 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     func menuDidClose(_ menu: NSMenu) {
         manager.notch.setMouseTrackingPaused(false)
+        menuWatchdog?.invalidate()
+        menuWatchdog = nil
         if let menuActivity { ProcessInfo.processInfo.endActivity(menuActivity) }
         menuActivity = nil
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
+        let started = CFAbsoluteTimeGetCurrent()
+        defer {
+            // Si alguna vez el menú tarda en salir, que quede escrito: es lo primero
+            // que hay que mirar cuando alguien dice que se ha quedado colgado.
+            let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+            if ms > 200 { NSLog("OmniMac: construir el menú tardó %.0f ms", ms) }
+        }
         // Los iconos sueltos de cada módulo llevan su propio menú, con lo suyo y nada más.
         if let identifier = menu.identifier?.rawValue, identifier.hasPrefix("module.") {
             buildModuleMenu(menu, id: String(identifier.dropFirst("module.".count)))
@@ -136,7 +148,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             buildLayoutsSection(menu)
         }
 
-        if !Permissions.hasAccessibility {
+        // El estado del permiso lo trae el vigilante que ya lo consulta cada poco:
+        // preguntarlo aquí es una llamada al servicio de privacidad del sistema en
+        // mitad de la construcción del menú, y esa puede tardar.
+        if !PermissionsMonitor.shared.accessibilityGranted {
             menu.addItem(.separator())
             let warning = NSMenuItem(title: L("⚠️ Falta el permiso de Accesibilidad…", "⚠️ Accessibility permission missing…"),
                                      action: #selector(grantAccessibility),
@@ -162,6 +177,22 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let quit = NSMenuItem(title: L("Salir de OmniMac", "Quit OmniMac"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
+    }
+
+    /// Vigila el hilo principal **solo mientras hay un menú abierto**, que es cuando
+    /// se nota si algo lo bloquea, y anota los parones de más de 100 ms. Fuera de ahí
+    /// no existe, así que no cuesta ni un despertar.
+    private func startMenuWatchdog() {
+        menuWatchdog?.invalidate()
+        var last = CFAbsoluteTimeGetCurrent()
+        let timer = Timer(timeInterval: 0.02, repeats: true) { _ in
+            let now = CFAbsoluteTimeGetCurrent()
+            let gap = (now - last) * 1000
+            if gap > 100 { NSLog("OmniMac: el menú se quedó parado %.0f ms", gap) }
+            last = now
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        menuWatchdog = timer
     }
 
     // MARK: - Iconos sueltos por módulo
@@ -252,7 +283,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     /// Sonido: salida, entrada y silencio.
     private func buildSoundSection(_ menu: NSMenu) {
-        manager.sound.refresh()
+        // Sin releer CoreAudio aquí: `SoundFeature` ya se mantiene al día sola con los
+        // avisos del sistema, y esa relectura es lenta (consulta cada dispositivo uno
+        // a uno). Hacerla al abrir el menú lo dejaba bloqueado mientras tanto, y con
+        // un dispositivo Bluetooth despertando puede tardar segundos.
         menu.addItem(.separator())
         menu.addItem(NSMenuItem.sectionHeader(title: L("Sonido", "Sound")))
         let outputItem = NSMenuItem(title: L("Salida: \(manager.sound.outputName)", "Output: \(manager.sound.outputName)"), action: nil, keyEquivalent: "")
