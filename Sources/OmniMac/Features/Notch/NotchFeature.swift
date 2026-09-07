@@ -48,6 +48,15 @@ final class NotchFeature: BaseFeature {
 
     /// Pestañas del notch activas (se eligen en Ajustes). Se guarda lo DESACTIVADO:
     /// así una pestaña nueva de una versión posterior nace activada.
+    /// Orden de los iconos de la izquierda del notch. Se guarda como lista de
+    /// identificadores; si algún día se añade una pestaña nueva, aparece al final.
+    @Published var tabOrder: [NotchTab] {
+        didSet {
+            UserDefaults.standard.set(tabOrder.map(\.rawValue), forKey: "notch.tabOrder")
+            controller?.tabOrder = tabOrder
+        }
+    }
+
     @Published var enabledTabs: Set<NotchTab> {
         didSet {
             let disabled = Set(NotchTab.allCases).subtracting(enabledTabs)
@@ -89,6 +98,13 @@ final class NotchFeature: BaseFeature {
         showCoffeeButton = defaults.object(forKey: "notch.showCoffee") == nil ? true : defaults.bool(forKey: "notch.showCoffee")
         showSettingsButton = defaults.object(forKey: "notch.showSettings") == nil ? true : defaults.bool(forKey: "notch.showSettings")
         showBattery = defaults.object(forKey: "notch.showBattery") == nil ? true : defaults.bool(forKey: "notch.showBattery")
+        // Orden guardado: se queda solo con las pestañas que existen y añade al final
+        // las que falten, para que una versión nueva no pierda iconos.
+        let savedOrder = (defaults.array(forKey: "notch.tabOrder") as? [String] ?? [])
+            .compactMap(NotchTab.init(rawValue:))
+            .filter { NotchTab.leftTabs.contains($0) }
+        tabOrder = savedOrder + NotchTab.leftTabs.filter { !savedOrder.contains($0) }
+
         if let disabled = defaults.array(forKey: "notch.disabledTabs") as? [String] {
             enabledTabs = Set(NotchTab.allCases).subtracting(disabled.compactMap(NotchTab.init(rawValue:)))
         } else if let legacy = defaults.array(forKey: "notch.tabs") as? [String] {
@@ -210,6 +226,7 @@ final class NotchFeature: BaseFeature {
         controller.hideInFullscreen = hideInFullscreen
         controller.sneakPeekEnabled = sneakPeek
         controller.enabledTabs = enabledTabs
+        controller.tabOrder = tabOrder
         controller.hideSystemBanner = hideSystemBanner
         controller.showCoffee = showCoffeeButton
         controller.showSettings = showSettingsButton
@@ -305,6 +322,8 @@ final class NotchModel: ObservableObject {
     @Published var blackVisible = false
     /// Pestañas activas (Ajustes › Notch).
     @Published var enabledTabs: Set<NotchTab> = Set(NotchTab.allCases)
+    /// Orden de los iconos de la izquierda (Ajustes › Notch, arrastrando).
+    @Published var tabOrder: [NotchTab] = NotchTab.leftTabs
     /// Botones de la cabecera.
     @Published var showCoffee = true
     @Published var showSettings = true
@@ -464,6 +483,10 @@ final class NotchWindowController {
     var showCoffee = true { didSet { model.showCoffee = showCoffee } }
     var showSettings = true { didSet { model.showSettings = showSettings } }
     var showBattery = true { didSet { model.showBattery = showBattery } }
+
+    var tabOrder: [NotchTab] = NotchTab.leftTabs {
+        didSet { model.tabOrder = tabOrder }
+    }
 
     var enabledTabs: Set<NotchTab> = Set(NotchTab.allCases) {
         didSet {

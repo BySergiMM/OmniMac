@@ -196,6 +196,75 @@ struct ModuleHeader: View {
 }
 
 /// Interruptor con título y explicación corta debajo.
+/// Una pestaña del notch en Ajustes: agarradero, icono, nombre e interruptor.
+///
+/// Se reordena de dos maneras, porque el arrastre no siempre es evidente: soltando
+/// una fila encima de otra, o con el botón derecho › Subir / Bajar. (`.onMove`, que
+/// sería lo natural, no reordena dentro de un formulario en macOS.)
+struct TabOrderRow: View {
+    let tab: NotchTab
+    @ObservedObject var feature: NotchFeature
+    @State private var targeted = false
+
+    private var index: Int? { feature.tabOrder.firstIndex(of: tab) }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(.tertiary)
+                .help(L("Arrastra para cambiar el orden", "Drag to reorder"))
+            Image(systemName: tab.symbol)
+                .frame(width: 20)
+                .foregroundStyle(.secondary)
+            SettingToggle(title: tab.title, subtitle: tab.settingsHint,
+                          isOn: Binding(
+                            get: { feature.enabledTabs.contains(tab) },
+                            set: { on in
+                                var tabs = feature.enabledTabs
+                                if on { tabs.insert(tab) } else { tabs.remove(tab) }
+                                feature.enabledTabs = tabs
+                            }))
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 2)
+        .background(targeted ? Color.accentColor.opacity(0.15) : .clear)
+        .draggable(tab.rawValue) {
+            Label(tab.title, systemImage: tab.symbol)
+        }
+        .dropDestination(for: String.self) { items, _ in
+            move(items.first)
+        } isTargeted: { targeted = $0 }
+        .contextMenu {
+            Button(L("Subir", "Move up")) { shift(-1) }
+                .disabled(index == 0)
+            Button(L("Bajar", "Move down")) { shift(1) }
+                .disabled(index == feature.tabOrder.count - 1)
+        }
+    }
+
+    /// Suelta la pestaña arrastrada justo donde está esta.
+    private func move(_ raw: String?) -> Bool {
+        guard let raw, let dragged = NotchTab(rawValue: raw),
+              let from = feature.tabOrder.firstIndex(of: dragged),
+              let to = index, from != to else { return false }
+        var order = feature.tabOrder
+        order.remove(at: from)
+        order.insert(dragged, at: to)
+        feature.tabOrder = order
+        return true
+    }
+
+    /// Una posición arriba o abajo, desde el menú del botón derecho.
+    private func shift(_ delta: Int) {
+        guard let from = index else { return }
+        let to = from + delta
+        guard feature.tabOrder.indices.contains(to) else { return }
+        var order = feature.tabOrder
+        order.swapAt(from, to)
+        feature.tabOrder = order
+    }
+}
+
 struct SettingToggle: View {
     let title: String
     var subtitle: String? = nil
@@ -652,20 +721,29 @@ struct NotchPage: View {
                 }
 
                 Section {
-                    ForEach(NotchTab.allCases, id: \.self) { tab in
-                        SettingToggle(title: tab.title, subtitle: tab.settingsHint,
-                                      isOn: Binding(
-                                        get: { feature.enabledTabs.contains(tab) },
-                                        set: { on in
-                                            var tabs = feature.enabledTabs
-                                            if on { tabs.insert(tab) } else { tabs.remove(tab) }
-                                            feature.enabledTabs = tabs
-                                        }))
+                    ForEach(feature.tabOrder, id: \.self) { tab in
+                        TabOrderRow(tab: tab, feature: feature)
                     }
+                    // Rendimiento va siempre a la derecha del notch: el quinto icono
+                    // de la izquierda quedaría debajo del notch físico.
+                    SettingToggle(title: NotchTab.performance.title,
+                                  subtitle: NotchTab.performance.settingsHint,
+                                  isOn: Binding(
+                                    get: { feature.enabledTabs.contains(.performance) },
+                                    set: { on in
+                                        var tabs = feature.enabledTabs
+                                        if on { tabs.insert(.performance) } else { tabs.remove(.performance) }
+                                        feature.enabledTabs = tabs
+                                    }))
                 } header: {
                     Text(L("Pestañas", "Tabs"))
                 } footer: {
-                    Text(L("Apaga lo que no uses: su icono desaparece del notch al momento.", "Switch off what you don't use: its icon disappears from the notch at once."))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L("Arrastra los iconos para cambiar su orden en el notch.",
+                               "Drag the icons to change their order in the notch."))
+                        Text(L("Apaga lo que no uses: su icono desaparece del notch al momento. Rendimiento va siempre a la derecha.",
+                               "Switch off what you don't use: its icon disappears from the notch at once. Performance always sits on the right."))
+                    }
                 }
 
                 Section(L("Botones de la cabecera", "Header buttons")) {

@@ -171,7 +171,7 @@ struct NotchView: View {
     private var controlBar: some View {
         HStack(spacing: 6) {
             // Solo las pestañas activadas en Ajustes (y Sonido solo si su módulo está activo).
-            ForEach(NotchTab.leftTabs.filter { isTabVisible($0) }, id: \.self) { tab in
+            ForEach(model.tabOrder.filter { isTabVisible($0) }, id: \.self) { tab in
                 tabButton(tab, symbol: tab.symbol, help: tab.title)
             }
 
