@@ -52,6 +52,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             .store(in: &cancellables)
     }
 
+    /// Con un menú abierto, el notch deja de seguir el ratón: no va a abrirse porque
+    /// pases por encima de un menú, y así el sistema tiene una cosa menos que hacer
+    /// justo cuando está ocupado dibujándolo.
+    func menuWillOpen(_ menu: NSMenu) {
+        manager.notch.setMouseTrackingPaused(true)
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        manager.notch.setMouseTrackingPaused(false)
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
         // Los iconos sueltos de cada módulo llevan su propio menú, con lo suyo y nada más.
         if let identifier = menu.identifier?.rawValue, identifier.hasPrefix("module.") {

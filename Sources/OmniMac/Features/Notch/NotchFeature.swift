@@ -204,6 +204,16 @@ final class NotchFeature: BaseFeature {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
 
+    /// Deja de seguir el ratón mientras hay un menú abierto.
+    ///
+    /// Con un menú desplegado, cada movimiento del ratón entra también por el monitor
+    /// del notch, y ahí no pinta nada: el notch no se va a abrir por pasar el ratón
+    /// por encima de un menú. Es poca cosa (unas centésimas por movimiento), pero es
+    /// justo el momento en el que el sistema va más apretado.
+    func setMouseTrackingPaused(_ paused: Bool) {
+        controller?.mouseTrackingPaused = paused
+    }
+
     private func rebuild(attempt: Int = 0) {
         pendingRebuild?.cancel()
         pendingRebuild = nil
@@ -485,6 +495,8 @@ final class NotchWindowController {
     private var expandBlockedUntilMouseMoves = false
     /// Icono sobre el que se pulsó y dónde, para poder arrastrarlo de sitio.
     private var dragCandidate: (tab: NotchTab, startX: CGFloat)?
+    /// Mientras hay un menú abierto no hace falta seguir el ratón.
+    var mouseTrackingPaused = false
     /// Cuándo se miró por última vez si hay algo a pantalla completa, para no repetir
     /// la consulta de accesibilidad (unos 3 ms) en cada movimiento del ratón.
     private var lastVisibilityCheck = Date.distantPast
@@ -632,6 +644,7 @@ final class NotchWindowController {
     /// Reacciona al movimiento del ratón: expande al entrar en la zona del notch
     /// y programa el plegado al salir del panel expandido.
     private func mouseMoved() {
+        guard !mouseTrackingPaused else { return }
         let mouse = NSEvent.mouseLocation
         // Escondido por pantalla completa: volvemos a comprobarlo solo si el ratón sube
         // a la zona del notch, y como mucho una vez por segundo. Es la red de seguridad
