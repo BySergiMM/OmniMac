@@ -58,6 +58,17 @@ enum AudioSystem {
         return status == noErr ? value as String : nil
     }
 
+    /// ¿Es un aparato del propio Mac (altavoces o micrófono internos)? Sirve para
+    /// que en la lista de prioridad queden los últimos, que es su papel natural: lo
+    /// que se conecta manda y ellos son el recambio.
+    static func isBuiltIn(_ device: AudioDeviceID) -> Bool {
+        var addr = address(kAudioDevicePropertyTransportType)
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(device, &addr, 0, nil, &size, &value) == noErr else { return false }
+        return value == kAudioDeviceTransportTypeBuiltIn
+    }
+
     static func name(of device: AudioDeviceID) -> String? {
         var addr = address(kAudioObjectPropertyName)
         var name: CFString = "" as CFString

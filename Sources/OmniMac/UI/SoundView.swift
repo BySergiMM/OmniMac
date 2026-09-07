@@ -63,6 +63,8 @@ struct SoundPage: View {
                     Text(L("Capta el audio de esa app (macOS pide permiso una vez, «grabar el audio del sistema») y lo reproduce al nivel elegido; las apps al 100 % no se tocan. También desde la pestaña Sonido del notch.", "Captures that app's audio (macOS asks once for “record system audio”) and plays it at the chosen level; apps at 100% are left alone. Also from the notch's Sound tab."))
                 }
 
+                OutputPrioritySection(priority: feature.priority, available: feature.outputDevices)
+
                 Section {
                     EqualizerView(gains: feature.mixer.eqGains,
                                   setBand: { feature.mixer.setEQ(band: $0, gain: $1) },
