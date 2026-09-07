@@ -83,7 +83,7 @@ struct SettingsView: View {
                     .tag(item)
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 200, ideal: 215, max: 250)
+            .navigationSplitViewColumnWidth(min: 235, ideal: 255, max: 320)
             .modifier(SolidToolbar())
         } detail: {
             detailView
