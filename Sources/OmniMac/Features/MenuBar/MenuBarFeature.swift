@@ -58,6 +58,43 @@ final class MenuBarFeature: BaseFeature {
         (MenuBarStats.autosaveName, 330),
     ]
 
+    /// Ningún icono de OmniMac puede quedar a la izquierda de la línea.
+    ///
+    /// macOS reescribe estas posiciones por su cuenta cada vez que aparece un icono
+    /// nuevo, y con eso los nuestros acababan a la izquierda del límite: el
+    /// escondedor se tragaba la app entera, la flecha para recuperarla incluida. Al
+    /// arrancar se comprueban los nuestros y se devuelven a la derecha; los de otras
+    /// apps no se tocan, que esos los coloca el usuario.
+    ///
+    /// Hay que llamarlo **antes** de crear ningún icono: AppKit lee la posición al
+    /// crearlo, no después. Y los valores se leen como decimales, que es como los
+    /// guarda macOS; leyéndolos como enteros no se reconocía ninguno.
+    static func ensureOwnIconsVisible() {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: "feature.menubar.enabled") else { return }
+
+        func key(_ name: String) -> String { "NSStatusItem Preferred Position \(name)" }
+        func position(_ name: String) -> Double? {
+            (defaults.object(forKey: key(name)) as? NSNumber)?.doubleValue
+        }
+
+        let limit = position(arrangement[0].name) ?? Double(arrangement[0].position)
+
+        // De izquierda a derecha, en el orden en que los queremos ver.
+        var names = [arrangement[1].name, arrangement[2].name, arrangement[3].name]
+        names += ModuleIcons.available.map { "omnimac.module.\($0)" }
+
+        var next = limit - 18
+        for name in names {
+            if let current = position(name), current < limit {
+                next = min(next, current - 18)   // ya estaba a la derecha: se respeta
+                continue
+            }
+            defaults.set(next, forKey: key(name))
+            next -= 18
+        }
+    }
+
     /// Sitio de la gráfica de rendimiento, a la derecha de la flecha para que el
     /// propio escondedor no se la trague.
     static let statsPosition = 330

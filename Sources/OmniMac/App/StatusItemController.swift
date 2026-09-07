@@ -13,6 +13,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var titleTimer: Timer?
     /// Iconos sueltos de los módulos que el usuario haya sacado a la barra.
     private var moduleItems: [String: NSStatusItem] = [:]
+    /// Mientras hay un menú abierto le pedimos al sistema que no nos frene.
+    private var menuActivity: NSObjectProtocol?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -57,10 +59,21 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// justo cuando está ocupado dibujándolo.
     func menuWillOpen(_ menu: NSMenu) {
         manager.notch.setMouseTrackingPaused(true)
+        // OmniMac es una app de barra de menús y para macOS eso es «de fondo»: le
+        // recorta prioridad y le agrupa los temporizadores (App Nap). Mientras el
+        // menú está abierto pedimos trato de primer plano, que es lo que hace que el
+        // resaltado siga al ratón con soltura. `latencyCritical` desactiva además la
+        // agrupación de temporizadores; y se pide la variante que **sí** deja dormir
+        // al Mac, que para eso está el módulo de mantener despierto.
+        menuActivity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
+            reason: "seguimiento del menú")
     }
 
     func menuDidClose(_ menu: NSMenu) {
         manager.notch.setMouseTrackingPaused(false)
+        if let menuActivity { ProcessInfo.processInfo.endActivity(menuActivity) }
+        menuActivity = nil
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {

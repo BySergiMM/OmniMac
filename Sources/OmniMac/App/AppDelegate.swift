@@ -7,10 +7,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
+        // Antes de crear ningún icono: que el escondedor de la barra no acabe
+        // tragándose los de OmniMac (AppKit lee la posición al crear cada uno).
+        MenuBarFeature.ensureOwnIconsVisible()
         statusItemController = StatusItemController()
         // `OmniMac --snapshots <carpeta>`: renderiza el notch y el menú a PNG (para la web) y sale.
         if let controller = statusItemController, Snapshots.runIfRequested(menuSource: controller) { return }
         _ = UpdaterController.shared   // comprobación de actualizaciones programada
+        // Fuera App Nap: macOS frena a las apps sin ventanas y aquí se nota al abrir
+        // los menús de la barra, que los dibuja este mismo proceso.
+        UserDefaults.standard.register(defaults: ["NSAppSleepDisabled": true])
         CacheCleaner.shared.startAutomaticCleaning()   // limpieza de caché diaria (si está activada)
         startHeartbeatIfAsked()
         // Gráficas de rendimiento: notch, barra de menús o en ningún sitio.
