@@ -76,6 +76,12 @@ final class CacheCleaner: ObservableObject {
 
     /// Suma del tamaño de todos los archivos bajo `url` (0 si no existe).
     static func directorySize(_ url: URL) -> Int64 {
+        // También vale para un archivo suelto (un .plist de preferencias, por
+        // ejemplo): el enumerador solo recorre carpetas y devolvía cero.
+        if let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+           values.isRegularFile == true {
+            return Int64(values.fileSize ?? 0)
+        }
         guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey], options: [.skipsHiddenFiles]) else { return 0 }
         var total: Int64 = 0
         for case let file as URL in enumerator {
