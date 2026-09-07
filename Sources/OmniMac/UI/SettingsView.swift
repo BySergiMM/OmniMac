@@ -14,6 +14,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     case tools
     case sound
     case performance
+    case menuBar
     case cleaner
 
     var id: String { rawValue }
@@ -29,6 +30,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .tools: L("Utilidades", "Tools")
         case .sound: L("Sonido", "Sound")
         case .performance: L("Rendimiento", "Performance")
+        case .menuBar: L("Barra de menús", "Menu bar")
         case .cleaner: L("Limpiador de apps", "App cleaner")
         }
     }
@@ -44,6 +46,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .tools: "wrench.and.screwdriver.fill"
         case .sound: "speaker.wave.3.fill"
         case .performance: "gauge.with.dots.needle.33percent"
+        case .menuBar: "menubar.arrow.up.rectangle"
         case .cleaner: "trash"
         }
     }
@@ -60,6 +63,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .tools: .gray
         case .sound: .pink
         case .performance: .green
+        case .menuBar: .indigo
         case .cleaner: .red
         }
     }
@@ -103,6 +107,7 @@ struct SettingsView: View {
         case .tools: ToolsPage(feature: manager.tools, screenGranted: permissions.screenRecordingGranted, axGranted: axGranted)
         case .sound: SoundPage(feature: manager.sound)
         case .performance: PerformancePage()
+        case .menuBar: MenuBarPage(feature: manager.menuBar)
         case .cleaner: AppCleanerPage()
         }
     }
