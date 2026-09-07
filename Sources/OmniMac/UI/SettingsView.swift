@@ -84,6 +84,11 @@ struct SettingsView: View {
             }
             .listStyle(.sidebar)
             .navigationSplitViewColumnWidth(min: 235, ideal: 255, max: 320)
+            // Sin el botón de plegar la barra lateral: en una ventana de Ajustes no
+            // sirve de nada (la de macOS tampoco lo tiene) y empujaba el título de la
+            // página hasta encima del divisor, que quedaba feísimo con nombres largos
+            // como «Window shortcuts».
+            .toolbar(removing: .sidebarToggle)
             .modifier(SolidToolbar())
         } detail: {
             detailView
@@ -659,13 +664,13 @@ struct SwitcherPage: View {
 
                 Section {
                     ShortcutRow(keys: "⌘ Tab", text: L("abre el selector y avanza", "opens the switcher and moves forward"))
-                    ShortcutRow(keys: "⌘⇧ Tab", text: "retrocede")
+                    ShortcutRow(keys: "⌘⇧ Tab", text: L("retrocede", "moves backwards"))
                     ShortcutRow(keys: L("⌘ + flechas", "⌘ + arrows"), text: L("moverse por la cuadrícula", "move around the grid"))
                     ShortcutRow(keys: L("Escribir", "Type"), text: L("busca por título de ventana o app", "searches by window or app title"))
                     ShortcutRow(keys: "⌘ W / ⌘ M", text: L("cierra / minimiza la ventana elegida", "closes / minimizes the selected window"))
                     ShortcutRow(keys: "⌘ H / ⌘ Q", text: L("oculta / cierra la app de la ventana elegida", "hides / quits the selected window's app"))
                     ShortcutRow(keys: L("Soltar ⌘", "Release ⌘"), text: L("cambia a la ventana elegida", "switches to the selected window"))
-                    ShortcutRow(keys: "Esc", text: "cancela")
+                    ShortcutRow(keys: "Esc", text: L("cancela", "cancels"))
                 } header: {
                     Text(L("Cómo se usa", "How to use it"))
                 } footer: {
