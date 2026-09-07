@@ -209,7 +209,12 @@ struct ModuleHeader: View {
 struct TabOrderRow: View {
     let tab: NotchTab
     @ObservedObject var feature: NotchFeature
-    @State private var targeted = false
+    @State private var dragging = false
+    @State private var dragOffset: CGFloat = 0
+
+    /// Alto de una fila con su separación: lo que hay que arrastrar para adelantar a
+    /// la siguiente.
+    private static let rowHeight: CGFloat = 56
 
     private var index: Int? { feature.tabOrder.firstIndex(of: tab) }
 
@@ -232,31 +237,39 @@ struct TabOrderRow: View {
         }
         .contentShape(Rectangle())
         .padding(.vertical, 2)
-        .background(targeted ? Color.accentColor.opacity(0.15) : .clear)
-        .draggable(tab.rawValue) {
-            Label(tab.title, systemImage: tab.symbol)
-        }
-        .dropDestination(for: String.self) { items, _ in
-            move(items.first)
-        } isTargeted: { targeted = $0 }
+        .background(dragging ? Color.accentColor.opacity(0.12) : .clear)
+        .offset(y: dragOffset)
+        .zIndex(dragging ? 1 : 0)
+        // Arrastre con el gesto de toda la vida en vez de `draggable`/`dropDestination`:
+        // dentro de un formulario aquellos no llegaban a activarse nunca. Y en
+        // `simultaneousGesture`, que si no el interruptor de la fila se lo queda.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 6)
+                .onChanged { value in
+                    dragging = true
+                    dragOffset = value.translation.height
+                }
+                .onEnded { value in
+                    let shift = Int((value.translation.height / Self.rowHeight).rounded())
+                    var order = feature.tabOrder
+                    if let from = order.firstIndex(of: tab), shift != 0 {
+                        let to = min(max(from + shift, 0), order.count - 1)
+                        order.remove(at: from)
+                        order.insert(tab, at: to)
+                        feature.tabOrder = order
+                    }
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                        dragging = false
+                        dragOffset = 0
+                    }
+                }
+        )
         .contextMenu {
             Button(L("Subir", "Move up")) { shift(-1) }
                 .disabled(index == 0)
             Button(L("Bajar", "Move down")) { shift(1) }
                 .disabled(index == feature.tabOrder.count - 1)
         }
-    }
-
-    /// Suelta la pestaña arrastrada justo donde está esta.
-    private func move(_ raw: String?) -> Bool {
-        guard let raw, let dragged = NotchTab(rawValue: raw),
-              let from = feature.tabOrder.firstIndex(of: dragged),
-              let to = index, from != to else { return false }
-        var order = feature.tabOrder
-        order.remove(at: from)
-        order.insert(dragged, at: to)
-        feature.tabOrder = order
-        return true
     }
 
     /// Una posición arriba o abajo, desde el menú del botón derecho.
