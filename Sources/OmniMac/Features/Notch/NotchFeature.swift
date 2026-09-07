@@ -227,6 +227,7 @@ final class NotchFeature: BaseFeature {
         controller.sneakPeekEnabled = sneakPeek
         controller.enabledTabs = enabledTabs
         controller.tabOrder = tabOrder
+        controller.onReorder = { [weak self] order in self?.tabOrder = order }
         controller.hideSystemBanner = hideSystemBanner
         controller.showCoffee = showCoffeeButton
         controller.showSettings = showSettingsButton
@@ -324,6 +325,11 @@ final class NotchModel: ObservableObject {
     @Published var enabledTabs: Set<NotchTab> = Set(NotchTab.allCases)
     /// Orden de los iconos de la izquierda (Ajustes › Notch, arrastrando).
     @Published var tabOrder: [NotchTab] = NotchTab.leftTabs
+    /// Icono que se está arrastrando ahora mismo y cuánto lleva movido.
+    @Published var draggingTab: NotchTab?
+    @Published var tabDragOffset: CGFloat = 0
+    /// Dónde está cada icono dentro del panel, que lo publica la vista.
+    var tabFrames: [NotchTab: CGRect] = [:]
     /// Botones de la cabecera.
     @Published var showCoffee = true
     @Published var showSettings = true
@@ -350,6 +356,8 @@ final class NotchModel: ObservableObject {
         CGSize(width: max(440, notchSize.width + 250), height: 172)
     }
 
+    /// El usuario ha cambiado el orden arrastrando un icono dentro del notch.
+    var onReorder: (([NotchTab]) -> Void)?
     var onHoverChange: ((Bool) -> Void)?
     var onExpandRequest: (() -> Void)?
     var onCollapseRequest: (() -> Void)?
@@ -475,6 +483,8 @@ final class NotchWindowController {
     private var deviceWork: DispatchWorkItem?
     /// Tras un cambio de escritorio, nada se abre solo hasta que el ratón se mueva de verdad.
     private var expandBlockedUntilMouseMoves = false
+    /// Icono sobre el que se pulsó y dónde, para poder arrastrarlo de sitio.
+    private var dragCandidate: (tab: NotchTab, startX: CGFloat)?
     /// Cuándo se miró por última vez si hay algo a pantalla completa, para no repetir
     /// la consulta de accesibilidad (unos 3 ms) en cada movimiento del ratón.
     private var lastVisibilityCheck = Date.distantPast
@@ -487,6 +497,9 @@ final class NotchWindowController {
     var tabOrder: [NotchTab] = NotchTab.leftTabs {
         didSet { model.tabOrder = tabOrder }
     }
+
+    /// Aviso hacia arriba cuando se reordena arrastrando, para que se guarde.
+    var onReorder: (([NotchTab]) -> Void)?
 
     var enabledTabs: Set<NotchTab> = Set(NotchTab.allCases) {
         didSet {
@@ -551,6 +564,7 @@ final class NotchWindowController {
             self?.showMessage(text, symbol: symbol, duration: duration, tint: tint) ?? false
         }
 
+        model.onReorder = { [weak self] order in self?.onReorder?(order) }
         model.onHoverChange = { [weak self] hovering in self?.hoverChanged(hovering) }
         model.onExpandRequest = { [weak self] in self?.expandNow() }
         model.onCollapseRequest = { [weak self] in self?.collapseNow() }
@@ -1004,8 +1018,12 @@ final class NotchWindowController {
 
     private func installForwardingTap() {
         guard forwardTap == nil, Permissions.hasAccessibility else { return }
+        // También el arrastre: sin él, un arrastre por la franja de arriba llegaba
+        // como «pulsar y soltar» y SwiftUI lo veía como un clic, así que no se podían
+        // mover los iconos de sitio arrastrándolos.
         let mask = (CGEventMask(1) << CGEventType.leftMouseDown.rawValue)
                  | (CGEventMask(1) << CGEventType.leftMouseUp.rawValue)
+                 | (CGEventMask(1) << CGEventType.leftMouseDragged.rawValue)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap,
                                           place: .headInsertEventTap,
@@ -1062,7 +1080,19 @@ final class NotchWindowController {
 
         let cocoaPoint = CGPoint(x: loc.x, y: primaryH - loc.y)
         let windowPoint = panel.convertPoint(fromScreen: cocoaPoint)
-        let nsType: NSEvent.EventType = (type == .leftMouseDown) ? .leftMouseDown : .leftMouseUp
+
+        // Arrastrar un icono a otro sitio. Se hace aquí y no con un gesto de SwiftUI
+        // porque los eventos de esta franja llegan por este tap, y con eventos
+        // sintéticos SwiftUI no llega a ver un arrastre: solo un clic.
+        if let reordered = handleTabDrag(type: type, windowPoint: windowPoint) {
+            return reordered ? nil : Unmanaged.passUnretained(event)
+        }
+        let nsType: NSEvent.EventType
+        switch type {
+        case .leftMouseDown: nsType = .leftMouseDown
+        case .leftMouseDragged: nsType = .leftMouseDragged
+        default: nsType = .leftMouseUp
+        }
         if let ns = NSEvent.mouseEvent(with: nsType,
                                        location: windowPoint,
                                        modifierFlags: [],
@@ -1071,10 +1101,60 @@ final class NotchWindowController {
                                        context: nil,
                                        eventNumber: 0,
                                        clickCount: 1,
-                                       pressure: nsType == .leftMouseDown ? 1 : 0) {
+                                       pressure: nsType == .leftMouseUp ? 0 : 1) {
             panel.sendEvent(ns)
         }
         return nil // consumimos: la barra de menús no debe actuar
+    }
+
+    /// Lleva el arrastre de los iconos de la izquierda.
+    ///
+    /// - Returns: `nil` si el evento no era para esto (que siga su camino normal),
+    ///   `true` si se consumió como parte del arrastre.
+    private func handleTabDrag(type: CGEventType, windowPoint: CGPoint) -> Bool? {
+        // Los marcos vienen de SwiftUI, con el origen arriba a la izquierda.
+        let point = CGPoint(x: windowPoint.x, y: panel.frame.height - windowPoint.y)
+        let visible = model.tabOrder.filter { model.tabFrames[$0] != nil }
+
+        switch type {
+        case .leftMouseDown:
+            dragCandidate = visible.first { model.tabFrames[$0]?.contains(point) == true }
+                .map { ($0, point.x) }
+            return nil        // el clic sigue su camino: puede ser solo cambiar de pestaña
+
+        case .leftMouseDragged:
+            guard let candidate = dragCandidate else { return nil }
+            let offset = point.x - candidate.startX
+            guard model.draggingTab != nil || abs(offset) > 6 else { return nil }
+            if model.draggingTab != candidate.tab { model.draggingTab = candidate.tab }
+            model.tabDragOffset = offset
+            return true
+
+        case .leftMouseUp:
+            defer { dragCandidate = nil }
+            guard let candidate = dragCandidate, model.draggingTab != nil else { return nil }
+            // Dónde se ha soltado: el icono cuyo hueco está más cerca.
+            let centres = visible.compactMap { tab -> (NotchTab, CGFloat)? in
+                guard let frame = model.tabFrames[tab] else { return nil }
+                return (tab, frame.midX)
+            }
+            let target = centres.min { abs($0.1 - point.x) < abs($1.1 - point.x) }
+            let from = visible.firstIndex(of: candidate.tab)
+            let to = target.flatMap { visible.firstIndex(of: $0.0) }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                model.draggingTab = nil
+                model.tabDragOffset = 0
+                if let from, let to, from != to {
+                    let order = TabReorder.move(candidate.tab, by: to - from,
+                                                in: model.tabOrder, visible: Set(visible))
+                    if order != model.tabOrder { model.onReorder?(order) }
+                }
+            }
+            return true       // no se cambia de pestaña al soltar
+
+        default:
+            return nil
+        }
     }
 
     private func startWatchdog() {

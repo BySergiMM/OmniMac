@@ -38,6 +38,17 @@ struct NotchExpandedShape: Shape {
     }
 }
 
+/// Marcos de los iconos de la izquierda, que la vista publica hacia arriba para que
+/// el arrastre se pueda llevar en AppKit (ver `NotchWindowController`): los eventos
+/// de la franja bajo la barra de menús llegan por un tap y SwiftUI no puede seguir
+/// un arrastre con ellos.
+struct TabFramesKey: PreferenceKey {
+    static var defaultValue: [NotchTab: CGRect] = [:]
+    static func reduce(value: inout [NotchTab: CGRect], nextValue: () -> [NotchTab: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 struct NotchView: View {
     @ObservedObject var model: NotchModel
     @ObservedObject var media: MediaBridge
@@ -207,10 +218,19 @@ struct NotchView: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 34)
+        // Dónde ha quedado cada icono, para que el controlador pueda arrastrarlos.
+        .onPreferenceChange(TabFramesKey.self) { frames in
+            model.tabFrames = frames
+        }
     }
 
+    /// Ancho de un icono más su separación: lo que hay que recorrer para adelantar a
+    /// otro mientras se arrastra.
+    private static let tabStep: CGFloat = 38
+
     private func tabButton(_ tab: NotchTab, symbol: String, help: String) -> some View {
-        Button {
+        let isDragging = model.draggingTab == tab
+        return Button {
             withAnimation(.easeOut(duration: 0.15)) { model.tab = tab }
         } label: {
             Image(systemName: symbol)
@@ -219,12 +239,26 @@ struct NotchView: View {
                 .frame(width: 32, height: 26)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(.white.opacity(model.tab == tab ? 0.16 : 0))
+                        .fill(.white.opacity(isDragging ? 0.28 : (model.tab == tab ? 0.16 : 0)))
                 )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(help)
+        .help(L("\(help) · ⌘ y arrastra para cambiarlo de sitio",
+                "\(help) · ⌘-drag to move it"))
+        // El arrastre lo lleva el controlador (ver `NotchWindowController`), porque
+        // los eventos de esta franja llegan por un tap y SwiftUI no puede seguir un
+        // arrastre con ellos. Aquí solo se publica dónde está cada icono y se pinta
+        // el que se esté moviendo.
+        .offset(x: isDragging ? model.tabDragOffset : 0)
+        .scaleEffect(isDragging ? 1.12 : 1)
+        .zIndex(isDragging ? 1 : 0)
+        .animation(.easeOut(duration: 0.12), value: isDragging)
+        .background(
+            GeometryReader { geometry in
+                Color.clear.preference(key: TabFramesKey.self, value: [tab: geometry.frame(in: .global)])
+            }
+        )
     }
 
     private func quickButton(symbol: String, active: Bool, help: String, action: @escaping () -> Void) -> some View {
