@@ -417,6 +417,8 @@ final class NotchWindowController {
 
     /// Plegado: exactamente el notch físico (ni un píxel más: durante el cambio de
     /// escritorio o sobre fondos claros, cualquier exceso de negro se vería).
+    /// Geometría de esta pantalla, calculada una vez al construir el panel.
+    private let geometry: NotchGeometry
     private let collapsedFrame: CGRect
     /// Zona en la que el ratón "cuenta" para abrir: algo más ancha que el notch.
     private let hoverZone: CGRect
@@ -475,46 +477,21 @@ final class NotchWindowController {
 
     init(screen: NSScreen, keepAwake: KeepAwakeFeature, sound: SoundFeature) {
         self.sound = sound
-        let hasNotch = screen.safeAreaInsets.top > 0
-        let notchHeight = hasNotch
-            ? screen.safeAreaInsets.top
-            : max(30, screen.frame.maxY - screen.visibleFrame.maxY - 1)
-        var notchWidth: CGFloat = 196
-        if hasNotch, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
-            notchWidth = screen.frame.width - left.width - right.width
-        }
+        // Toda la geometría (notch o isla, tamaños y marcos) sale de lo que dice la
+        // pantalla: ver `NotchGeometry`, que es donde se adapta a cada Mac.
+        let geometry = NotchGeometry(screen: screen)
+        self.geometry = geometry
+        model = NotchModel(hasNotch: geometry.hasNotch,
+                           notchSize: geometry.notchSize,
+                           expandedSize: geometry.expandedSize)
 
-        // A cada lado del notch físico deben caber las cinco pestañas de la izquierda
-        // (16 + 5×32 + 4×6 + 8 = 208 pt) y el grupo de la derecha; así vale para
-        // cualquier MacBook con notch, sea del ancho que sea.
-        let expandedSize = CGSize(width: max(580, notchWidth + NotchModel.sideClearance * 2), height: 196)
-        model = NotchModel(hasNotch: hasNotch,
-                           notchSize: CGSize(width: notchWidth, height: notchHeight),
-                           expandedSize: expandedSize)
-
-        collapsedFrame = CGRect(x: screen.frame.midX - notchWidth / 2,
-                                y: screen.frame.maxY - notchHeight,
-                                width: notchWidth,
-                                height: notchHeight)
-        hoverZone = CGRect(x: collapsedFrame.minX - 20,
-                           y: collapsedFrame.minY - 4,
-                           width: notchWidth + 40,
-                           height: notchHeight + 4)
-        screenFrame = screen.frame
-        // La ventana es más grande que el panel negro: el margen extra (lados y
-        // abajo) deja sitio para que la sombra no se recorte. El borde superior sigue
-        // pegado al techo de la pantalla para fundirse con el notch físico.
-        let shadowMargin: CGFloat = 36
-        self.shadowMargin = shadowMargin
-        expandedFrame = CGRect(x: screen.frame.midX - (expandedSize.width + shadowMargin * 2) / 2,
-                               y: screen.frame.maxY - expandedSize.height - shadowMargin,
-                               width: expandedSize.width + shadowMargin * 2,
-                               height: expandedSize.height + shadowMargin)
-        // El negro visible (sin el margen de la sombra): es lo que cuenta para "salir".
-        bodyFrame = CGRect(x: expandedFrame.minX + shadowMargin - NotchExpandedShape.flare,
-                           y: expandedFrame.maxY - expandedSize.height,
-                           width: expandedSize.width + NotchExpandedShape.flare * 2,
-                           height: expandedSize.height)
+        collapsedFrame = geometry.collapsedFrame
+        hoverZone = geometry.hoverZone
+        screenFrame = geometry.screenFrame
+        shadowMargin = geometry.shadowMargin
+        expandedFrame = geometry.expandedFrame
+        bodyFrame = geometry.bodyFrame
+        let expandedSize = geometry.expandedSize
 
         panel = NotchPanel(contentRect: collapsedFrame,
                            styleMask: [.borderless, .nonactivatingPanel],
