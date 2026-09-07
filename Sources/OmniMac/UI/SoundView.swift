@@ -63,6 +63,15 @@ struct SoundPage: View {
                     Text(L("Capta el audio de esa app (macOS pide permiso una vez, «grabar el audio del sistema») y lo reproduce al nivel elegido; las apps al 100 % no se tocan. También desde la pestaña Sonido del notch.", "Captures that app's audio (macOS asks once for “record system audio”) and plays it at the chosen level; apps at 100 % are left alone. Also from the notch's Sound tab."))
                 }
 
+                Section {
+                    EqualizerView(mixer: feature.mixer)
+                } header: {
+                    Text(L("Ecualizador", "Equalizer"))
+                } footer: {
+                    Text(L("Diez bandas para todo lo que suena en el Mac. Con alguna banda movida, OmniMac capta el audio del sistema (el mismo permiso que el volumen por app) para poder filtrarlo; con todo a cero no capta nada.",
+                           "Ten bands for everything playing on the Mac. With any band moved, OmniMac captures system audio (the same permission as per-app volume) so it can filter it; with everything at zero it captures nothing."))
+                }
+
                 Section(L("Entrada", "Input")) {
                     SettingRow(title: L("Micrófono", "Microphone"), subtitle: L("El que usan las videollamadas y las grabaciones.", "The one video calls and recordings use.")) {
                         Picker("", selection: Binding(
