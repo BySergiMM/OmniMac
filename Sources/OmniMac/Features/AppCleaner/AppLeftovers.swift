@@ -106,10 +106,124 @@ enum LeftoverMatcher {
     }
 }
 
+/// Restos de una app que ya no está instalada.
+struct OrphanLeftover: Identifiable, Equatable {
+    /// El identificador que se dedujo del nombre del archivo (`com.spotify.client`).
+    let bundleID: String
+    /// Nombre legible: el último trozo del identificador («Client» → «Spotify»).
+    let name: String
+    let urls: [URL]
+    /// Se rellena en una segunda pasada: medirlo todo antes de enseñar nada tardaba
+    /// más de diez minutos.
+    var size: Int64
+
+    var id: String { bundleID }
+}
+
+/// Reglas para decidir si un archivo suelto **parece** de una app y de cuál.
+enum OrphanRules {
+    /// ¿El nombre de este archivo es un identificador de app?
+    ///
+    /// Se piden al menos tres trozos separados por puntos y nada de espacios: así
+    /// entran `com.spotify.client` y se quedan fuera las carpetas con nombre normal
+    /// («Google», «Adobe», «Datos de usuario»), que pueden ser de cualquiera.
+    static func bundleID(from fileName: String) -> String? {
+        var name = fileName
+        for ext in [".plist", ".savedState", ".binarycookies", ".lockfile"] where name.hasSuffix(ext) {
+            name.removeLast(ext.count)
+            break
+        }
+        // Contenedores de grupo. Vienen envueltos de varias formas y a veces
+        // encadenadas: «243LU875E5.groups.com.apple.podcasts» lleva el identificador
+        // de equipo **y** «groups.» delante. Se pelan todas las capas, porque si
+        // queda una, «com.apple» deja de reconocerse y Podcasts sale como si fuera
+        // el resto de una app desinstalada.
+        var peeled = true
+        while peeled {
+            peeled = false
+            for wrapper in ["group.", "groups.", "systemgroup."] where name.hasPrefix(wrapper) {
+                name.removeFirst(wrapper.count)
+                peeled = true
+                break
+            }
+            if !peeled, name.count > 11, let dot = name.firstIndex(of: ".") {
+                let prefix = String(name[name.startIndex..<dot])
+                if prefix.count == 10, prefix.allSatisfy({ $0.isLetter || $0.isNumber }) {
+                    name = String(name[name.index(after: dot)...])
+                    peeled = true
+                }
+            }
+        }
+        let parts = name.split(separator: ".")
+        guard parts.count >= 3, !name.contains(" "), !name.contains("/"),
+              parts.allSatisfy({ !$0.isEmpty }) else { return nil }
+        guard !LeftoverMatcher.isProtected(bundleID: name) else { return nil }
+        return name
+    }
+
+    /// Cosas de Apple cuyo identificador **no** empieza por `com.apple.`.
+    ///
+    /// Atajos todavía usa `is.workflow` (era Workflow antes de que Apple la comprara)
+    /// y la app TV usa `tvappservices`. Sin esta lista salen como restos de apps
+    /// desinstaladas, que es justo lo contrario de la verdad.
+    static let systemPrefixes = ["com.apple", "is.workflow", "tvappservices", "com.me", "com.icloud",
+                                 "systemgroup.com.apple", "developer.apple"]
+
+    /// Trozos que viven **dentro** de otras apps: marcos, actualizadores, informes de
+    /// fallos. No son apps que hayas borrado, así que ofrecerlos no tiene sentido.
+    static let sharedComponents = ["org.sparkle-project", "com.plausiblelabs", "org.swift", "org.cups",
+                                   "io.branch", "com.crashlytics", "com.electron", "org.chromium",
+                                   "com.microsoft.autoupdate", "com.adobe.crashreporter", "com.squirrel"]
+
+    static func isSystem(_ bundleID: String) -> Bool { matches(bundleID, systemPrefixes) }
+    static func isSharedComponent(_ bundleID: String) -> Bool { matches(bundleID, sharedComponents) }
+
+    private static func matches(_ bundleID: String, _ prefixes: [String]) -> Bool {
+        let id = bundleID.lowercased()
+        return prefixes.contains { id == $0 || id.hasPrefix($0 + ".") }
+    }
+
+    /// El fabricante: los dos primeros trozos. `com.spotify.client` → `com.spotify`.
+    ///
+    /// Sirve para no ofrecer restos de una app que sigues teniendo. Tienes WhatsApp
+    /// instalado y en Contenedores de grupo hay `group.net.whatsapp.family`: nadie
+    /// va a encontrar una app llamada `net.whatsapp.family`, pero el fabricante
+    /// `net.whatsapp` sí tiene apps, así que se deja en paz.
+    static func vendor(of bundleID: String) -> String? {
+        let parts = bundleID.split(separator: ".")
+        guard parts.count >= 2 else { return nil }
+        return parts.prefix(2).joined(separator: ".").lowercased()
+    }
+
+    /// Trozos finales que no dicen nada: si el identificador acaba así, el nombre
+    /// bueno es el del medio (`com.spotify.client` → «Spotify», no «Client»).
+    private static let genericTails: Set<String> = ["client", "app", "mac", "macos", "osx", "desktop",
+                                                    "cli", "helper", "shared", "family", "container",
+                                                    "default", "main", "ui"]
+
+    /// Nombre presentable a partir del identificador: `org.p0deje.Maccy` → «Maccy»,
+    /// `com.spotify.client` → «Spotify».
+    static func displayName(for bundleID: String) -> String {
+        let parts = bundleID.split(separator: ".").map(String.init)
+        guard parts.count >= 2 else { return bundleID }
+        let last = parts[parts.count - 1]
+        let candidate = genericTails.contains(last.lowercased()) || parts.count < 3 ? parts[parts.count - 2] : last
+        return candidate.prefix(1).uppercased() + candidate.dropFirst()
+    }
+}
+
 /// Dónde busca restos el limpiador.
 struct LeftoverPlace {
     let title: String
     let path: String
+    /// Carpetas que **ninguna app puede tocar**, ni con Acceso total al disco.
+    ///
+    /// `~/Library/Containers` y `~/Library/Group Containers` los gestiona
+    /// `containermanagerd`: se puede escribir dentro, pero mover la carpeta —o su
+    /// propio `.metadata.plist`— falla con `NSCocoaErrorDomain 513` y un
+    /// `OSStatus -5000` por debajo. Comprobado: falla igual desde una shell con
+    /// permisos amplios. Solo el Finder tiene el trato especial que hace falta.
+    var systemProtected: Bool { path.contains("Containers") }
     /// Dentro de la carpeta del usuario (`~`) o del sistema (hace falta contraseña).
     let inHome: Bool
     /// Si vale comparar por el nombre visible de la app además de por identificador.

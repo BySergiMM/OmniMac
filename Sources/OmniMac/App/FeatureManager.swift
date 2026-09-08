@@ -13,6 +13,7 @@ final class FeatureManager: ObservableObject {
     let tools: ToolsFeature
     let sound: SoundFeature
     let menuBar: MenuBarFeature
+    let commandBar: CommandBarFeature
 
     let all: [BaseFeature]
 
@@ -27,7 +28,10 @@ final class FeatureManager: ObservableObject {
         clipboard = ClipboardFeature()
         tools = ToolsFeature()
         menuBar = MenuBarFeature()
-        all = [keepAwake, switcher, notch, snapping, clipboard, tools, sound, menuBar]
+        let commandBar = CommandBarFeature(keepAwake: keepAwake, tools: tools,
+                                           clipboard: clipboard, sound: sound)
+        self.commandBar = commandBar
+        all = [keepAwake, switcher, notch, snapping, clipboard, tools, sound, menuBar, commandBar]
     }
 
     func startEnabled() {

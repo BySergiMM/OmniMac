@@ -166,6 +166,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         coffee.target = self
         menu.addItem(coffee)
 
+        let whatsNew = NSMenuItem(title: L("Novedades…", "What's new…"), action: #selector(showWhatsNew), keyEquivalent: "")
+        whatsNew.target = self
+        menu.addItem(whatsNew)
+
         let updates = NSMenuItem(title: L("Buscar actualizaciones…", "Check for updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         updates.target = self
         menu.addItem(updates)
@@ -225,12 +229,20 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         updateModuleIcons()
     }
 
-    /// Refresca lo que enseñan los iconos sueltos (la taza encendida, por ejemplo).
+    /// Refresca lo que enseñan los iconos sueltos.
+    ///
+    /// La taza **se ilumina** cuando «mantener despierto» está activo: la misma taza,
+    /// rellena, que es como marca macOS lo que está encendido en la barra (el wifi,
+    /// sin ir más lejos). Nada de teñirla con el color de acento: en la barra los
+    /// iconos se dibujan en blanco, y al teñirla salía negra, como un agujero.
+    /// El icono general de la app no cambia: para eso está el de este módulo.
     private func updateModuleIcons() {
-        guard let item = moduleItems["keepawake"] else { return }
+        guard let item = moduleItems["keepawake"], let button = item.button else { return }
         let active = manager.keepAwake.isActive
-        item.button?.image = NSImage(systemSymbolName: active ? "cup.and.saucer.fill" : "cup.and.saucer",
-                                     accessibilityDescription: manager.keepAwake.displayName)
+        button.image = NSImage(systemSymbolName: active ? "cup.and.saucer.fill" : "cup.and.saucer",
+                               accessibilityDescription: active
+                                   ? L("Mantener despierto (activo)", "Keep awake (on)")
+                                   : manager.keepAwake.displayName)
     }
 
     /// El menú de un icono suelto: las acciones de ese módulo y poco más.
@@ -442,6 +454,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         manager.keepAwake.deactivate()
     }
 
+    @objc private func showWhatsNew() {
+        WhatsNewWindowController.shared.showCurrent()
+    }
+
     @objc private func checkForUpdates() {
         UpdaterController.shared.checkForUpdates()
     }
@@ -542,11 +558,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     private func updateIcon() {
-        // Los destellos del icono de la app, no unos deslizadores: «switch.2» era
-        // casi igual que el icono del Centro de Control y se confundían en la barra.
-        let symbol = manager.keepAwake.isActive ? "cup.and.saucer.fill" : "sparkles"
-        let description = manager.keepAwake.isActive ? L("OmniMac (mantener despierto activo)", "OmniMac (keep awake on)") : "OmniMac"
-        statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: description)
+        // Los destellos del icono de la app, y siempre los mismos: el icono general
+        // es la identidad de OmniMac y no debe cambiar de dibujo porque se active un
+        // módulo. Quien avisa de que «mantener despierto» está en marcha es su propio
+        // icono, encendiéndose (ver `updateModuleIcons`).
+        let description = manager.keepAwake.isActive
+            ? L("OmniMac (mantener despierto activo)", "OmniMac (keep awake on)")
+            : "OmniMac"
+        // El mismo dibujo que el icono de la app, no el símbolo del sistema: antes
+        // eran dos logos distintos, uno en la barra y otro en la web.
+        let icon = Brand.menuBarIcon()
+        icon.accessibilityDescription = description
+        statusItem.button?.image = icon
         statusItem.button?.imagePosition = .imageLeading
     }
 

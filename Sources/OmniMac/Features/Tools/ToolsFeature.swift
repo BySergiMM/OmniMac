@@ -10,6 +10,16 @@ final class ToolsFeature: BaseFeature {
     @Published private(set) var keyboardLocked = false
 
     /// ⌘Q solo cierra la app si se mantiene pulsado medio segundo.
+    /// Velo negro por encima de todo, para bajar del mínimo de macOS.
+    /// Arranca siempre a 0 a propósito: dejar la pantalla oscura al encender el
+    /// Mac, sin que nadie sepa por qué, sería un mal recuerdo.
+    @Published var dimLevel: Double = 0 {
+        didSet {
+            UserDefaults.standard.set(dimLevel, forKey: "tools.dimLevel")
+            dimmer.apply(dimLevel)
+        }
+    }
+
     @Published var quitGuardEnabled: Bool {
         didSet {
             UserDefaults.standard.set(quitGuardEnabled, forKey: "tools.quitGuard")
@@ -27,12 +37,15 @@ final class ToolsFeature: BaseFeature {
     ]
 
     private static let ocrHotKey: UInt32 = 300
+    private static let dimDownHotKey: UInt32 = 620
+    private static let dimUpHotKey: UInt32 = 621
     private static let micHotKey: UInt32 = 301
     private static let lockHotKey: UInt32 = 302
     private static let colorHotKey: UInt32 = 303
     private let ocr = ScreenTextCapture()
     private let keyboardLock = KeyboardLock()
     private let colorPicker = ScreenColorPicker()
+    private let dimmer = ScreenDimmer()
     private let quitGuard = QuitGuard()
 
     init() {
@@ -66,7 +79,27 @@ final class ToolsFeature: BaseFeature {
                                      modifiers: UInt32(cmdKey | shiftKey)) { [weak self] in
             self?.pickColor()
         }
+        HotKeyCenter.shared.register(id: Self.dimDownHotKey,
+                                     keyCode: UInt32(kVK_ANSI_Minus),
+                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
+            self?.stepDim(+0.1)
+        }
+        HotKeyCenter.shared.register(id: Self.dimUpHotKey,
+                                     keyCode: UInt32(kVK_ANSI_Equal),
+                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
+            self?.stepDim(-0.1)
+        }
         if quitGuardEnabled { quitGuard.start() }
+    }
+
+    /// Un escalón de velo. En positivo oscurece, en negativo aclara.
+    func stepDim(_ delta: Double) {
+        let next = min(ScreenDimmer.maxLevel, max(0, dimLevel + delta))
+        guard next != dimLevel else { return }
+        dimLevel = next
+        Toast.show(next < 0.001 ? L("Brillo normal", "Normal brightness")
+                                : L("Brillo −\(Int(next * 100)) %", "Brightness −\(Int(next * 100))%"),
+                   symbol: next < 0.001 ? "sun.max.fill" : "sun.min.fill")
     }
 
     func pickColor() {
@@ -74,6 +107,9 @@ final class ToolsFeature: BaseFeature {
     }
 
     override func stop() {
+        dimLevel = 0
+        HotKeyCenter.shared.unregister(id: Self.dimDownHotKey)
+        HotKeyCenter.shared.unregister(id: Self.dimUpHotKey)
         HotKeyCenter.shared.unregister(id: Self.ocrHotKey)
         HotKeyCenter.shared.unregister(id: Self.micHotKey)
         HotKeyCenter.shared.unregister(id: Self.lockHotKey)

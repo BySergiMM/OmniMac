@@ -15,6 +15,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     case sound
     case performance
     case menuBar
+    case commandBar
     case cleaner
 
     var id: String { rawValue }
@@ -31,6 +32,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .sound: L("Sonido", "Sound")
         case .performance: L("Rendimiento", "Performance")
         case .menuBar: L("Barra de menús", "Menu bar")
+        case .commandBar: L("Buscador de comandos", "Command bar")
         case .cleaner: L("Limpiador de apps", "App cleaner")
         }
     }
@@ -47,6 +49,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .sound: "speaker.wave.3.fill"
         case .performance: "gauge.with.dots.needle.33percent"
         case .menuBar: "menubar.arrow.up.rectangle"
+        case .commandBar: "command"
         case .cleaner: "trash"
         }
     }
@@ -64,6 +67,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .sound: .pink
         case .performance: .green
         case .menuBar: .indigo
+        case .commandBar: .pink
         case .cleaner: .red
         }
     }
@@ -83,7 +87,12 @@ struct SettingsView: View {
                     .tag(item)
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 235, ideal: 255, max: 320)
+            // Ancho fijo, no un rango. Con `min:ideal:max:` macOS se lo saltaba y
+            // dejaba la barra en 140 puntos: «Mantener despierto» se quedaba en 68 y
+            // salía cortado. Los Ajustes del sistema tampoco dejan redimensionarla.
+            .navigationSplitViewColumnWidth(250)
+            // Y con cinturón: el modificador de arriba, solo, no bastaba.
+            .frame(minWidth: 250)
             // Sin el botón de plegar la barra lateral: en una ventana de Ajustes no
             // sirve de nada (la de macOS tampoco lo tiene) y empujaba el título de la
             // página hasta encima del divisor, que quedaba feísimo con nombres largos
@@ -113,6 +122,7 @@ struct SettingsView: View {
         case .sound: SoundPage(feature: manager.sound)
         case .performance: PerformancePage()
         case .menuBar: MenuBarPage(feature: manager.menuBar)
+        case .commandBar: CommandBarPage(feature: manager.commandBar)
         case .cleaner: AppCleanerPage()
         }
     }
@@ -992,6 +1002,14 @@ struct ClipboardPage: View {
                     SettingToggle(title: L("Pausar el historial", "Pause the history"),
                                   subtitle: L("Mientras esté en pausa no se guarda nada de lo que copies.", "While paused, nothing you copy is saved."),
                                   isOn: $feature.paused)
+                    SettingToggle(title: L("Pegar sin formato con ⌥⇧⌘V", "Paste as plain text with ⌥⇧⌘V"),
+                                  subtitle: L("Pega solo el texto, sin la tipografía ni los colores del sitio de donde lo copiaste.",
+                                              "Pastes just the text, without the fonts and colours of wherever you copied it from."),
+                                  isOn: $feature.plainPasteEnabled)
+                    SettingToggle(title: L("Limpiar el rastreo de los enlaces al copiarlos", "Strip tracking from links when you copy them"),
+                                  subtitle: L("Quita «utm_source», «fbclid», el «si» de Spotify y compañía. Solo si lo copiado es un enlace entero, y nunca toca parámetros que no conozca.",
+                                              "Removes utm_source, fbclid, Spotify's si and the like. Only when what you copied is a whole link, and it never touches parameters it doesn't know."),
+                                  isOn: $feature.cleanURLs)
                     SettingRow(title: L("\(feature.items.count) elementos en el historial", "\(feature.items.count) items in the history")) {
                         Button(L("Vaciar historial", "Clear history"), role: .destructive) { feature.clear() }
                             .controlSize(.small)
@@ -1056,10 +1074,84 @@ struct ToolsPage: View {
                                   isOn: Binding(get: { feature.desktopIconsHidden }, set: { _ in feature.toggleDesktopIcons() }))
                 }
 
+                Section {
+                    SettingToggle(title: L("Instalar las apps que descargas en .dmg", "Install apps you download as .dmg"),
+                                  subtitle: L("Al terminar una descarga, OmniMac pregunta si monta el disco, copia la app a Aplicaciones, lo expulsa y manda el .dmg a la papelera. Nunca hace nada sin preguntar, y nada se borra: todo va a la papelera.",
+                                              "When a download finishes, OmniMac asks whether to mount the image, copy the app to Applications, eject it and move the .dmg to the Trash. It never acts without asking, and nothing is deleted — everything goes to the Trash."),
+                                  isOn: Binding(get: { DiskImageInstaller.shared.enabled },
+                                                set: { DiskImageInstaller.shared.enabled = $0 }))
+                } header: {
+                    Text(L("Descargas", "Downloads"))
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "sun.min.fill").foregroundStyle(.secondary)
+                            Slider(value: $feature.dimLevel, in: 0...ScreenDimmer.maxLevel)
+                            Image(systemName: "sun.max.fill").foregroundStyle(.secondary)
+                            Text(feature.dimLevel < 0.001 ? L("Normal", "Normal") : "−\(Int(feature.dimLevel * 100)) %")
+                                .font(.system(size: 12, design: .rounded).monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .frame(width: 58, alignment: .trailing)
+                        }
+                        Text(L("⌃⌥⌘− oscurece y ⌃⌥⌘+ aclara, desde cualquier app.",
+                               "⌃⌥⌘− dims and ⌃⌥⌘+ brightens, from any app."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                } header: {
+                    Text(L("Brillo por debajo del mínimo", "Brightness below the minimum"))
+                } footer: {
+                    // Honestidad por delante: se explica qué hace de verdad y por qué
+                    // no hay un «más brillo del máximo».
+                    Text(L("De noche, el brillo más bajo de macOS sigue siendo mucho. Esto pone un velo negro por encima de todo: no toca el hardware ni la retroiluminación, así que no gasta batería ni desgasta la pantalla. Subir por encima del máximo es otra cosa: no se puede sin trucos, solo funciona en pantallas XDR y mantener el panel por encima de su tope calienta el equipo y consume bastante más, que es justo por lo que Apple lo limita. Por eso no está.",
+                           "At night, macOS's lowest brightness is still too much. This lays a black veil over everything: it doesn't touch the hardware or the backlight, so it costs no battery and doesn't wear the panel. Going above the maximum is a different matter: it can't be done without tricks, only works on XDR displays, and holding the panel above its ceiling heats the machine and draws considerably more power — which is exactly why Apple caps it. That's why it isn't here."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
                 Section(L("Atajos", "Shortcuts")) {
                     ForEach(ToolsFeature.shortcutHelp, id: \.shortcut) { item in
                         ShortcutRow(keys: item.shortcut, text: item.action)
                     }
+                }
+            }
+        }
+    }
+}
+
+struct CommandBarPage: View {
+    @ObservedObject var feature: CommandBarFeature
+
+    var body: some View {
+        Form {
+            ModuleHeader(feature: feature, page: .commandBar)
+
+            if feature.isEnabled {
+                Section {
+                    SettingRow(title: L("Abrirlo", "Open it"),
+                               subtitle: L("⌥Espacio desde cualquier app. Escribe y pulsa Intro.",
+                                           "⌥Space from any app. Type and hit Return.")) {
+                        Button(L("Probar", "Try it")) { feature.toggle() }
+                    }
+                } header: {
+                    Text(L("Cómo se usa", "How to use it"))
+                } footer: {
+                    // Lo primero que hay que decir, porque es lo que va a romper.
+                    Text(L("Viene apagado de fábrica por una razón: ⌥Espacio es el atajo de Raycast y de Alfred. Si usas alguno de los dos, cambia el suyo antes de encender esto, o tendrás dos cosas peleándose por la misma tecla.",
+                           "It ships turned off for a reason: ⌥Space is Raycast's and Alfred's shortcut. If you use either, change theirs before turning this on, or you'll have two things fighting over the same key."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Text(L("Busca por letras sueltas y en orden: «slmi» encuentra «Silenciar el micrófono». No distingue mayúsculas ni acentos.",
+                           "It matches letters in order, even scattered: “slmi” finds “Silence the microphone”. Case and accents don't matter."))
+                        .font(.callout).foregroundStyle(.secondary)
+                    Text(L("Con el buscador vacío salen solo las funciones de OmniMac. En cuanto escribes, se añaden tus apps —siempre por detrás, porque esto es un buscador de OmniMac y no un lanzador.",
+                           "With an empty search you only get OmniMac's own features. As soon as you type, your apps join in — always below, because this is OmniMac's search, not a launcher."))
+                        .font(.callout).foregroundStyle(.secondary)
+                } header: {
+                    Text(L("Qué encuentra", "What it finds"))
                 }
             }
         }

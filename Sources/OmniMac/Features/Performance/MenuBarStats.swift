@@ -93,12 +93,12 @@ final class MenuBarStats: ObservableObject {
         item.button?.imagePosition = .imageOnly
         self.item = item
 
-        stats.start()
+        stats.start(detail: .minimal)
         // Cada muestra nueva redibuja el icono. `SystemStats` publica en el hilo
         // principal, así que no hay que saltar de hilo.
-        cancellable = stats.$cpu
-            .receive(on: RunLoop.main)
-            .sink { [weak self] values in self?.redraw(cpu: values) }
+        cancellable = stats.sampled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.redraw(cpu: self?.stats.cpu ?? []) }
         redraw(cpu: stats.cpu)
     }
 

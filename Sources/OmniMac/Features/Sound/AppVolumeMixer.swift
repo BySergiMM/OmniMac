@@ -56,6 +56,8 @@ final class AppVolumeMixer: ObservableObject {
     var isEQActive: Bool { eqGains.contains { abs($0) > 0.01 } }
     private var watchers = 0
     private var timer: Timer?
+    /// Cada cuánto está mirando el temporizador actual, para no rehacerlo por nada.
+    private var timerInterval: TimeInterval?
     private let engine = MixEngine()
     private var engineSignature: [String] = []
     private var engineOutput: AudioDeviceID = 0
@@ -76,12 +78,15 @@ final class AppVolumeMixer: ObservableObject {
     func start() {
         installListener()
         refreshApps()
+        // Y a partir de aquí, con vigilancia lenta si hay algo guardado que aplicar.
+        rescheduleTimer()
     }
 
     func stop() {
         removeListener()
         timer?.invalidate()
         timer = nil
+        timerInterval = nil
         engine.stop()
         engineSignature = []
     }
@@ -101,18 +106,46 @@ final class AppVolumeMixer: ObservableObject {
         guard !sampleMode else { return }
         watchers += 1
         refreshApps()
-        guard timer == nil else { return }
-        let t = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.refreshApps() }
-        t.tolerance = 0.5
-        timer = t
+        rescheduleTimer()
     }
 
     func endWatching() {
         watchers = max(0, watchers - 1)
-        if watchers == 0 {
+        rescheduleTimer()
+    }
+
+    /// ¿Hay algo guardado que haya que aplicar aunque nadie esté mirando?
+    private var hasSomethingToApply: Bool {
+        !volumes.isEmpty || isEQActive || appEQ.values.contains { gains in gains.contains { abs($0) > 0.01 } }
+    }
+
+    /// Cada cuánto se mira qué apps están sonando.
+    ///
+    /// Con la ventana o el notch delante, rápido, para que la lista salga al día.
+    /// Sin nadie mirando hace falta igual —si no, tras reiniciar OmniMac el volumen
+    /// por app y el ecualizador no se aplicaban hasta abrir Sonido— pero despacio, y
+    /// solo si hay algo guardado que aplicar. Sin nada guardado, ni temporizador.
+    private var refreshInterval: TimeInterval? {
+        if watchers > 0 { return 2 }
+        return hasSomethingToApply ? 5 : nil
+    }
+
+    private func rescheduleTimer() {
+        guard !sampleMode else { return }
+        guard let interval = refreshInterval else {
             timer?.invalidate()
             timer = nil
+            timerInterval = nil
+            return
         }
+        guard timerInterval != interval else { return }
+        timer?.invalidate()
+        let t = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.refreshApps()
+        }
+        t.tolerance = interval / 4
+        timer = t
+        timerInterval = interval
     }
 
     /// Tope del volumen por app. Con la amplificación activada se puede pasar del
@@ -131,6 +164,7 @@ final class AppVolumeMixer: ObservableObject {
             volumes[app.key] = clamped
         }
         UserDefaults.standard.set(volumes.mapValues { Double($0) }, forKey: Self.defaultsKey)
+        rescheduleTimer()
         if let index = apps.firstIndex(where: { $0.key == app.key }) {
             apps[index].volume = abs(clamped - 1) < 0.005 ? 1 : clamped
         }
@@ -182,6 +216,7 @@ final class AppVolumeMixer: ObservableObject {
 
     private func saveAppEQ() {
         UserDefaults.standard.set(appEQ, forKey: Self.appEQKey)
+        rescheduleTimer()
     }
 
     /// Lleva al motor el ecualizador de cada app captada, en el mismo orden que las
@@ -205,6 +240,7 @@ final class AppVolumeMixer: ObservableObject {
         let wasActive = isEQActive
         eqGains[band] = min(max(gain, -EqualizerBands.limitDB), EqualizerBands.limitDB)
         UserDefaults.standard.set(eqGains, forKey: Self.eqKey)
+        rescheduleTimer()
         engine.setEQ(eqGains)
         if isEQActive != wasActive { syncEngine(force: true) }
     }
