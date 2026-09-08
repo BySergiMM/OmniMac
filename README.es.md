@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <b>🇪🇸 Español</b> · <a href="README.en.md">🇬🇧 English</a>
+  <a href="README.md">🇬🇧 English</a> · <b>🇪🇸 Español</b>
 </p>
 
 <p align="center">
@@ -58,10 +58,11 @@ https://github.com/user-attachments/assets/757ab088-c1fa-416d-9d5c-fb8088834c68
 ## En dos líneas
 
 Mantener despierto, ⌘Tab por ventanas, notch dinámico, atajos y disposiciones de
-ventanas, historial del portapapeles, utilidades (OCR, color, micrófono…) y sonido con
-volumen por app. Consume **0,017 % de CPU y 50 MB de memoria real en reposo**: un 81 %
-menos que las cinco apps a las que sustituye ([estudio](docs/PERFORMANCE.md)). Sin cuentas,
-sin telemetría; se actualiza sola. La interfaz sigue el idioma del Mac (español o inglés) y se puede fijar en Ajustes.
+ventanas, historial del portapapeles, utilidades (OCR, color, micrófono…), sonido con
+volumen y ecualizador por app, escondedor de la barra de menús y limpiador de apps.
+Consume **0,017 % de CPU y 83 MB en reposo** (30 MB de memoria física real): un **90 %
+menos de memoria** que las siete apps residentes a las que sustituye, que juntas ocupan
+851 MB ([estudio](docs/PERFORMANCE.md)). Sin cuentas, sin telemetría; se actualiza sola. La interfaz sigue el idioma del Mac (español o inglés) y se puede fijar en Ajustes.
 
 **Instalar**: descarga [`OmniMac.pkg`](https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg)
 y ábrelo, o `brew install --cask BySergiMM/tap/omnimac`. Como no está firmada con una cuenta de desarrollador de Apple, la primera vez
@@ -77,8 +78,10 @@ macOS avisará: Ajustes del Sistema › Privacidad y seguridad › «Abrir igual
 | 🧲 **Atajos de ventanas** | Mitades (repetir cicla ½ → ⅔ → ⅓), cuartos, **tercios**, maximizar, casi maximizar, centrar, más grande/pequeño, restaurar y pasar a otra pantalla con ⌃⌥ + teclas. **Arrastra una ventana a un borde o esquina** para ajustarla (con huella previa). Y **disposiciones**, como los presets de una radio: ⌃⌥1…9 guarda la actual en un número libre o aplica la que ya tenga (mantener pulsado libera el número), ⌃⌥0 deshace, y pueden aplicarse solas al conectar el monitor. | Rectangle / Moom |
 | 📋 **Historial del portapapeles** | Guarda **texto, imágenes y archivos**; ⇧⌘V abre el historial, **escribe para buscar**, **⌥P ancla** lo que uses siempre y pega el elemento elegido donde estabas. Pausa cuando quieras y, si lo activas, se conserva en disco. | Maccy |
 | 🛠️ **Utilidades** | **Copiar texto de la pantalla** (⇧⌘2, OCR), **copiar un color** (⇧⌘6: clic en un punto y su hex va al portapapeles), **silenciar el micrófono** (⌃⌥⌘M), **bloquear el teclado 30 s para limpiarlo** (⌃⌥⌘L), **ocultar los iconos del escritorio** y **evitar el ⌘Q accidental** (solo cierra si mantienes ⌘Q medio segundo). | TextSniper, Pika, Mic Drop, KeyboardCleanTool, HiddenMe, CommandQ |
-| 🔊 **Sonido** | **Volumen distinto para cada app** (Spotify al 40 %, el navegador al 100 %…), desde el notch o Ajustes; el volumen del Mac se sigue en tiempo real (teclas incluidas). Cambia de **salida** y de **micrófono** al instante, con **volumen, balance y silencio** por dispositivo, y **⌃⌥⌘O** para ciclar la salida. | SoundSource / Background Music |
+| 🔊 **Sonido** | **Volumen distinto para cada app** (Spotify al 40 %, el navegador al 100 %…), desde el notch o Ajustes; el volumen del Mac se sigue en tiempo real (teclas incluidas). **Ecualizador de 10 bandas**, general o por app, con nueve ajustes preparados (más graves, voz y pódcast, rock, modo noche…). Cambia de **salida** y de **micrófono** al instante, con **volumen, balance y silencio** por dispositivo, **prioridad de salidas** (al conectar unos auriculares se ponen solos) y **⌃⌥⌘O** para ciclar la salida. | FineTune / SoundSource |
 | 📈 **Rendimiento** | Tres gráficos del último minuto (CPU, memoria y red) en el notch y en Ajustes. Solo mide mientras se ven. | iStat Menus (versión mínima) |
+| 🫥 **Barra de menús** | Esconde los iconos que no usas a diario y **recupera sitio en la barra**: una sección oculta que se despliega al pulsar, y otra siempre oculta para lo que no quieres ver nunca. El orden se cambia arrastrando. | Ice |
+| 🗑️ **Limpiador de apps** | Desinstala una app **con todo lo que deja detrás** (preferencias, cachés, contenedores, estados guardados) y encuentra los **restos de apps que ya no tienes**. Todo va a la papelera, nunca se borra del todo. | AppCleaner |
 
 ## Instalar (recomendado): el instalador `.pkg`
 
