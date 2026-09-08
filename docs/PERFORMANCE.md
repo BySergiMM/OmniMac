@@ -72,6 +72,78 @@ y recuento de objetos con `heap` antes y después de abrir y cerrar el notch 10 
    fuga de 35 despertares por segundo por cada apertura del notch que no existía: `proc_pidinfo`
    daba 4 cambios de contexto por segundo y 0 ms de CPU. `scripts/dev/wakeups.sh` resta dos muestras.
 
+## Medición 0.4.2 (8 de septiembre de 2026)
+
+Misma metodología (`scripts/dev/measure.sh`: calentar abriendo y cerrando el notch una vez,
+60 s de reposo comprobando cada 5 s que sigue plegado, `ps -o cputime` para la CPU y
+`footprint` para la memoria real). Arranque limpio, sin abrir Ajustes.
+
+| Escenario | CPU media | RSS | Memoria física real | Hilos | Disco |
+|---|---|---|---|---|---|
+| **Reposo** (notch plegado, 60 s) | **0,017 %** | 80 MB | **35 MB** | 6 | 14 MB |
+| Con la ventana de Novedades abierta antes | 0,017 % | 110 MB | 37 MB | 6 | |
+
+- La CPU en reposo no se mueve (0,017 % por cuarta versión seguida): lo añadido desde 0.4.1
+  —limpiador de apps, ecualizador, ventana de Novedades— **no tiene nada corriendo en reposo**.
+- La memoria real sube de 19 a 35 MB y el disco de 12 a 14 MB. El disco son los dos
+  registros de cambios en Recursos y el código nuevo; la memoria, los marcos que ahora se
+  enlazan y las vistas nuevas ya recorridas.
+- El ecualizador y el volumen por app solo montan el motor de audio **si hay algo guardado
+  que aplicar y alguna app sonando**; en reposo, con todo a 100 %, no hay tap ni temporizador.
+
+## Medición 0.5.0 (9 de septiembre de 2026)
+
+Misma metodología (`scripts/dev/measure.sh`: calentar abriendo y cerrando el notch una
+vez, 60 s de reposo comprobando cada 5 s que sigue plegado, `ps -o cputime` para la CPU
+y `footprint` para la memoria real). Esta versión añade doce módulos, así que se mide
+también el caso peor de cada uno.
+
+| Escenario | CPU media | RSS | Memoria real | Hilos |
+|---|---|---|---|---|
+| **Reposo** (notch plegado, 60 s, tres muestras) | **0,017–0,033 %** | 82–83 MB | **27–36 MB** | 6–7 |
+| Notch abierto con música (30 s) | 0,93 % | 84 MB | 29 MB | 9 |
+| **Motor de audio activo** (volumen por app y audio sonando, 40 s) | **0,55 %** | 133 MB | **72 MB** | 8 |
+| Página de Rendimiento abierta (60 s) | 1,57 % | — | — | — |
+| Despertares en reposo | **1,0/s**, igual tras tres ciclos de abrir y cerrar el notch | | | |
+
+En disco: **16 MB**.
+
+**La medida está cuantizada.** `measure.sh` cuenta el tiempo de CPU en centésimas de
+segundo sobre una ventana de 60 s, así que el escalón mínimo es 0,017 %. Un «0,033 %»
+son dos escalones, no una medida fina: por eso el reposo se da como intervalo y con
+tres muestras.
+
+**Lo que cuesta cada cosa, medido una por una** (50 repeticiones, media):
+
+| Lectura | Coste |
+|---|---|
+| `coreTicks` (CPU por núcleo) | 0,01 ms |
+| `memory` (presión y swap) | 0,00 ms |
+| `battery` | 0,03 ms |
+| `thermalState` | 0,00 ms |
+| `diskSpace` **rápido** | 0,09 ms |
+| `diskSpace` **«disponible para lo importante»** | **4,96 ms** |
+
+Ese último dato cambió el diseño de los avisos. Con la lectura precisa, el vigilante de
+alertas metía picos de 0,083 % en el reposo —cinco escalones— porque macOS calcula el
+espacio purgable cada vez. Para un aviso de «queda poco disco» sobra con el hueco a
+secas, y con eso las alertas encendidas quedan **indistinguibles** de tenerlas apagadas:
+
+| | Tres muestras |
+|---|---|
+| Alertas apagadas | 0,017 · 0,033 · 0,017 % |
+| Alertas encendidas (antes) | 0,083 · 0,017 · 0,033 % |
+| Alertas encendidas (ahora) | 0,017 · 0,033 · 0,017 · 0,033 % |
+
+**Dos cosas que se pagan y conviene saber:**
+
+- **El motor de audio duplica la memoria real** (de ~30 a 72 MB) mientras está
+  montado. Solo se monta si hay algo guardado que aplicar **y** alguna app sonando; en
+  cuanto deja de haberlo, se desmonta. Con todo a 100 % no existe.
+- **La página de Rendimiento cuesta 1,57 %** mientras se mira. Eran 5,67 % hasta que se
+  agruparon las notificaciones de SwiftUI: doce propiedades `@Published` cambiaban por
+  muestra y cada una recalculaba el diseño de la página entera. Ahora se avisa una vez.
+
 ## Espacio en disco (6 de septiembre de 2026)
 
 | Qué | Cuánto | Notas |
@@ -100,31 +172,52 @@ actualización; si hay una en marcha, esa carpeta no se toca.
 - Sin procesos hijo, sin fugas de memoria (RSS plano), y los temporizadores se
   paran cuando no se usan. Impacto de batería insignificante.
 
-## Comparativa con las apps en las que se inspira
+## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
-Misma metodología para todas: **cada app medida en aislamiento** (solo ella + el sistema),
-50 s de reposo con el cursor lejos del notch, tras 15 s de arranque. CPU = tiempo de CPU
-consumido / tiempo transcurrido; RAM = RSS (BoringNotch incluye su proceso ayudante XPC).
-OmniMac medida tras abrir y cerrar el notch una vez (estado "caliente", el habitual).
+Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),
+50 s de reposo tras 15 s de arranque, sin ninguna ventana suya abierta. CPU = tiempo de CPU
+consumido / tiempo transcurrido; RAM = RSS, sumando procesos ayudantes si los tiene.
+OmniMac se mide en caliente (tras abrir y cerrar el notch una vez), que es su estado normal.
 
-| App | Sustituye a (módulo de OmniMac) | CPU reposo | RAM | Hilos | Disco | Versión |
+Ice, FineTune y AppCleaner se descargaron el 8 de septiembre de 2026, se midieron y se
+borraron. Las otras cinco conservan la medición del 3 de septiembre, mismo Mac y mismo método.
+
+| App | Sustituye a (módulo de OmniMac) | CPU reposo | RSS | Hilos | Disco | Versión |
 |---|---|---|---|---|---|---|
-| **OmniMac** | — (las 5 en una) | 0,017 % | 119 MB (50 MB reales) | 6 | 7 MB | 0.3.0 |
+| **OmniMac** | — (las ocho en una) | **0,017 %** | **80 MB** | 6 | 14 MB | 0.4.2 |
 | **Amphetamine** | Mantener despierto | 0,000 % | 100 MB | 5 | 7 MB | 5.3.2 |
 | **AltTab** | ⌘Tab por ventanas | 0,020 % | 212 MB | 9 | 11 MB | 11.5.0 |
 | **Rectangle** | Atajos de ventanas | 0,040 % | 84 MB | 4 | 9 MB | 1.100 |
 | **Maccy** | Portapapeles | 0,020 % | 91 MB | 4 | 10 MB | 2.7.1 |
-| **BoringNotch** | Notch dinámico | 0,340 % | 149 MB (142+7 ayudante) | 7 | 19 MB | 2.7.3 |
-| **Las 5 juntas** | — | 0,420 % | **636 MB** | — | 56 MB | — |
+| **BoringNotch** | Notch dinámico | 0,340 % | 149 MB | 7 | 19 MB | 2.7.3 |
+| **Ice** | Barra de menús | 0,040 % | 99 MB | 6 | 8 MB | 0.11.12 |
+| **FineTune** | Sonido (volumen por app y ecualizador) | 0,000 % | 116 MB | 6 | 11 MB | 1.9.0 |
+| **Las 7 residentes juntas** | — | **0,460 %** | **851 MB** | — | 75 MB | — |
+| *AppCleaner* | *Limpiador de apps* | *0,000 %* | *90 MB* | *6* | *9 MB* | *3.6.8* |
 
-**OmniMac reemplaza a las cinco usando 119 MB de RSS (50 MB de memoria física real): un 81 % menos que tenerlas todas abiertas** (636 MB), y menos RSS que AltTab o BoringNotch por separado.
+**OmniMac hace el trabajo de las siete que viven en la barra de menús con 80 MB en vez de
+851: un 91 % menos de memoria y un 96 % menos de CPU** (0,017 % frente a 0,460 %). En disco,
+14 MB frente a 84 MB entre las ocho.
 
-Matices honestos:
+Matices honestos, para que las cifras signifiquen algo:
 
-- AltTab captura miniaturas de las ventanas en segundo plano: por eso su RAM crece con el uso (en sesiones largas llegó a >300 MB).
-- BoringNotch y OmniMac son apps de notch: **no se pueden medir a la vez**, se disparan mutuamente (por eso el aislamiento).
-- Un solo Mac (Apple Silicon, macOS 26.5), una sola tanda: son órdenes de magnitud, no décimas.
-- Amphetamine y las demás hacen bien lo suyo; el punto es que OmniMac hace las cinco cosas con una sola app residente.
+- **AppCleaner va aparte a propósito.** No vive en segundo plano: se abre, se usa y se cierra.
+  Sumar sus 90 MB al total sería hacer trampa, así que está fuera del total y en cursiva.
+- **Ice no arranca sin permiso de Accesibilidad.** Medida al primer intento, con su ventana de
+  bienvenida delante, daba 3,52 %; eso es la ventana, no la app. Con los permisos concedidos y
+  sin ventanas se queda en 0,040 %.
+- **La memoria real (`footprint`) solo la tenemos de las cuatro medidas este mes**: OmniMac
+  35 MB, FineTune 49 MB, Ice 37 MB, AppCleaner 33 MB. Para las otras cuatro solo hay RSS, así
+  que la comparativa se hace **RSS contra RSS**, que es lo comparable.
+- AltTab captura miniaturas de las ventanas en segundo plano: su RAM crece con el uso (en
+  sesiones largas pasó de 300 MB).
+- BoringNotch y OmniMac son apps de notch: **no se pueden medir a la vez**, se disparan
+  mutuamente. De ahí el aislamiento.
+- FineTune marca 0,000 % en reposo porque sin audio sonando no hay nada que procesar. OmniMac
+  hace lo mismo: sin nada guardado que aplicar no monta ni el tap ni el temporizador.
+- Un solo Mac (Apple silicon, macOS 26.5), una sola tanda: son órdenes de magnitud, no décimas.
+- Las ocho hacen bien lo suyo. El punto no es que sean malas, es que OmniMac hace las ocho
+  cosas con un solo proceso residente.
 
 ## Optimizaciones aplicadas
 
