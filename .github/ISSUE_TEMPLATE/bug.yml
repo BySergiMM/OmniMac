@@ -1,0 +1,42 @@
+name: Bug
+description: Something doesn't work the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Which module
+      options:
+        - Dynamic notch
+        - Keep awake
+        - ⌘Tab by windows
+        - Window shortcuts
+        - Clipboard
+        - Tools (OCR, colour, mic, brightness)
+        - Sound (volume, equaliser, mixer)
+        - Performance (charts, temperature, alerts)
+        - Menu bar
+        - Command bar
+        - App cleaner
+        - Settings / something else
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac and macOS version
+      placeholder: MacBook Pro M3, macOS 15.2
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OmniMac version
+      description: Settings › Home, at the top.

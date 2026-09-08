@@ -1,0 +1,19 @@
+name: Feature request
+description: Something you'd like OmniMac to do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What you'd like
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What you'd use it for
+      description: >
+        The important half. OmniMac deliberately doesn't do everything — knowing what
+        you'd actually do with it is what decides whether it fits.
+    validations:
+      required: true
