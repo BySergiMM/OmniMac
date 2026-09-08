@@ -1,8 +1,8 @@
 # OmniMac — Radiografía de la competencia
 
-Inventario de **todas** las funciones de las cinco apps en las que se inspira OmniMac, contrastado con lo que OmniMac ya hace, para decidir qué añadir. Hecho el 3 de septiembre de 2026.
+Inventario de **todas** las funciones de las ocho apps en las que se inspira OmniMac, contrastado con lo que OmniMac ya hace, para decidir qué añadir. Las cinco primeras, el 3 de septiembre de 2026; Ice, FineTune y AppCleaner, el 8 de septiembre.
 
-Fuentes: README o web oficial de cada app, la descripción del App Store (Amphetamine) y **los textos de los paneles de ajustes extraídos de cada bundle** (`Localizable.strings`), que listan hasta la última opción. Las apps se instalaron solo para medir consumo y se han eliminado después.
+Fuentes: README o web oficial de cada app, la descripción del App Store (Amphetamine) y **los textos de los paneles de ajustes extraídos de cada bundle**, que listan hasta la última opción. En las clásicas están en `Localizable.strings`; Ice y FineTune son SwiftUI puro y sus textos van dentro del binario, así que se sacaron con `strings`. Las apps se instalaron solo para medir consumo y se han eliminado después.
 
 ## Cobertura
 
@@ -13,7 +13,10 @@ Fuentes: README o web oficial de cada app, la descripción del App Store (Amphet
 | **Rectangle** | 1.100 | Atajos de ventanas | 4 | 1 | 18 |
 | **Maccy** | 2.7.1 | Historial del portapapeles | 1 | 3 | 13 |
 | **BoringNotch** | 2.7.3 | Notch dinámico | 7 | 7 | 18 |
-| **Total** | | | **19** | **19** | **82** |
+| **Ice** | 0.11.12 | Barra de menús | 3 | 1 | 7 |
+| **FineTune** | 1.9.0 | Sonido | 5 | 1 | 6 |
+| **AppCleaner** | 3.6.8 | Limpiador de apps | 3 | 0 | 3 |
+| **Total** | | | **30** | **21** | **98** |
 
 «Falta» incluye funciones que **no conviene** copiar (marcadas como *Descartar*): OmniMac gana por ser simple, no por tener más casillas.
 
@@ -192,9 +195,60 @@ Fuente: README + 235 textos de ajustes (en español).
 | Extensiones (gestor de portapapeles de pago) | ✅ Ya |  | Nuestro portapapeles es gratis |
 | Icono en la barra, abrir al iniciar sesión, actualizaciones | 🟡 Parcial | Más adelante |  |
 
+## Ice 0.11.12 → Barra de menús
+
+Fuente: repositorio oficial (GPL-3.0) y los textos de sus ajustes sacados del binario.
+**No se ha mirado ni copiado su código**: es GPL y OmniMac es MIT.
+
+| Función | OmniMac | Qué hacer | Nota |
+|---|---|---|---|
+| Sección oculta que se despliega al pulsar | ✅ Ya | | |
+| Sección «siempre oculta» para lo que no quieres ver nunca | ✅ Ya | | |
+| Reordenar los iconos arrastrando | ✅ Ya | | |
+| Volver a esconder solos tras un rato | 🟡 Parcial | Más adelante | Nosotros escondemos al perder el foco; falta el temporizador con retardo |
+| Personalizar el aspecto de la barra (fondo, sombra, bordes, formas) | ❌ Falta | Descartar | Mucho dibujo para poco uso, y se pelea con el notch |
+| Espaciado entre iconos | ❌ Falta | Descartar | Toca ajustes internos de macOS que se rompen en cada versión |
+| «Ice Bar»: barra flotante propia con los iconos escondidos | ❌ Falta | Más adelante | Bonito, pero es otra ventana siempre viva |
+| Buscador de iconos de la barra | ❌ Falta | Más adelante | Barato si algún día hay muchos escondidos |
+| Atajos para desplegar cada sección | ❌ Falta | **Añadir** | Encaja con los atajos que ya tenemos |
+| Ajustes distintos en apariencia clara y oscura | ❌ Falta | Descartar | Solo tiene sentido si personalizas el aspecto |
+| Perfiles de barra por pantalla | ❌ Falta | Descartar | Nicho |
+
+## FineTune 1.9.0 → Sonido
+
+Fuente: repositorio oficial y los textos de sus ajustes sacados del binario.
+
+| Función | OmniMac | Qué hacer | Nota |
+|---|---|---|---|
+| Volumen distinto por app | ✅ Ya | | |
+| Ecualizador con ajustes guardados | ✅ Ya | | Diez bandas y nueve ajustes preparados |
+| Cambio de salida y de entrada al instante | ✅ Ya | | |
+| Prioridad de salidas al conectar un aparato | ✅ Ya | | |
+| Volumen, balance y silencio por dispositivo | ✅ Ya | | |
+| Guardar y renombrar ajustes propios del ecualizador | 🟡 Parcial | **Añadir** | Tenemos los nueve fijos; falta guardar los tuyos |
+| Perfiles de corrección AutoEQ por modelo de auricular | ❌ Falta | Más adelante | Es un catálogo descargable; mucho mantenimiento |
+| Compensación de sonoridad a volumen bajo | ❌ Falta | **Añadir** | Barato: es una curva más sobre el ecualizador que ya hay |
+| Bloquear el dispositivo de entrada | ❌ Falta | **Añadir** | Evita que macOS cambie el micro solo |
+| Aviso al desconectarse un dispositivo | ❌ Falta | Más adelante | El notch ya tiene dónde enseñarlo |
+| Control de las teclas multimedia | ❌ Falta | Descartar | Se pisa con lo que ya hace macOS |
+| Subir o bajar solo la app que está sonando | ❌ Falta | Más adelante | Útil, pero hay que acertar con «la que suena» |
+
+## AppCleaner 3.6.8 → Limpiador de apps
+
+Fuente: web oficial y sus `Localizable.strings`.
+
+| Función | OmniMac | Qué hacer | Nota |
+|---|---|---|---|
+| Desinstalar una app con todo lo que deja detrás | ✅ Ya | | Preferencias, cachés, contenedores, estados guardados |
+| Nada se borra del todo: todo va a la papelera | ✅ Ya | | |
+| Proteger las apps del sistema | ✅ Ya | | Nunca se ofrece nada de `com.apple.` |
+| Buscar restos de apps **que ya no están** | ✅ Ya (y AppCleaner no) | | Lo nuestro de más |
+| SmartDelete: vigilar la papelera y ofrecer limpiar | ❌ Falta | **Añadir** | Es el gesto natural: arrastras la app y se ofrece solo |
+| Desinstalar también widgets y plugins | ❌ Falta | Más adelante | Mismo motor, otras carpetas |
+| Lista de apps del sistema aparte | ❌ Falta | Descartar | No queremos que nadie las toque |
+
 ## Criterio
 
 - **Añadir**: lo usa mucha gente y encaja en una app simple.
 - **Más adelante**: útil pero secundario; solo si no complica los Ajustes.
 - **Descartar**: nicho, estético o contrario a la filosofía (por ejemplo, el visualizador de BoringNotch costaba un 9 % de CPU).
-
