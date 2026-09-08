@@ -22,6 +22,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Gráficas de rendimiento: notch, barra de menús o en ningún sitio.
         MenuBarStats.apply()
         FeatureManager.shared.startEnabled()
+        // Los avisos son lo único del monitor que corre sin que nadie mire: una
+        // muestra barata cada 30 s.
+        AlertsMonitor.shared.start()
+        DiskImageInstaller.shared.startIfEnabled()
+        showWhatsNewIfUpdated()
 
         // Si algún módulo activado necesita Accesibilidad y no la tenemos, la pedimos:
         // así OmniMac aparece en la lista de Ajustes del Sistema. (Recompilar invalida
@@ -46,6 +51,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         SettingsWindowController.shared.show()
         return true
+    }
+
+    /// Tras actualizar, enseña una vez lo que trae la versión nueva.
+    ///
+    /// En una instalación recién hecha no sale nada: ahí lo que se abre es Ajustes con
+    /// la bienvenida, y dos ventanas seguidas sobran. La versión vista se guarda
+    /// siempre, también la primera vez, para que la próxima actualización sí la note.
+    private func showWhatsNewIfUpdated() {
+        let defaults = UserDefaults.standard
+        let lastSeen = defaults.string(forKey: ReleaseNotes.lastVersionKey)
+        let current = Brand.version
+        defer { defaults.set(current, forKey: ReleaseNotes.lastVersionKey) }
+        guard ReleaseNotes.shouldShow(current: current, lastSeen: lastSeen) else { return }
+        // Un respiro para que la app termine de arrancar y la ventana no pelee con
+        // los permisos ni con Ajustes.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            WhatsNewWindowController.shared.showCurrent()
+        }
     }
 
     /// Vigilante del hilo principal, para cuando alguien dice que la app «va lenta».

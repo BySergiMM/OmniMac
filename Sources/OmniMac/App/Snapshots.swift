@@ -40,7 +40,7 @@ enum Snapshots {
 
         let media = MediaBridge()
         media.useSample(NowPlayingInfo(playerName: "Spotify", bundleID: "com.spotify.client",
-                                       title: L("Todo lo que le falta a tu Mac", "Everything your Mac is missing"), artist: "OmniMac",
+                                       title: L("La Dynamic Island que tu Mac nunca tuvo", "The Dynamic Island your Mac never had"), artist: "OmniMac",
                                        isPlaying: true, artworkURL: nil, position: 72, duration: 188),
                         artwork: sampleArtwork())
         let battery = BatteryMonitor()
@@ -53,6 +53,7 @@ enum Snapshots {
         sound.mixer.useSample(sampleApps())
         let stats = SystemStats()
         stats.useSample(cpu: wave(60, base: 14, amp: 12, period: 17),
+                        gpu: wave(60, base: 22, amp: 18, period: 11),
                         memory: wave(60, base: 11.2, amp: 0.5, period: 23),
                         networkIn: wave(60, base: 180, amp: 160, period: 9),
                         networkOut: wave(60, base: 40, amp: 30, period: 13))
@@ -81,7 +82,10 @@ enum Snapshots {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
                     save(hosting, to: dir.appendingPathComponent("notch-headphones.png"))
                     window.orderOut(nil)
-                    renderMenu(into: dir, source: menuSource) { NSApp.terminate(nil) }
+                    renderMenu(into: dir, source: menuSource) {
+                        cleanUp()
+                        NSApp.terminate(nil)
+                    }
                 }
                 return
             }
@@ -195,8 +199,18 @@ enum Snapshots {
                 app("FaceTime", "/System/Applications/FaceTime.app", 0.75, playing: false)]
     }
 
+    /// Archivos de mentira para que la bandeja del notch salga con algo dentro.
+    ///
+    /// Van a una carpeta temporal, no junto a las capturas: dejaban tres archivos
+    /// vacíos dentro de `docs/site/img` que acababan en el repositorio sin que nadie
+    /// los usara. La carpeta se borra al terminar (ver `cleanUp`).
+    private static var sampleFolder: URL?
+
     private static func sampleFiles(in dir: URL) -> [URL] {
-        let folder = dir.appendingPathComponent(L("bandeja", "tray"), isDirectory: true)
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("omnimac-snapshots-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent(L("bandeja", "tray"), isDirectory: true)
+        sampleFolder = folder.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // Se localizan como cualquier otro texto: estas capturas ilustran también
         // la web en inglés.
@@ -207,6 +221,12 @@ enum Snapshots {
             if !FileManager.default.fileExists(atPath: url.path) { try? Data().write(to: url) }
             return url
         }
+    }
+
+    /// Borra lo que se creó solo para las capturas.
+    static func cleanUp() {
+        if let sampleFolder { try? FileManager.default.removeItem(at: sampleFolder) }
+        sampleFolder = nil
     }
 }
 

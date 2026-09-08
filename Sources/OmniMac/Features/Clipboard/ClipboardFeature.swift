@@ -61,6 +61,28 @@ final class ClipboardFeature: BaseFeature {
     /// Ignorar lo que se copie mientras esté pausado (datos sensibles, etc.).
     @Published var paused = false
 
+    /// Quitar el rastreo de los enlaces nada más copiarlos.
+    ///
+    /// Va apagado por defecto: reescribir lo que alguien acaba de copiar es
+    /// atrevido, y quien lo quiera lo enciende sabiendo lo que hace.
+    @Published var cleanURLs: Bool {
+        didSet { UserDefaults.standard.set(cleanURLs, forKey: "clipboard.cleanURLs") }
+    }
+
+    /// Pegar sin formato con ⌥⇧⌘V.
+    ///
+    /// Copiar de una web y pegar en un documento se trae la tipografía, el tamaño y
+    /// los colores de la web. Esto pega solo el texto, dejando el formato del sitio
+    /// donde pegas. No toca el historial: actúa sobre lo que haya en el portapapeles
+    /// en ese momento, venga de donde venga.
+    @Published var plainPasteEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(plainPasteEnabled, forKey: "clipboard.plainPaste")
+            guard isEnabled else { return }
+            if plainPasteEnabled { registerPlainPaste() } else { HotKeyCenter.shared.unregister(id: Self.plainHotKeyID) }
+        }
+    }
+
     private var timer: Timer?
     private var lastChangeCount = NSPasteboard.general.changeCount
     private let panel = ClipboardPanelController()
@@ -68,10 +90,14 @@ final class ClipboardFeature: BaseFeature {
     private var saveWork: DispatchWorkItem?
 
     private static let hotKeyID: UInt32 = 200
+    private static let plainHotKeyID: UInt32 = 201
 
     init() {
         let stored = UserDefaults.standard.integer(forKey: "clipboard.maxItems")
         maxItems = stored == 0 ? 40 : stored
+        plainPasteEnabled = UserDefaults.standard.object(forKey: "clipboard.plainPaste") == nil
+            ? true : UserDefaults.standard.bool(forKey: "clipboard.plainPaste")
+        cleanURLs = UserDefaults.standard.bool(forKey: "clipboard.cleanURLs")
         persist = UserDefaults.standard.bool(forKey: "clipboard.persist")
         super.init(id: "clipboard",
                    name: L("Historial del portapapeles", "Clipboard history"),
@@ -113,12 +139,58 @@ final class ClipboardFeature: BaseFeature {
                                      modifiers: UInt32(cmdKey | shiftKey)) { [weak self] in
             self?.togglePanel()
         }
+        if plainPasteEnabled { registerPlainPaste() }
+    }
+
+    private func registerPlainPaste() {
+        HotKeyCenter.shared.register(id: Self.plainHotKeyID,
+                                     keyCode: UInt32(kVK_ANSI_V),
+                                     modifiers: UInt32(cmdKey | shiftKey | optionKey)) { [weak self] in
+            self?.pastePlain()
+        }
+    }
+
+    /// Limpia el enlace que haya ahora en el portapapeles, sin pegar nada.
+    @discardableResult
+    func cleanClipboardURL() -> Bool {
+        let pasteboard = NSPasteboard.general
+        guard let text = pasteboard.string(forType: .string),
+              let cleaned = URLCleaner.clean(text) else {
+            Toast.show(L("No hay ningún enlace con rastreo", "No tracked link to clean"), symbol: "link")
+            return false
+        }
+        pasteboard.clearContents()
+        pasteboard.setString(cleaned, forType: .string)
+        lastChangeCount = pasteboard.changeCount
+        Toast.show(L("Enlace limpio de rastreo", "Tracking removed from the link"), symbol: "link")
+        return true
+    }
+
+    /// Deja en el portapapeles solo el texto y pega.
+    ///
+    /// Se lee con `.string`, que es lo que da AppKit ya convertido a texto plano
+    /// aunque el original fuera RTF o HTML. Si lo que hay no es texto (una imagen,
+    /// unos archivos) no se toca nada: mejor no hacer nada que vaciarle el
+    /// portapapeles a alguien.
+    func pastePlain() {
+        let pasteboard = NSPasteboard.general
+        guard let text = pasteboard.string(forType: .string) else { return }
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        lastChangeCount = pasteboard.changeCount
+        guard Permissions.hasAccessibility else {
+            Toast.show(L("Sin formato, listo para pegar", "Formatting removed, ready to paste"),
+                       symbol: "doc.on.clipboard")
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { Self.sendCmdV() }
     }
 
     override func stop() {
         timer?.invalidate()
         timer = nil
         HotKeyCenter.shared.unregister(id: Self.hotKeyID)
+        HotKeyCenter.shared.unregister(id: Self.plainHotKeyID)
         panel.hide()
     }
 
@@ -172,6 +244,16 @@ final class ClipboardFeature: BaseFeature {
            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if text.count > 20_000 {
                 text = String(text.prefix(20_000))
+            }
+            // Si lo copiado es un enlace con rastreo, se sustituye por el limpio: en
+            // el historial y en el portapapeles, para que al pegar salga ya limpio.
+            if cleanURLs, let cleaned = URLCleaner.clean(text) {
+                text = cleaned
+                pasteboard.clearContents()
+                pasteboard.setString(cleaned, forType: .string)
+                lastChangeCount = pasteboard.changeCount
+                Toast.show(L("Enlace limpio de rastreo", "Tracking removed from the link"),
+                           symbol: "link")
             }
             if case .text(let existing)? = items.first?.content, existing == text { return }
             items.removeAll {

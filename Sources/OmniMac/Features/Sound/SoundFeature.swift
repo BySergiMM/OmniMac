@@ -39,9 +39,12 @@ final class SoundFeature: BaseFeature {
 
     /// Volumen por app (taps de proceso, macOS 14.2+).
     let mixer = AppVolumeMixer()
+    /// Mezclador suelto, con su propio atajo.
+    private lazy var mixerPanel = MixerPanelController(sound: self)
     private var refreshing = false
     private var lastOutput: AudioDeviceID?
     private static let cycleHotKey: UInt32 = 400
+    private static let mixerHotKey: UInt32 = 401
 
     static let shortcutHelp: [(shortcut: String, action: String)] = [
         ("⌃⌥⌘ O", L("Cambia a la siguiente salida de audio (altavoces, auriculares, monitor…)", "Switches to the next audio output (speakers, headphones, monitor…)")),
@@ -85,10 +88,20 @@ final class SoundFeature: BaseFeature {
                                      modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
             self?.cycleOutput()
         }
+        HotKeyCenter.shared.register(id: Self.mixerHotKey,
+                                     keyCode: UInt32(kVK_ANSI_V),
+                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
+            self?.toggleMixer()
+        }
     }
+
+    /// Abre o cierra el mezclador suelto.
+    func toggleMixer() { mixerPanel.toggle() }
 
     override func stop() {
         HotKeyCenter.shared.unregister(id: Self.cycleHotKey)
+        HotKeyCenter.shared.unregister(id: Self.mixerHotKey)
+        mixerPanel.hide()
         AudioSystem.stopObserving()
         AudioSystem.stopObservingLevels()
         mixer.stop()

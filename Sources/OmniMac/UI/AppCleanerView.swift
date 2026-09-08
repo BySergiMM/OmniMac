@@ -29,6 +29,7 @@ struct AppCleanerPage: View {
 
     @ViewBuilder
     private var appList: some View {
+        orphanSection
         Section {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -81,6 +82,106 @@ struct AppCleanerPage: View {
                     }
                     .buttonStyle(.plain)
                 }
+            }
+        }
+    }
+
+    // MARK: - Restos de apps que ya no están
+
+    @ViewBuilder
+    private var orphanSection: some View {
+        Section {
+            if cleaner.scanningOrphans {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(L("Buscando por la biblioteca…", "Searching your library…")).foregroundStyle(.secondary)
+                }
+            } else if cleaner.orphans.isEmpty {
+                SettingRow(title: L("Restos de apps que ya no tienes", "Leftovers from apps you no longer have"),
+                           subtitle: L("Cuando arrastras una app a la papelera, sus datos se quedan. Esto los busca.",
+                                       "When you drag an app to the Trash its data stays behind. This finds it.")) {
+                    Button(L("Buscar", "Search")) { cleaner.scanOrphans() }
+                }
+            } else {
+                ForEach(cleaner.orphans) { orphan in
+                    Toggle(isOn: Binding(
+                        get: { cleaner.checkedOrphans.contains(orphan.bundleID) },
+                        set: { on in
+                            if on { cleaner.checkedOrphans.insert(orphan.bundleID) }
+                            else { cleaner.checkedOrphans.remove(orphan.bundleID) }
+                        })) {
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                HStack(spacing: 5) {
+                                    Text(orphan.name)
+                                    // Se avisa antes de marcar, no después de fallar.
+                                    if orphan.urls.allSatisfy({ $0.path.contains("/Library/Containers")
+                                                                || $0.path.contains("/Library/Group Containers") }) {
+                                        Text(L("solo desde el Finder", "Finder only"))
+                                            .font(.caption2)
+                                            .padding(.horizontal, 5).padding(.vertical, 1)
+                                            .background(.quaternary, in: Capsule())
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Text(L("\(orphan.bundleID) · \(orphan.urls.count) elementos",
+                                       "\(orphan.bundleID) · \(orphan.urls.count) items"))
+                                    .font(.caption).foregroundStyle(.secondary)
+                                    .lineLimit(1).truncationMode(.middle)
+                            }
+                            Spacer(minLength: 12)
+                            // Mientras se mide, un guion: es más honesto que enseñar
+                            // «0 bytes» en algo que todavía no se ha contado.
+                            Text(orphan.size > 0 ? CacheCleaner.format(orphan.size)
+                                                 : (cleaner.measuringOrphans ? "—" : CacheCleaner.format(0)))
+                                .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                        }
+                    }
+                    .toggleStyle(.checkbox)
+                }
+                if !cleaner.protectedPaths.isEmpty {
+                    // Que no falle en silencio: se dice qué ha pasado y se ofrece la
+                    // única salida que existe.
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(L("macOS no deja que ninguna app toque las carpetas de Contenedores, ni con Acceso total al disco: solo el Finder puede quitarlas. Estas \(cleaner.protectedPaths.count) se han quedado ahí.",
+                               "macOS won't let any app touch Containers folders, not even with Full Disk Access: only Finder can remove them. These \(cleaner.protectedPaths.count) stayed put."))
+                            .font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button(L("Mostrar en el Finder", "Show in Finder")) { cleaner.revealProtected() }
+                            .controlSize(.small)
+                    }
+                    .padding(.vertical, 2)
+                }
+                HStack {
+                    Button(L("Buscar otra vez", "Search again")) { cleaner.scanOrphans() }
+                    if cleaner.measuringOrphans {
+                        ProgressView().controlSize(.small)
+                        Text(L("Midiendo tamaños…", "Measuring sizes…"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button(role: .destructive) {
+                        cleaner.trashCheckedOrphans()
+                    } label: {
+                        Text(L("Mover a la papelera · \(CacheCleaner.format(cleaner.checkedOrphanSize))",
+                               "Move to Trash · \(CacheCleaner.format(cleaner.checkedOrphanSize))"))
+                    }
+                    .disabled(cleaner.checkedOrphans.isEmpty)
+                }
+            }
+        } header: {
+            Text(L("Restos de apps que ya no tienes", "Leftovers from apps you no longer have"))
+        } footer: {
+            if !cleaner.orphans.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("Ninguno viene marcado, y con razón: algunos pueden ser de ayudantes de apps que sí tienes o de cosas instaladas fuera de la carpeta Aplicaciones. Mira el identificador antes de marcar.",
+                           "None are ticked, and for good reason: some may belong to helpers of apps you do have, or to things installed outside your Applications folder. Check the identifier before ticking."))
+                    // Que el aviso del sistema no pille por sorpresa: aparece al medir,
+                    // no al buscar, y decir que no solo cuesta los tamaños.
+                    Text(L("Para saber cuánto ocupan hay que leer dentro, y macOS pedirá permiso para acceder a los datos de otras apps. Si dices que no, la lista sigue estando; solo te quedas sin los tamaños.",
+                           "Working out how much space they take means reading inside them, so macOS will ask for permission to access other apps' data. If you say no, the list still works — you just won't see the sizes."))
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
         }
     }

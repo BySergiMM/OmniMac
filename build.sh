@@ -21,6 +21,9 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/universal/OmniMac "$APP/Contents/MacOS/OmniMac"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp -R Resources/es.lproj Resources/en.lproj "$APP/Contents/Resources/"
+# Las novedades que enseña la ventana «Novedades» tras actualizar salen de aquí.
+cp CHANGELOG.md "$APP/Contents/Resources/CHANGELOG.md"
+cp CHANGELOG.en.md "$APP/Contents/Resources/CHANGELOG.en.md"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # Sparkle (actualizaciones automáticas): el framework va dentro del .app y el

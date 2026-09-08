@@ -51,7 +51,13 @@ final class KeepAwakeFeature: BaseFeature {
     /// true → la pantalla se mantiene encendida; false → la pantalla puede apagarse,
     /// pero el Mac no entra en reposo.
     @Published var keepDisplayOn: Bool {
-        didSet { UserDefaults.standard.set(keepDisplayOn, forKey: "keepawake.displayOn") }
+        didSet {
+            UserDefaults.standard.set(keepDisplayOn, forKey: "keepawake.displayOn")
+            // Si se cambia con la sesión en marcha, se nota al momento en vez de
+            // esperar a la siguiente: solo va y viene la fianza de pantalla.
+            guard isActive else { return }
+            applyDisplayAssertion()
+        }
     }
 
     /// Modo tapa cerrada: mientras la sesión está activa, el Mac tampoco se duerme
@@ -70,7 +76,10 @@ final class KeepAwakeFeature: BaseFeature {
     /// Último problema legible al activar el modo tapa cerrada (cancelación, etc.).
     @Published private(set) var closedLidError: String?
 
+    /// Fianza de sistema: el Mac no se duerme. Siempre se pide.
     private var assertionID: IOPMAssertionID = 0
+    /// Fianza de pantalla: además, el monitor no se apaga. Solo si se ha pedido.
+    private var displayAssertionID: IOPMAssertionID = 0
     private var timer: Timer?
 
     init() {
@@ -151,17 +160,19 @@ final class KeepAwakeFeature: BaseFeature {
     func activate(seconds: TimeInterval?) {
         deactivate()
 
-        let type = keepDisplayOn
-            ? kIOPMAssertionTypePreventUserIdleDisplaySleep
-            : kIOPMAssertionTypePreventUserIdleSystemSleep
+        // La fianza de sistema va siempre. Antes, con «mantener la pantalla
+        // encendida» se pedía **solo** la de pantalla, y eso deja de valer en cuanto
+        // la pantalla se apaga: al cerrar la tapa no quedaba nada sujetando al Mac.
         var id: IOPMAssertionID = 0
-        let result = IOPMAssertionCreateWithName(type as CFString,
+        let result = IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
                                                  IOPMAssertionLevel(kIOPMAssertionLevelOn),
                                                  "OmniMac: mantener despierto" as CFString,
                                                  &id)
         guard result == kIOReturnSuccess else { return }
-
         assertionID = id
+
+        // Y encima, si se quiere, la de pantalla.
+        applyDisplayAssertion()
         isActive = true
 
         if let seconds {
@@ -175,6 +186,22 @@ final class KeepAwakeFeature: BaseFeature {
         }
 
         if closedLidMode { enableClosedLid() }
+    }
+
+    /// Pone o quita la fianza de pantalla según la preferencia actual.
+    private func applyDisplayAssertion() {
+        if keepDisplayOn, displayAssertionID == 0 {
+            var displayID: IOPMAssertionID = 0
+            if IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
+                                           IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                                           "OmniMac: pantalla encendida" as CFString,
+                                           &displayID) == kIOReturnSuccess {
+                displayAssertionID = displayID
+            }
+        } else if !keepDisplayOn, displayAssertionID != 0 {
+            IOPMAssertionRelease(displayAssertionID)
+            displayAssertionID = 0
+        }
     }
 
     func toggle() {
@@ -195,6 +222,10 @@ final class KeepAwakeFeature: BaseFeature {
         if isActive {
             IOPMAssertionRelease(assertionID)
             assertionID = 0
+            if displayAssertionID != 0 {
+                IOPMAssertionRelease(displayAssertionID)
+                displayAssertionID = 0
+            }
         }
         isActive = false
         deadline = nil
