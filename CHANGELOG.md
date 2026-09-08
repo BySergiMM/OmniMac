@@ -1,5 +1,34 @@
 # Cambios
 
+## 0.5.0 — 2026-09-09
+
+**Nuevo**
+- **El notch funciona en cualquier Mac.** La geometría se saca de la pantalla y no del modelo: donde no hay notch físico dibuja una isla flotante dimensionada al ancho del monitor. Sirve en un iMac, en un Mac mini con pantalla externa y en un MacBook anterior a 2021.
+- **Rendimiento de verdad, no tres gráficas.** CPU por núcleo con los de eficiencia y los de rendimiento en colores distintos, GPU, memoria con su presión y el intercambio, disco (lectura, escritura y espacio libre), red y **temperatura**. Y lo que de verdad se pregunta uno cuando el Mac va lento: **qué apps se están comiendo la CPU y la memoria**, por nombre.
+- **Temperatura**: media del chip, el diodo más caliente, el SSD, la batería y los 45 sensores uno a uno. El estado térmico del sistema va siempre; los grados, solo si macOS los deja leer.
+- **Avisos** cuando la CPU lleva rato al máximo, la memoria está al límite, queda poco disco, el Mac se calienta o la batería baja. Cada uno sale una vez y no se repite hasta que la cosa vuelve a estar bien.
+- **Ecualizador de 10 bandas**, general o por app, con nueve ajustes preparados (más graves, voz y pódcast, rock, modo noche…).
+- **Amplificación por encima del 100 %** (hasta 400 %) con limitador de picos, para que no cruja al sumar varias apps.
+- **Prioridad de salidas**: al conectar unos auriculares se ponen solos, y al desconectarlos vuelve la anterior.
+- **Mezclador suelto** con ⌃⌥⌘V: un atajo, las barras de lo que suene y fuera.
+- **Escondedor de la barra de menús**: pulsa la flecha y los iconos que no usas a diario aparecen; la vuelves a pulsar y se guardan.
+- **Limpiador de apps**: desinstala una app con todo lo que deja detrás y encuentra los restos de las apps que ya borraste. Todo va a la papelera, nunca se borra del todo.
+- **Buscador de comandos** con ⌥Espacio: escribe y ejecuta cualquier función de OmniMac o abre cualquier app. Busca por letras sueltas y en orden («slmi» encuentra «Silenciar el micrófono»). **Apagado de fábrica**, porque ⌥Espacio es el atajo de Raycast y de Alfred.
+- **Pegar sin formato** con ⌥⇧⌘V.
+- **Limpiar el rastreo de los enlaces** al copiarlos: fuera «utm_source», «fbclid», el «si» de Spotify. Solo si lo copiado es un enlace entero, y nunca toca parámetros que no conozca.
+- **Brillo por debajo del mínimo de macOS** con ⌃⌥⌘− y ⌃⌥⌘+, para trabajar de noche.
+- **Instalador de .dmg**: al terminar una descarga, OmniMac pregunta si monta el disco, copia la app a Aplicaciones, lo expulsa y manda el .dmg a la papelera. Nunca hace nada sin preguntar.
+- Los iconos del notch se reordenan arrastrándolos, y las gráficas de rendimiento se pueden poner en el notch, en la barra de menús o en ningún sitio.
+- Ventana de **Novedades** al actualizar, que puedes saltarte.
+
+**Arreglado**
+- **Los menús iban a tirones.** La causa era el monitor global de ratón del notch: mientras existe, macOS despierta la app en cada movimiento del ratón de todo el sistema. Ahora se quita mientras hay un menú abierto.
+- El icono de la barra de menús es ahora el mismo destello que el de la app; antes eran dos dibujos distintos.
+- El escondedor de la barra se tragaba los iconos de la propia OmniMac.
+- El limpiador decía «liberados X MB» aunque no hubiera movido nada. Ahora solo cuenta lo que de verdad llegó a la papelera, y avisa de que macOS no deja que ninguna app toque las carpetas de Contenedores: esas hay que quitarlas desde el Finder.
+- Con las gráficas en la barra de menús se medía **todo** (GPU, disco, sensores y los 445 procesos del sistema) para dibujar una línea de CPU: costaba un 1,9 % en reposo. Ahora el icono pide solo lo que enseña.
+- Dieciocho traducciones corregidas, la barra lateral de Ajustes es más ancha y ya no solapa con los textos largos.
+
 ## 0.4.2 — 2026-09-06
 
 - Ajustes › Inicio › Almacenamiento: muestra lo que ocupa la app y la caché (carátulas descargadas y restos de actualizaciones de Sparkle), un botón «Limpiar ahora» que avisa de cuánto ha liberado, y limpieza automática una vez al día (activada por defecto, se puede apagar). La caché web queda acotada a 16 MB en disco.
