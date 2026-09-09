@@ -20,6 +20,7 @@
 - **.dmg installer**: when a download finishes, OmniMac asks whether to mount the image, copy the app to Applications, eject it and move the .dmg to the Trash. It never acts without asking.
 - The notch's icons reorder by dragging, and the performance charts can go in the notch, in the menu bar or nowhere.
 - A **What's New** window when it updates, which you can skip.
+- **Every shortcut can be changed**, one by one, in Settings. And when another app already owns a combination, OmniMac **says so** instead of staying quiet: `RegisterEventHotKey` used to fail with no warning at all, and the feature simply did nothing. Anyone with Rectangle or Magnet pressed ⌃⌥→ and nothing happened, with no explanation.
 
 **Fixed**
 - **The menus were stuttering.** The cause was the notch's global mouse monitor: while it exists, macOS wakes the app on every mouse move across the whole system. It's now removed while a menu is open.

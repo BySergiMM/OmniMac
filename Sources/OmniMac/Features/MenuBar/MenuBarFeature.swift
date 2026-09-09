@@ -14,7 +14,9 @@ import Combine
 /// Quién se esconde lo decides tú una sola vez: mantén ⌘ y arrastra los iconos que
 /// quieras ocultar a la izquierda de la flecha. macOS recuerda esas posiciones.
 final class MenuBarFeature: BaseFeature {
-    static let toggleHotKey: UInt32 = 600
+    static let shortcut = ShortcutBinding(key: "menuBar.toggle", hotKeyID: 600,
+                                          title: L("Enseñar u ocultar los iconos", "Show or hide the icons"),
+                                          fallback: Shortcut(kVK_ANSI_B, controlKey | optionKey | cmdKey))
 
     /// Ancho al que crece el expansor. Cualquier cosa mayor que la pantalla vale:
     /// lo que sobra se sale por la izquierda, que es justo lo que queremos.
@@ -141,16 +143,12 @@ final class MenuBarFeature: BaseFeature {
         expander.button?.isEnabled = false
         self.expander = expander
 
-        HotKeyCenter.shared.register(id: Self.toggleHotKey,
-                                     keyCode: UInt32(kVK_ANSI_B),
-                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
-            self?.toggle()
-        }
+        HotKeyCenter.shared.bind(Self.shortcut) { [weak self] in self?.toggle() }
         apply()
     }
 
     override func stop() {
-        HotKeyCenter.shared.unregister(id: Self.toggleHotKey)
+        HotKeyCenter.shared.unbind(Self.shortcut)
         autoHideWork?.cancel()
         autoHideWork = nil
         if let separator { NSStatusBar.system.removeStatusItem(separator) }

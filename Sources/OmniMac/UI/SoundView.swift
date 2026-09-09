@@ -102,10 +102,9 @@ struct SoundPage: View {
                 }
 
                 Section {
-                    ForEach(SoundFeature.shortcutHelp, id: \.shortcut) { item in
-                        ShortcutRow(keys: item.shortcut, text: item.action)
+                    ForEach(SoundFeature.shortcuts, id: \.key) { binding in
+                        ShortcutSettingRow(binding)
                     }
-                    ShortcutRow(keys: "⌃⌥⌘ M", text: L("silencia o activa el micrófono (en Utilidades)", "mutes or unmutes the microphone (in Tools)"))
                 } header: {
                     Text(L("Atajos", "Shortcuts"))
                 } footer: {

@@ -79,7 +79,7 @@ final class ClipboardFeature: BaseFeature {
         didSet {
             UserDefaults.standard.set(plainPasteEnabled, forKey: "clipboard.plainPaste")
             guard isEnabled else { return }
-            if plainPasteEnabled { registerPlainPaste() } else { HotKeyCenter.shared.unregister(id: Self.plainHotKeyID) }
+            if plainPasteEnabled { registerPlainPaste() } else { HotKeyCenter.shared.unbind(Self.plainShortcut) }
         }
     }
 
@@ -89,8 +89,13 @@ final class ClipboardFeature: BaseFeature {
     private var previousApp: NSRunningApplication?
     private var saveWork: DispatchWorkItem?
 
-    private static let hotKeyID: UInt32 = 200
-    private static let plainHotKeyID: UInt32 = 201
+    /// Los atajos del módulo. Se pueden cambiar en Ajustes; estos son los de fábrica.
+    static let historyShortcut = ShortcutBinding(key: "clipboard.history", hotKeyID: 200,
+                                                 title: L("Abrir el historial del portapapeles", "Open the clipboard history"),
+                                                 fallback: Shortcut(kVK_ANSI_V, cmdKey | shiftKey))
+    static let plainShortcut = ShortcutBinding(key: "clipboard.pastePlain", hotKeyID: 201,
+                                               title: L("Pegar sin formato", "Paste as plain text"),
+                                               fallback: Shortcut(kVK_ANSI_V, cmdKey | shiftKey | optionKey))
 
     init() {
         let stored = UserDefaults.standard.integer(forKey: "clipboard.maxItems")
@@ -134,20 +139,12 @@ final class ClipboardFeature: BaseFeature {
         }
         t.tolerance = 0.3
         timer = t
-        HotKeyCenter.shared.register(id: Self.hotKeyID,
-                                     keyCode: UInt32(kVK_ANSI_V),
-                                     modifiers: UInt32(cmdKey | shiftKey)) { [weak self] in
-            self?.togglePanel()
-        }
+        HotKeyCenter.shared.bind(Self.historyShortcut) { [weak self] in self?.togglePanel() }
         if plainPasteEnabled { registerPlainPaste() }
     }
 
     private func registerPlainPaste() {
-        HotKeyCenter.shared.register(id: Self.plainHotKeyID,
-                                     keyCode: UInt32(kVK_ANSI_V),
-                                     modifiers: UInt32(cmdKey | shiftKey | optionKey)) { [weak self] in
-            self?.pastePlain()
-        }
+        HotKeyCenter.shared.bind(Self.plainShortcut) { [weak self] in self?.pastePlain() }
     }
 
     /// Limpia el enlace que haya ahora en el portapapeles, sin pegar nada.
@@ -189,8 +186,8 @@ final class ClipboardFeature: BaseFeature {
     override func stop() {
         timer?.invalidate()
         timer = nil
-        HotKeyCenter.shared.unregister(id: Self.hotKeyID)
-        HotKeyCenter.shared.unregister(id: Self.plainHotKeyID)
+        HotKeyCenter.shared.unbind(Self.historyShortcut)
+        HotKeyCenter.shared.unbind(Self.plainShortcut)
         panel.hide()
     }
 

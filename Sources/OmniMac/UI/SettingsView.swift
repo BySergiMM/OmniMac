@@ -955,13 +955,25 @@ struct SnappingPage: View {
                 }
 
                 Section {
-                    ForEach(SnappingFeature.shortcutHelp, id: \.shortcut) { item in
-                        ShortcutRow(keys: item.shortcut, text: item.action)
+                    ForEach(SnappingFeature.shortcuts, id: \.key) { binding in
+                        ShortcutSettingRow(binding)
                     }
                 } header: {
                     Text(L("Atajos", "Shortcuts"))
                 } footer: {
-                    Text(L("«Restaurar» devuelve la ventana a como estaba antes del primer ajuste.", "“Restore” returns the window to how it was before the first snap."))
+                    // Este módulo es el que más choca: quien viene de Rectangle o de
+                    // Magnet ya tiene ⌃⌥ y las flechas cogidas.
+                    Text(L("Pulsa un atajo y teclea el que quieras; ⎋ cancela y ⌫ lo deja sin atajo. Si tienes Rectangle o Magnet, los que estén en amarillo son los que no se han podido reservar. «Restaurar» devuelve la ventana a como estaba antes del primer ajuste.",
+                           "Click a shortcut and type the one you want; ⎋ cancels and ⌫ leaves it with none. If you have Rectangle or Magnet, the ones in yellow are those OmniMac couldn't claim. “Restore” returns the window to how it was before the first snap."))
+                }
+
+                Section {
+                    ForEach(WindowLayoutStore.shortcuts, id: \.key) { binding in
+                        ShortcutSettingRow(binding)
+                    }
+                    ShortcutSettingRow(WindowLayoutStore.undoShortcut)
+                } header: {
+                    Text(L("Atajos de las disposiciones", "Layout shortcuts"))
                 }
             }
         }
@@ -1002,7 +1014,7 @@ struct ClipboardPage: View {
                     SettingToggle(title: L("Pausar el historial", "Pause the history"),
                                   subtitle: L("Mientras esté en pausa no se guarda nada de lo que copies.", "While paused, nothing you copy is saved."),
                                   isOn: $feature.paused)
-                    SettingToggle(title: L("Pegar sin formato con ⌥⇧⌘V", "Paste as plain text with ⌥⇧⌘V"),
+                    SettingToggle(title: L("Pegar sin formato", "Paste as plain text"),
                                   subtitle: L("Pega solo el texto, sin la tipografía ni los colores del sitio de donde lo copiaste.",
                                               "Pastes just the text, without the fonts and colours of wherever you copied it from."),
                                   isOn: $feature.plainPasteEnabled)
@@ -1020,8 +1032,14 @@ struct ClipboardPage: View {
                     Text(L("Guarda texto, imágenes y archivos. Se ignoran los gestores de contraseñas y las copias marcadas como confidenciales.", "Saves text, images and files. Password managers and copies marked confidential are ignored."))
                 }
 
-                Section(L("Cómo se usa", "How to use it")) {
-                    ShortcutRow(keys: "⇧⌘ V", text: L("abre el historial", "opens the history"))
+                Section {
+                    ShortcutSettingRow(ClipboardFeature.historyShortcut)
+                    if feature.plainPasteEnabled { ShortcutSettingRow(ClipboardFeature.plainShortcut) }
+                } header: {
+                    Text(L("Atajos", "Shortcuts"))
+                }
+
+                Section(L("Dentro del panel", "Inside the panel")) {
                     ShortcutRow(keys: L("Escribir", "Type"), text: L("busca en lo copiado", "searches what you copied"))
                     ShortcutRow(keys: L("↑ ↓ o 1–9", "↑ ↓ or 1–9"), text: L("elige un elemento", "selects an item"))
                     ShortcutRow(keys: "↩", text: L("lo pega donde estabas escribiendo", "pastes it where you were typing"))
@@ -1110,10 +1128,18 @@ struct ToolsPage: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
-                Section(L("Atajos", "Shortcuts")) {
-                    ForEach(ToolsFeature.shortcutHelp, id: \.shortcut) { item in
-                        ShortcutRow(keys: item.shortcut, text: item.action)
+                Section {
+                    ForEach(ToolsFeature.shortcuts, id: \.key) { binding in
+                        ShortcutSettingRow(binding)
                     }
+                    ShortcutRow(keys: L("⌘Q mantenido", "⌘Q held"),
+                                text: L("Cerrar la app solo si lo mantienes medio segundo", "Quit the app only if you hold it for half a second"))
+                } header: {
+                    Text(L("Atajos", "Shortcuts"))
+                } footer: {
+                    Text(L("Pulsa un atajo y teclea el que quieras. ⎋ cancela y ⌫ lo deja sin atajo, por si prefieres esa combinación para otra app.",
+                           "Click a shortcut and type the one you want. ⎋ cancels and ⌫ leaves it with none, in case you'd rather keep that combination for another app."))
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
@@ -1130,16 +1156,17 @@ struct CommandBarPage: View {
             if feature.isEnabled {
                 Section {
                     SettingRow(title: L("Abrirlo", "Open it"),
-                               subtitle: L("⌥Espacio desde cualquier app. Escribe y pulsa Intro.",
-                                           "⌥Space from any app. Type and hit Return.")) {
+                               subtitle: L("Desde cualquier app. Escribe y pulsa Intro.",
+                                           "From any app. Type and hit Return.")) {
                         Button(L("Probar", "Try it")) { feature.toggle() }
                     }
+                    ShortcutSettingRow(CommandBarFeature.shortcut)
                 } header: {
                     Text(L("Cómo se usa", "How to use it"))
                 } footer: {
                     // Lo primero que hay que decir, porque es lo que va a romper.
-                    Text(L("Viene apagado de fábrica por una razón: ⌥Espacio es el atajo de Raycast y de Alfred. Si usas alguno de los dos, cambia el suyo antes de encender esto, o tendrás dos cosas peleándose por la misma tecla.",
-                           "It ships turned off for a reason: ⌥Space is Raycast's and Alfred's shortcut. If you use either, change theirs before turning this on, or you'll have two things fighting over the same key."))
+                    Text(L("Viene apagado de fábrica por una razón: ⌥Espacio es el atajo de Raycast y de Alfred. Si usas alguno de los dos, cámbiale aquí el atajo a OmniMac antes de encenderlo y no se pelearán.",
+                           "It ships turned off for a reason: ⌥Space is Raycast's and Alfred's shortcut. If you use either, give OmniMac a different shortcut here before turning it on and they won't fight."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
 

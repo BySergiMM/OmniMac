@@ -64,11 +64,17 @@ final class LayoutTests: XCTestCase {
     }
 
     func testShortcutLabel() {
+        // El rótulo ya no se escribe a mano: sale del atajo de verdad, que el usuario
+        // puede haber cambiado. Por eso lo dibuja `Shortcut.display`, sin espacio.
         let base = WindowLayout(name: "a", screenCount: 1, savedAt: Date(), windows: [], hotKey: 1)
-        XCTAssertEqual(base.shortcutLabel, "⌃⌥ 1")
+        XCTAssertEqual(base.shortcutLabel, "⌃⌥1")
         var free = base
         free.hotKey = nil
         XCTAssertNil(free.shortcutLabel)
+        // Un número fuera de 1…9 no tiene atajo que enseñar.
+        var broken = base
+        broken.hotKey = 42
+        XCTAssertNil(broken.shortcutLabel)
     }
 }
 
