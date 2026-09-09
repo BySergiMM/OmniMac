@@ -3,7 +3,6 @@ import XCTest
 
 /// Pruebas de la lógica pura (sin ventanas ni permisos).
 final class TimerTests: XCTestCase {
-    override class func setUp() { setenv("OMNIMAC_LANG", "es", 1) }
     override func tearDown() {
         NotchTimer.shared.stop()
         NotchTimer.shared.presets = [5, 10, 25, 45, 60]
@@ -30,7 +29,7 @@ final class TimerTests: XCTestCase {
         XCTAssertTrue(timer.isSet)
         XCTAssertTrue(timer.running)
         XCTAssertEqual(timer.remainingText, "25:00")
-        XCTAssertEqual(timer.phaseText, "Temporizador")
+        XCTAssertEqual(timer.phaseText, L("Temporizador", "Timer"))
         timer.pause()
         XCTAssertFalse(timer.running)
         timer.stop()
@@ -43,7 +42,7 @@ final class TimerTests: XCTestCase {
         let work = timer.workMinutes
         timer.startPomodoro()
         XCTAssertEqual(timer.remainingText, String(format: "%02d:00", work))
-        XCTAssertEqual(timer.phaseText, "Trabajo · pomodoro 1")
+        XCTAssertEqual(timer.phaseText, L("Trabajo · pomodoro 1", "Work · pomodoro 1"))
     }
 }
 
@@ -79,10 +78,11 @@ final class LayoutTests: XCTestCase {
 }
 
 final class MiscTests: XCTestCase {
-    override class func setUp() { setenv("OMNIMAC_LANG", "es", 1) }
     func testToastStyleTitles() {
-        XCTAssertEqual(ToastStyle.bottom.title, "Abajo de la pantalla")
-        XCTAssertEqual(ToastStyle.notch.title, "Desplegando el notch")
+        // Se compara con `L(...)`, no con el español a pelo: el idioma lo decide el
+        // Mac donde corren las pruebas, y en la CI corren en inglés.
+        XCTAssertEqual(ToastStyle.bottom.title, L("Abajo de la pantalla", "Bottom of the screen"))
+        XCTAssertEqual(ToastStyle.notch.title, L("Desplegando el notch", "Expanding the notch"))
         XCTAssertEqual(ToastStyle(rawValue: 7), nil)
     }
 
@@ -98,8 +98,6 @@ final class MiscTests: XCTestCase {
 }
 
 final class CacheCleanerTests: XCTestCase {
-    override class func setUp() { setenv("OMNIMAC_LANG", "es", 1) }
-
     func testDirectorySizeSumsRegularFilesRecursively() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("omnimac-cache-test-\(UUID().uuidString)")
         let inner = root.appendingPathComponent("fsCachedData", isDirectory: true)
