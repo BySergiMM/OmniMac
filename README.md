@@ -157,7 +157,6 @@ is the update check against GitHub, and you can turn it off.
   "now playing" from other apps.
 - Album art only shows for Spotify — Music doesn't expose an artwork URL.
 - Clipboard history lives in memory unless you turn on "save to disk" (unencrypted).
-- Shortcuts aren't customisable yet.
 - macOS won't let *any* app remove `~/Library/Containers` folders, so the cleaner
   marks those "Finder only" instead of failing silently.
 
