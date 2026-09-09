@@ -210,8 +210,8 @@ struct PerformancePage: View {
             } header: {
                 Text(L("Avisos", "Alerts"))
             } footer: {
-                Text(L("Se mira cada 30 segundos, y solo lo barato: CPU, memoria, disco, temperatura y batería. Cada aviso sale una vez y no se repite hasta que la cosa vuelve a estar bien. Con todos apagados, ni se mide.",
-                       "Checked every 30 seconds, and only the cheap things: CPU, memory, disk, temperature and battery. Each alert fires once and won't repeat until things are back to normal. With all of them off, nothing is measured at all."))
+                Text(L("Se mira cada minuto, y solo lo barato: CPU, memoria, disco, temperatura y batería. Cada aviso sale una vez y no se repite hasta que la cosa vuelve a estar bien. Con todos apagados, ni se mide.",
+                       "Checked every minute, and only the cheap things: CPU, memory, disk, temperature and battery. Each alert fires once and won't repeat until things are back to normal. With all of them off, nothing is measured at all."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
