@@ -23,6 +23,7 @@
 - **Todos los atajos se pueden cambiar**, uno a uno, desde Ajustes. Y si otra app ya tiene esa combinación, OmniMac **lo dice** en vez de quedarse callado: antes `RegisterEventHotKey` fallaba, no había ningún aviso y la función simplemente no hacía nada. Quien tuviera Rectangle o Magnet pulsaba ⌃⌥→ y no pasaba nada, sin explicación.
 
 **Arreglado**
+- **«Mantener despierto» ya no se apaga sin decir por qué.** La sesión se puede parar sola —por la batería, por el temporizador, porque la app se cierra o se actualiza—, y con la tapa cerrada eso duerme el Mac en el acto: abrías el portátil, salía la pantalla de bloqueo y no había forma de saber qué había pasado. La notificación no valía, porque se manda justo cuando el Mac se está durmiendo y puede no llegar a entregarse. Ahora el motivo se **guarda en disco** y te lo cuenta al volver, en Ajustes y con el café en naranja en el notch. Además avisa **diez puntos antes** del corte por batería, mientras el aviso todavía se puede ver, y la regla se mira también al arrancar la sesión (antes, si ya estabas por debajo del umbral, la sesión empezaba igual y se caía sola más tarde).
 - **Los menús iban a tirones.** La causa era el monitor global de ratón del notch: mientras existe, macOS despierta la app en cada movimiento del ratón de todo el sistema. Ahora se quita mientras hay un menú abierto.
 - El icono de la barra de menús es ahora el mismo destello que el de la app; antes eran dos dibujos distintos.
 - El escondedor de la barra se tragaba los iconos de la propia OmniMac.

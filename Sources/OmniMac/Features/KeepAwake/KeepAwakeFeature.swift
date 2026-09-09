@@ -8,7 +8,16 @@ final class KeepAwakeFeature: BaseFeature {
     @Published private(set) var isActive = false
     @Published private(set) var deadline: Date?
 
-    enum EndReason { case manual, timer, lowBattery }
+    typealias EndReason = KeepAwakeEndReason
+
+    /// Cómo acabó la última sesión que no paró el usuario.
+    ///
+    /// Se guarda en disco a propósito: cuando la sesión se corta con la tapa cerrada
+    /// el Mac se duerme en el acto, la notificación puede no llegar a entregarse
+    /// nunca, y al abrir el portátil no quedaba forma de saber qué había pasado.
+    @Published private(set) var lastEnding: KeepAwakeEnding?
+    /// Ya se ha avisado de que queda poco para el corte por batería en esta sesión.
+    private var warnedLowBattery = false
 
     /// Tiempo restante junto al icono de la barra de menús (sesiones con temporizador).
     @Published var showRemainingInMenuBar: Bool {
@@ -113,6 +122,8 @@ final class KeepAwakeFeature: BaseFeature {
             if LidSleepControl.isAuthorized { LidSleepControl.set(false) }
         }
 
+        loadEnding()
+
         batteryCancellable = battery.$state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
@@ -137,12 +148,12 @@ final class KeepAwakeFeature: BaseFeature {
             activate(seconds: nil)
             triggerSession = true
         } else if !wanted, isActive, triggerSession {
-            deactivate()
+            deactivate(reason: .trigger)
         }
     }
 
     override func stop() {
-        deactivate()
+        deactivate(reason: .moduleOff)
     }
 
     /// Activa la sesión. `minutes == nil` → sin límite de tiempo.
@@ -159,6 +170,8 @@ final class KeepAwakeFeature: BaseFeature {
 
     func activate(seconds: TimeInterval?) {
         deactivate()
+        warnedLowBattery = false
+        clearEnding()
 
         // La fianza de sistema va siempre. Antes, con «mantener la pantalla
         // encendida» se pedía **solo** la de pantalla, y eso deja de valer en cuanto
@@ -186,6 +199,11 @@ final class KeepAwakeFeature: BaseFeature {
         }
 
         if closedLidMode { enableClosedLid() }
+
+        // La regla de batería solo corría cuando **cambiaba** el nivel. Si al empezar
+        // ya estabas por debajo del umbral, la sesión arrancaba igual y se caía sola
+        // más tarde, cuando la batería diera su siguiente salto. Ahora se mira ya.
+        checkBattery(battery.state)
     }
 
     /// Pone o quita la fianza de pantalla según la preferencia actual.
@@ -230,15 +248,71 @@ final class KeepAwakeFeature: BaseFeature {
         isActive = false
         deadline = nil
         disableClosedLid()
-        if wasActive, reason != .manual { notify(reason) }
+        if wasActive, reason != .manual {
+            // Primero se apunta y luego se notifica: con la tapa cerrada el Mac se
+            // duerme en cuanto se suelta la fianza, y la notificación puede quedarse
+            // por el camino. Lo guardado sí sobrevive.
+            record(KeepAwakeEnding(reason: reason,
+                                   batteryLevel: reason == .lowBattery ? battery.state.level : nil,
+                                   at: Date()))
+            notify(reason)
+        }
     }
 
     // MARK: - Batería y avisos
 
     private func checkBattery(_ state: BatteryState) {
-        guard isActive, stopOnLowBattery, state.hasBattery, !state.isPluggedIn,
-              state.level > 0, state.level <= lowBatteryThreshold else { return }
-        deactivate(reason: .lowBattery)
+        guard isActive else { return }
+        switch KeepAwakeBatteryRule.decide(level: state.level,
+                                           hasBattery: state.hasBattery,
+                                           isPluggedIn: state.isPluggedIn,
+                                           enabled: stopOnLowBattery,
+                                           threshold: lowBatteryThreshold,
+                                           alreadyWarned: warnedLowBattery) {
+        case .nothing:
+            break
+        case .warn(let level):
+            // Se avisa **antes** del corte, mientras el aviso todavía se puede ver:
+            // después puede ser tarde, porque con la tapa cerrada parar la sesión
+            // duerme el Mac en el acto.
+            warnedLowBattery = true
+            warnLowBattery(level: level)
+        case .stop:
+            deactivate(reason: .lowBattery)
+        }
+    }
+
+    // MARK: - El último final
+
+    private func record(_ ending: KeepAwakeEnding) {
+        lastEnding = ending
+        if let data = try? JSONEncoder().encode(ending) {
+            UserDefaults.standard.set(data, forKey: KeepAwakeEnding.key)
+        }
+    }
+
+    /// El usuario ya lo ha leído (o ha empezado otra sesión).
+    func clearEnding() {
+        guard lastEnding != nil else { return }
+        lastEnding = nil
+        UserDefaults.standard.removeObject(forKey: KeepAwakeEnding.key)
+    }
+
+    private func loadEnding() {
+        guard let data = UserDefaults.standard.data(forKey: KeepAwakeEnding.key) else { return }
+        lastEnding = try? JSONDecoder().decode(KeepAwakeEnding.self, from: data)
+    }
+
+    private func warnLowBattery(level: Int) {
+        Toast.show(L("Batería al \(level) %: mantener despierto se parará al \(lowBatteryThreshold) %",
+                     "Battery at \(level)%: keep awake will stop at \(lowBatteryThreshold)%"),
+                   symbol: "battery.25")
+        guard notifyOnEnd, Bundle.main.bundleIdentifier != nil else { return }
+        let content = UNMutableNotificationContent()
+        content.title = L("Mantener despierto", "Keep awake")
+        content.body = L("Batería al \(level) %. La sesión se parará al \(lowBatteryThreshold) %, y si tienes la tapa cerrada el Mac se dormirá. Conecta el cargador para seguir.",
+                         "Battery at \(level)%. The session will stop at \(lowBatteryThreshold)%, and if your lid is closed your Mac will go to sleep. Connect the charger to keep going.")
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }
 
     private func requestNotificationsIfNeeded() {
@@ -258,7 +332,13 @@ final class KeepAwakeFeature: BaseFeature {
         case .timer:
             content.body = L("La sesión ha terminado: tu Mac volverá a dormirse con normalidad.", "The session has ended: your Mac will sleep normally again.")
         case .lowBattery:
-            content.body = L("Sesión detenida: batería al \(battery.state.level) %. Conecta el cargador para seguir.", "Session stopped: battery at \(battery.state.level)%. Connect the charger to continue.")
+            content.body = L("Sesión detenida: batería al \(battery.state.level) %. Si tenías la tapa cerrada, tu Mac se ha dormido. Conecta el cargador para seguir.",
+                             "Session stopped: battery at \(battery.state.level)%. If your lid was closed, your Mac has gone to sleep. Connect the charger to continue.")
+        case .appQuit, .moduleOff, .trigger:
+            // Estos no se notifican: o los ha provocado el propio usuario, o la app
+            // se está muriendo y la notificación no llegaría. Quedan apuntados en
+            // `lastEnding`, que es lo que sí se lee al volver.
+            return
         case .manual:
             return
         }

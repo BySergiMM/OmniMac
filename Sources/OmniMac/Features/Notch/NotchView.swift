@@ -194,9 +194,17 @@ struct NotchView: View {
             }
 
             if model.showCoffee, keepAwake.isEnabled {
+                // Si la última sesión se paró sola, el icono lo dice: era la única
+                // pista que faltaba para no tener que adivinarlo.
+                let stoppedItself = keepAwake.lastEnding?.worthTelling == true && !keepAwake.isActive
                 quickButton(symbol: keepAwake.isActive ? "cup.and.saucer.fill" : "cup.and.saucer",
                             active: keepAwake.isActive,
-                            help: keepAwake.isActive ? L("Mantener despierto: activado", "Keep awake: on") : L("Mantener despierto", "Keep awake")) {
+                            warning: stoppedItself,
+                            help: keepAwake.isActive
+                                ? L("Mantener despierto: activado", "Keep awake: on")
+                                : (keepAwake.lastEnding?.worthTelling == true
+                                   ? keepAwake.lastEnding!.explanation
+                                   : L("Mantener despierto", "Keep awake"))) {
                     keepAwake.toggle()
                 }
             }
@@ -261,11 +269,12 @@ struct NotchView: View {
         )
     }
 
-    private func quickButton(symbol: String, active: Bool, help: String, action: @escaping () -> Void) -> some View {
+    private func quickButton(symbol: String, active: Bool, warning: Bool = false,
+                             help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(active ? Color.yellow : .white.opacity(0.8))
+                .foregroundStyle(active ? Color.yellow : (warning ? Color.orange : .white.opacity(0.8)))
                 .frame(width: 30, height: 26)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
