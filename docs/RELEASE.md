@@ -73,6 +73,15 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
 - [ ] Que las etiquetas Open Graph de las dos versiones digan lo suyo: la raíz está en
       español y `/en/` en inglés (si se comparte la raíz con angloparlantes, la tarjeta
       sale en español).
+- [ ] **Tarjeta social**, que lleva el número de módulos y las cifras de consumo
+      escritos dentro de la imagen y por eso caduca sin que se note:
+
+      swift scripts/dev/social.swift es docs/site/img/social-preview.png
+      swift scripts/dev/social.swift en docs/site/img/en/social-preview.png
+
+      Los textos están arriba del guion: número de módulos, CPU en reposo, memoria y
+      disco. Súbela también a GitHub › Settings › General › **Social preview** — eso
+      no tiene API, se hace a mano.
 
 ## 5. Los README
 
@@ -81,6 +90,18 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
 - [ ] **README de tu perfil de GitHub** (repositorio `BySergiMM/BySergiMM`): es un
       repositorio aparte, no está en este proyecto. Actualizar ahí la descripción de
       OmniMac y las cifras si las cita.
+- [ ] **Descripción del repositorio en GitHub** (`gh api -X PATCH repos/BySergiMM/OmniMac
+      -f description=…`): también lleva el número de módulos y el 0,017 %.
+
+## 5 bis. LinkedIn
+
+Fuera del repositorio, y por eso se olvida. Todo esto cita el número de módulos o el
+consumo, así que caduca en cada versión:
+
+- [ ] **Perfil › Acerca de**: número de módulos y memoria.
+- [ ] **Perfil › Proyectos › OmniMac**: la descripción larga, con las cifras.
+- [ ] **Perfil › Destacado**: el resumen corto de OmniMac.
+- [ ] Las tres existen en **español y en inglés** (versión secundaria del perfil).
 
 ## 6. Limpieza (lo que le llega a quien no es tú)
 
