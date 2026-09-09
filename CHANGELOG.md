@@ -5,7 +5,7 @@
 **Nuevo**
 - **El notch funciona en cualquier Mac.** La geometría se saca de la pantalla y no del modelo: donde no hay notch físico dibuja una isla flotante dimensionada al ancho del monitor. Sirve en un iMac, en un Mac mini con pantalla externa y en un MacBook anterior a 2021.
 - **Rendimiento de verdad, no tres gráficas.** CPU por núcleo con los de eficiencia y los de rendimiento en colores distintos, GPU, memoria con su presión y el intercambio, disco (lectura, escritura y espacio libre), red y **temperatura**. Y lo que de verdad se pregunta uno cuando el Mac va lento: **qué apps se están comiendo la CPU y la memoria**, por nombre.
-- **Temperatura**: media del chip, el diodo más caliente, el SSD, la batería y los 45 sensores uno a uno. El estado térmico del sistema va siempre; los grados, solo si macOS los deja leer.
+- **Temperatura**: media del chip, el diodo más caliente, el SSD, la batería y todos los sensores del chip, uno a uno. El estado térmico del sistema va siempre; los grados, solo si macOS los deja leer.
 - **Avisos** cuando la CPU lleva rato al máximo, la memoria está al límite, queda poco disco, el Mac se calienta o la batería baja. Cada uno sale una vez y no se repite hasta que la cosa vuelve a estar bien.
 - **Ecualizador de 10 bandas**, general o por app, con nueve ajustes preparados (más graves, voz y pódcast, rock, modo noche…).
 - **Amplificación por encima del 100 %** (hasta 400 %) con limitador de picos, para que no cruja al sumar varias apps.

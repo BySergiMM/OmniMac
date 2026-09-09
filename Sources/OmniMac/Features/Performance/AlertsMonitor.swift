@@ -6,7 +6,7 @@ import Foundation
 /// Es el único trozo del módulo de rendimiento que corre **sin que nadie esté
 /// mirando**, así que se ha hecho lo más barato posible:
 ///
-/// - Una muestra cada **30 segundos**, con tolerancia, para que macOS agrupe los
+/// - Una muestra cada **minuto**, con tolerancia, para que macOS agrupe los
 ///   despertares.
 /// - Solo lo que cuesta cuatro llamadas al sistema: CPU, presión de memoria, disco
 ///   libre, estado térmico y batería. **Nada de GPU, sensores de temperatura ni

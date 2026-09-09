@@ -5,7 +5,7 @@
 **New**
 - **The notch works on any Mac.** The geometry comes from the screen, not the model: where there's no physical notch it draws a floating island sized to the display. Works on an iMac, on a Mac mini with an external monitor, and on a pre-2021 MacBook.
 - **A real performance monitor, not three charts.** Per-core CPU with efficiency and performance cores in different colours, GPU, memory with pressure and swap, disk (read, write and free space), network and **temperature**. Plus the thing you actually want when your Mac drags: **which apps are eating the CPU and the memory**, by name.
-- **Temperature**: chip average, hottest diode, SSD, battery and all 45 sensors one by one. The system's thermal state is always there; the degrees only if macOS lets us read them.
+- **Temperature**: chip average, hottest diode, SSD, battery and every sensor on the chip, one by one. The system's thermal state is always there; the degrees only if macOS lets us read them.
 - **Alerts** when the CPU has been maxed out for a while, memory is critical, disk is running low, the Mac heats up or the battery gets low. Each fires once and won't repeat until things are back to normal.
 - **10-band equaliser**, global or per app, with nine ready-made presets (more bass, voice and podcast, rock, night mode…).
 - **Boost past 100 %** (up to 400 %) with a peak limiter, so it doesn't crackle when several apps add up.
