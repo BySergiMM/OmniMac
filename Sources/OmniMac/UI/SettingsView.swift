@@ -568,6 +568,29 @@ struct KeepAwakePage: View {
             ModuleHeader(feature: feature, page: .keepAwake)
 
             if feature.isEnabled {
+                // Lo primero de la página cuando ha pasado: la pregunta «¿por qué se
+                // ha apagado esto solo?» no debería obligar a nadie a investigar.
+                if let ending = feature.lastEnding, ending.worthTelling {
+                    Section {
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(L("La última sesión no la paraste tú", "Your last session didn't stop on your say-so"))
+                                    .font(.callout.weight(.medium))
+                                Text(ending.explanation)
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Text(ending.at.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption2).foregroundStyle(.tertiary)
+                            }
+                            Spacer(minLength: 8)
+                            Button(L("Entendido", "Got it")) { feature.clearEnding() }
+                                .controlSize(.small)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+
                 Section(L("Sesión", "Session")) {
                     if feature.isActive {
                         HStack(spacing: 10) {

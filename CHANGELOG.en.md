@@ -23,6 +23,7 @@
 - **Every shortcut can be changed**, one by one, in Settings. And when another app already owns a combination, OmniMac **says so** instead of staying quiet: `RegisterEventHotKey` used to fail with no warning at all, and the feature simply did nothing. Anyone with Rectangle or Magnet pressed ⌃⌥→ and nothing happened, with no explanation.
 
 **Fixed**
+- **Keep awake no longer switches itself off without telling you.** A session can stop on its own — low battery, the timer, the app quitting or updating — and with the lid closed that puts the Mac to sleep right then: you opened the laptop, found the lock screen, and had no way to know why. The notification didn't help, because it's sent exactly as the Mac is going to sleep and may never be delivered. The reason is now **saved to disk** and told to you when you come back, in Settings and with an orange coffee cup in the notch. It also warns **ten points before** the battery cut-off, while the warning can still be seen, and the rule is checked when the session starts (before, if you were already below the threshold, the session began anyway and died later on its own).
 - **The menus were stuttering.** The cause was the notch's global mouse monitor: while it exists, macOS wakes the app on every mouse move across the whole system. It's now removed while a menu is open.
 - The menu bar icon is now the same sparkle as the app icon; they used to be two different drawings.
 - The menu bar hider was swallowing OmniMac's own icons.
