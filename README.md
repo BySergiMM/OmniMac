@@ -35,7 +35,7 @@ brew install --cask BySergiMM/tap/omnimac
 
 https://github.com/user-attachments/assets/ed425e8b-172b-4d4d-9838-6f8f20e5fb28
 
-<p align="center"><sub>▶ Full tour (106 s) · <a href="https://bysergimm.github.io/OmniMac/en/#video">on the website</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">all videos</a></sub></p>
+<p align="center"><sub>▶ Full tour (113 s) · <a href="https://bysergimm.github.io/OmniMac/en/#video">on the website</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">all videos</a></sub></p>
 
 <p align="center">
   <img src="docs/site/img/en/notch-media.png" width="681" alt="OmniMac's notch expanded with the music tab">
