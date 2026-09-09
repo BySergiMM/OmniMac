@@ -9,10 +9,14 @@ import CoreAudio
 @_silgen_name("responsibility_get_pid_responsible_for_pid")
 private func responsibility_get_pid_responsible_for_pid(_ pid: pid_t) -> pid_t
 
-/// Nombre de un proceso sin app (afplay, un script…): "afplay", "claude"…
-@_silgen_name("proc_name")
-private func proc_name(_ pid: Int32, _ buffer: UnsafeMutableRawPointer, _ size: UInt32) -> Int32
 
+/// Nombre de un proceso sin app (afplay, un script…): "afplay", "claude"…
+///
+/// `proc_name` viene de `libproc.h` y lo importa el sistema. Aquí había una
+/// declaración propia con `@_silgen_name`, de cuando no se veía: en cuanto el SDK
+/// empezó a exponerla, las dos chocaron —la nuestra tomaba el búfer como no
+/// opcional y la de verdad lo toma opcional— y `swift build -c release` dejó de
+/// compilar en la CI, que va un Xcode por delante. No hay que volver a declararla.
 private func processName(_ pid: pid_t) -> String? {
     var buffer = [CChar](repeating: 0, count: 256)
     let length = proc_name(pid, &buffer, 256)
