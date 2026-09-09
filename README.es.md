@@ -357,6 +357,5 @@ también desde el menú, «Buscar actualizaciones…». El workflow de GitHub Ac
 - La carátula solo aparece con Spotify (Música no expone URL de carátula por AppleScript).
 - El historial del portapapeles vive en memoria salvo que actives «Guardar en disco»
   (sin cifrar).
-- Los atajos no son personalizables todavía.
 - El notch solo controla Spotify y Música (AppleScript); no lee el «Ahora suena» de
   otras apps.

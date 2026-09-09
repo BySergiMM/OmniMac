@@ -86,7 +86,7 @@ Fuente: web oficial + 322 textos de ajustes.
 | Mostrar apps sin ventana abierta | ❌ Falta | Descartar |  |
 | Excepciones por app (ocultar, ignorar atajo, en pantalla completa) | ❌ Falta | **Añadir** | Lista de apps excluidas |
 | Filtrar por título de ventana | ❌ Falta | Descartar |  |
-| Hasta 9 atajos personalizables (Pro) | ❌ Falta | **Añadir** | Con uno o dos basta: ⌘Tab y ⌥Tab |
+| Hasta 9 atajos personalizables (Pro) | 🟡 Parcial | Descartar | El de ⌘Tab se cambia en Ajustes; nueve perfiles distintos es otra cosa |
 | Foco al soltar la tecla o al pulsar | ✅ Ya |  | Suelta ⌘ para cambiar |
 | Navegar con flechas, teclas vim o con el ratón | 🟡 Parcial | **Añadir** | Flechas sí; falta seleccionar con el ratón y clic |
 | Acciones con el selector abierto: cerrar, minimizar, pantalla completa, ocultar app, salir | ❌ Falta | **Añadir** | ⌘W, ⌘M, ⌘H, ⌘Q sobre la ventana seleccionada |
@@ -127,7 +127,7 @@ Fuente: README + 240 textos de menús y ajustes.
 | Espacios entre ventanas y márgenes | ❌ Falta | Más adelante |  |
 | Modo «Todo» (una app fija a un lado) | ❌ Falta | Descartar |  |
 | Ignorar apps | ❌ Falta | Más adelante |  |
-| Atajos personalizables y presets (Rectangle / Spectacle) | ❌ Falta | **Añadir** | Grabador de atajos en Ajustes |
+| Atajos personalizables y presets (Rectangle / Spectacle) | 🟡 Parcial | Más adelante | Los 21 atajos se cambian uno a uno en Ajustes; faltan los presets |
 | Automatización por URL (rectangle://) | ❌ Falta | Descartar |  |
 | Importar/exportar configuración JSON | ❌ Falta | Descartar |  |
 | Ocultar icono de barra, abrir al iniciar sesión, actualizaciones | 🟡 Parcial | Más adelante |  |
@@ -150,7 +150,7 @@ Fuente: README + textos de los 7 paneles de ajustes.
 | Vista previa (⌃Espacio) con retardo | ❌ Falta | Más adelante |  |
 | Ventana en el cursor, centro o última posición | ❌ Falta | Descartar |  |
 | Última copia junto al icono, iconos de apps, símbolos especiales, muestras de color hex | ❌ Falta | Más adelante | Iconos de app y color hex son detalles bonitos |
-| Atajo global personalizable | ❌ Falta | **Añadir** |  |
+| Atajo global personalizable | ✅ Ya |  | Ajustes › Portapapeles › Atajos |
 | Orden: más nuevos o más antiguos primero | ❌ Falta | Descartar |  |
 | Sonidos y notificaciones | ❌ Falta | Descartar |  |
 | Integración con Atajos (App Intents) | ❌ Falta | Descartar |  |
