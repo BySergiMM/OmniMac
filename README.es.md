@@ -32,7 +32,7 @@
 
 https://github.com/user-attachments/assets/757ab088-c1fa-416d-9d5c-fb8088834c68
 
-<p align="center"><sub>▶ Recorrido completo (106 s): <a href="https://bysergimm.github.io/OmniMac/#video">en la web</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">todos los vídeos, también en inglés y en vertical</a></sub></p>
+<p align="center"><sub>▶ Recorrido completo (113 s, en inglés): <a href="https://bysergimm.github.io/OmniMac/#video">en la web</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">también en vertical</a></sub></p>
 
 <p align="center">
   <img src="docs/site/img/notch-media.png" width="681" alt="El notch de OmniMac desplegado con la música">
