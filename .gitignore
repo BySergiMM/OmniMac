@@ -5,3 +5,6 @@ dist/
 
 # Vídeos montados (pesados): se generan con scripts/dev/video.swift
 docs/video/*.mp4
+
+# Grabaciones en bruto del vídeo (200 MB): el producto es el .mp4 montado
+CLIPS/

@@ -1,0 +1,216 @@
+{
+ "width": 1920,
+ "height": 1080,
+ "fps": 30,
+ "bitrate": 12000000,
+ "output": "docs/video/omnimac-tour-16x9-en.mp4",
+ "intro": {
+  "title": "Your Mac can do this",
+  "subtitle": "OmniMac 0.5.0 · eleven modules in one app, free and open source",
+  "seconds": 2.6,
+  "icon": null
+ },
+ "outro": {
+  "title": "OmniMac",
+  "subtitle": "Free and open source · bysergimm.github.io/OmniMac",
+  "seconds": 3.2,
+  "icon": "docs/site/img/icon-512.png"
+ },
+ "scenes": [
+  {
+   "clip": "CLIPS/e1-tray.mov",
+   "from": 2.2,
+   "to": 7.0,
+   "crop": [
+    905,
+    0,
+    1210,
+    400
+   ],
+   "width": 0.92,
+   "y": 0.6,
+   "title": "A notch that does things",
+   "subtitle": "Drop files in the tray to carry them between apps, or send them with AirDrop. And if your Mac has no notch, it draws a floating island instead"
+  },
+  {
+   "clip": "CLIPS/e1-timer.mov",
+   "from": 2.2,
+   "to": 6.2,
+   "crop": [
+    905,
+    0,
+    1210,
+    400
+   ],
+   "width": 0.92,
+   "y": 0.6,
+   "title": "Timer and Pomodoro",
+   "subtitle": "The time left stays next to the menu bar icon"
+  },
+  {
+   "clip": "CLIPS/e6-switcher.mov",
+   "from": 4.5,
+   "to": 12.5,
+   "crop": [
+    600,
+    740,
+    1830,
+    450
+   ],
+   "width": 0.94,
+   "y": 0.6,
+   "title": "⌘Tab through windows, not apps",
+   "subtitle": "Live thumbnails, type to filter, and ⌘W, ⌘M, ⌘H or ⌘Q act on the one you picked"
+  },
+  {
+   "clip": "CLIPS/e7-snap.mov",
+   "from": 2.0,
+   "to": 14.0,
+   "crop": [
+    0,
+    60,
+    3024,
+    1904
+   ],
+   "width": 0.7,
+   "y": 0.6,
+   "title": "Window shortcuts",
+   "subtitle": "⌃⌥→ right half · ⌃⌥← left · ⌃⌥↑↓ top and bottom · ⌃⌥↩ almost maximise. Thirds, corners and layouts ⌃⌥1…9"
+  },
+  {
+   "clip": "CLIPS/e8-clipboard.mov",
+   "from": 3.0,
+   "to": 11.0,
+   "crop": [
+    1030,
+    320,
+    970,
+    1130
+   ],
+   "width": 0.42,
+   "y": 0.6,
+   "title": "Clipboard history",
+   "subtitle": "⇧⌘V: text, images and files, with search and pinned items"
+  },
+  {
+   "clip": "CLIPS/e9-clipboard-settings.mov",
+   "from": 1.5,
+   "to": 7.5,
+   "crop": [
+    1150,
+    380,
+    1300,
+    640
+   ],
+   "width": 0.92,
+   "y": 0.6,
+   "title": "Paste plain, and lose the trackers · new",
+   "subtitle": "⌥⇧⌘V pastes without formatting. And copying a link strips utm_source, fbclid and Spotify's si — only when what you copied is a whole link"
+  },
+  {
+   "clip": "CLIPS/e2-commandbar.mov",
+   "from": 2.0,
+   "to": 10.2,
+   "crop": [
+    930,
+    315,
+    1150,
+    945
+   ],
+   "width": 0.56,
+   "y": 0.6,
+   "title": "Command bar · new",
+   "subtitle": "⌥Space and type: any OmniMac feature or any app. Letters in order are enough. Off by default, because ⌥Space belongs to Raycast"
+  },
+  {
+   "clip": "CLIPS/e3-mixer.mov",
+   "from": 2.2,
+   "to": 11.5,
+   "crop": [
+    2150,
+    60,
+    880,
+    500
+   ],
+   "width": 0.8,
+   "y": 0.6,
+   "title": "Volume mixer · new",
+   "subtitle": "⌃⌥⌘V: each app's volume on its own. With a 10-band equaliser and boost up to 400%"
+  },
+  {
+   "clip": "CLIPS/e4-performance.mov",
+   "from": 4.0,
+   "to": 16.0,
+   "crop": [
+    1140,
+    260,
+    1280,
+    700
+   ],
+   "width": 0.92,
+   "y": 0.6,
+   "title": "A real performance monitor · new",
+   "subtitle": "CPU core by core — efficiency in green, performance in purple — plus GPU, memory with its pressure, disk, network and chip temperature"
+  },
+  {
+   "clip": "CLIPS/e5-alerts.mov",
+   "from": 1.5,
+   "to": 8.0,
+   "crop": [
+    1150,
+    1160,
+    1250,
+    680
+   ],
+   "width": 0.92,
+   "y": 0.6,
+   "title": "Alerts · new",
+   "subtitle": "When the CPU has been pinned for a while, memory is tight, disk runs out, the Mac heats up or the battery drops. Each fires once"
+  },
+  {
+   "clip": "CLIPS/e10-cleaner.mov",
+   "from": 1.5,
+   "to": 9.0,
+   "crop": [
+    1150,
+    180,
+    1250,
+    900
+   ],
+   "width": 0.72,
+   "y": 0.6,
+   "title": "App cleaner · new",
+   "subtitle": "Uninstall an app with everything it leaves behind — caches, support files, preferences. It all goes to the Trash, never really deleted"
+  },
+  {
+   "clip": "CLIPS/e11-menu.mov",
+   "from": 3.0,
+   "to": 10.0,
+   "crop": [
+    2160,
+    60,
+    650,
+    650
+   ],
+   "width": 0.6,
+   "y": 0.6,
+   "title": "Everything from the menu bar",
+   "subtitle": "Keep awake, clipboard, screen OCR, mute the microphone, lock the keyboard to clean it, sound outputs and window layouts"
+  },
+  {
+   "clip": "CLIPS/e12-whatsnew.mov",
+   "from": 3.0,
+   "to": 17.0,
+   "crop": [
+    1040,
+    520,
+    900,
+    800
+   ],
+   "width": 0.72,
+   "y": 0.6,
+   "title": "And it tells you what changed",
+   "subtitle": "A what's-new window when it updates, which you can skip"
+  }
+ ]
+}
