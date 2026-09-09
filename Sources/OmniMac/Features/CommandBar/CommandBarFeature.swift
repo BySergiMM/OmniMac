@@ -25,7 +25,12 @@ struct Command: Identifiable {
 /// cerrarlo: recorrer las carpetas de aplicaciones cuesta, y no hay ninguna razón
 /// para tenerlo en memoria mientras nadie busca.
 final class CommandBarFeature: BaseFeature {
-    private static let hotKeyID: UInt32 = 700
+    /// ⌥Espacio de fábrica, y por eso el módulo viene apagado: es el atajo de
+    /// Raycast y de Alfred. Ahora se puede cambiar, así que encenderlo ya no obliga
+    /// a elegir entre una cosa y otra.
+    static let shortcut = ShortcutBinding(key: "commandBar.toggle", hotKeyID: 700,
+                                          title: L("Abrir el buscador de comandos", "Open the command bar"),
+                                          fallback: Shortcut(kVK_Space, optionKey))
 
     private let panel = CommandBarPanelController()
     // Solo los módulos que necesita, no el gestor entero: así no hay ciclo y se ve
@@ -59,15 +64,11 @@ final class CommandBarFeature: BaseFeature {
     }
 
     override func start() {
-        HotKeyCenter.shared.register(id: Self.hotKeyID,
-                                     keyCode: UInt32(kVK_Space),
-                                     modifiers: UInt32(optionKey)) { [weak self] in
-            self?.toggle()
-        }
+        HotKeyCenter.shared.bind(Self.shortcut) { [weak self] in self?.toggle() }
     }
 
     override func stop() {
-        HotKeyCenter.shared.unregister(id: Self.hotKeyID)
+        HotKeyCenter.shared.unbind(Self.shortcut)
         panel.hide()
     }
 

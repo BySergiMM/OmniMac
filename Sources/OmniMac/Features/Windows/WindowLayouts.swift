@@ -25,7 +25,10 @@ struct WindowLayout: Codable, Identifiable {
     var hotKey: Int?
 
     var appCount: Int { Set(windows.map(\.bundleID)).count }
-    var shortcutLabel: String? { hotKey.map { "⌃⌥ \($0)" } }
+    var shortcutLabel: String? {
+        guard let hotKey, (1...9).contains(hotKey) else { return nil }
+        return ShortcutStore.shared.shortcut(for: WindowLayoutStore.shortcuts[hotKey - 1])?.display
+    }
 }
 
 /// Disposiciones de ventanas: guarda dónde está cada ventana y las vuelve a colocar
@@ -40,12 +43,23 @@ final class WindowLayoutStore: ObservableObject {
     }
 
     private static let hotKeyBase: UInt32 = 500
-    private static let undoHotKey: UInt32 = 510
     /// Códigos de tecla de 1…9 (índice 0 = tecla 1).
     private static let digitKeyCodes: [UInt32] = [
         UInt32(kVK_ANSI_1), UInt32(kVK_ANSI_2), UInt32(kVK_ANSI_3), UInt32(kVK_ANSI_4), UInt32(kVK_ANSI_5),
         UInt32(kVK_ANSI_6), UInt32(kVK_ANSI_7), UInt32(kVK_ANSI_8), UInt32(kVK_ANSI_9),
     ]
+
+    /// Un atajo por hueco, cambiables en Ajustes. ⌃⌥1…9 de fábrica.
+    static let shortcuts: [ShortcutBinding] = (1...9).map { key in
+        ShortcutBinding(key: "layouts.slot\(key)",
+                        hotKeyID: hotKeyBase + UInt32(key),
+                        title: L("Disposición \(key)", "Layout \(key)"),
+                        fallback: Shortcut(keyCode: digitKeyCodes[key - 1],
+                                           modifiers: UInt32(controlKey | optionKey)))
+    }
+    static let undoShortcut = ShortcutBinding(key: "layouts.undo", hotKeyID: 510,
+                                              title: L("Deshacer la última disposición", "Undo the last layout"),
+                                              fallback: Shortcut(kVK_ANSI_0, controlKey | optionKey))
     /// Dónde estaban las ventanas antes de la última disposición aplicada (para deshacer).
     private var previousFrames: [(window: AXUIElement, frame: CGRect)] = []
     @Published private(set) var canUndo = false
@@ -310,24 +324,19 @@ final class WindowLayoutStore: ObservableObject {
 
     private func registerHotKeys() {
         unregisterHotKeys()
-        let modifiers = UInt32(controlKey | optionKey)
         // Los nueve números siempre: un número libre guarda; uno ocupado aplica.
         for key in 1...9 {
-            HotKeyCenter.shared.register(id: Self.hotKeyBase + UInt32(key),
-                                         keyCode: Self.digitKeyCodes[key - 1],
-                                         modifiers: modifiers,
-                                         handler: { [weak self] in self?.slotPressed(key) },
-                                         onRelease: { [weak self] in self?.slotReleased(key) })
+            HotKeyCenter.shared.bind(Self.shortcuts[key - 1],
+                                     handler: { [weak self] in self?.slotPressed(key) },
+                                     onRelease: { [weak self] in self?.slotReleased(key) })
         }
-        // ⌃⌥0: deshacer la última disposición aplicada.
-        HotKeyCenter.shared.register(id: Self.undoHotKey, keyCode: UInt32(kVK_ANSI_0), modifiers: modifiers) { [weak self] in
-            self?.undoLast()
-        }
+        // Deshacer la última disposición aplicada.
+        HotKeyCenter.shared.bind(Self.undoShortcut) { [weak self] in self?.undoLast() }
     }
 
     private func unregisterHotKeys() {
-        for key in 1...9 { HotKeyCenter.shared.unregister(id: Self.hotKeyBase + UInt32(key)) }
-        HotKeyCenter.shared.unregister(id: Self.undoHotKey)
+        for binding in Self.shortcuts { HotKeyCenter.shared.unbind(binding) }
+        HotKeyCenter.shared.unbind(Self.undoShortcut)
     }
 
     private func persist() {

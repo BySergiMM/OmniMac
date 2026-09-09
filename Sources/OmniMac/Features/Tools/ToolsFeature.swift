@@ -28,20 +28,34 @@ final class ToolsFeature: BaseFeature {
         }
     }
 
-    static let shortcutHelp: [(shortcut: String, action: String)] = [
-        ("⇧⌘ 2", L("Copiar texto de la pantalla: selecciona una zona y el texto va al portapapeles", "Copy text from the screen: select an area and the text goes to the clipboard")),
-        ("⌃⌥⌘ M", L("Silenciar o activar el micrófono", "Mute or unmute the microphone")),
-        ("⌃⌥⌘ L", L("Bloquear el teclado 30 segundos para limpiarlo", "Lock the keyboard for 30 seconds to clean it")),
-        ("⇧⌘ 6", L("Copiar el color de un punto de la pantalla (en hexadecimal)", "Copy the colour of a point on the screen (as hex)")),
-        (L("⌘ Q mantenido", "⌘ Q held"), L("Cerrar la app solo si mantienes ⌘Q medio segundo (evita cierres por accidente)", "Quit the app only if you hold ⌘Q for half a second (prevents accidental quits)")),
+    /// Los atajos del módulo. Se pueden cambiar en Ajustes; estos son los de fábrica.
+    static let shortcuts: [ShortcutBinding] = [
+        ShortcutBinding(key: "tools.ocr", hotKeyID: 300,
+                        title: L("Copiar texto de la pantalla", "Copy text from the screen"),
+                        fallback: Shortcut(kVK_ANSI_2, cmdKey | shiftKey)),
+        ShortcutBinding(key: "tools.mic", hotKeyID: 301,
+                        title: L("Silenciar o activar el micrófono", "Mute or unmute the microphone"),
+                        fallback: Shortcut(kVK_ANSI_M, controlKey | optionKey | cmdKey)),
+        ShortcutBinding(key: "tools.lock", hotKeyID: 302,
+                        title: L("Bloquear el teclado 30 segundos", "Lock the keyboard for 30 seconds"),
+                        fallback: Shortcut(kVK_ANSI_L, controlKey | optionKey | cmdKey)),
+        ShortcutBinding(key: "tools.color", hotKeyID: 303,
+                        title: L("Copiar un color de la pantalla", "Copy a colour from the screen"),
+                        fallback: Shortcut(kVK_ANSI_6, cmdKey | shiftKey)),
+        ShortcutBinding(key: "tools.dimDown", hotKeyID: 620,
+                        title: L("Bajar el brillo por debajo del mínimo", "Dim below the minimum"),
+                        fallback: Shortcut(kVK_ANSI_Minus, controlKey | optionKey | cmdKey)),
+        ShortcutBinding(key: "tools.dimUp", hotKeyID: 621,
+                        title: L("Volver al brillo normal", "Back to normal brightness"),
+                        fallback: Shortcut(kVK_ANSI_Equal, controlKey | optionKey | cmdKey)),
     ]
 
-    private static let ocrHotKey: UInt32 = 300
-    private static let dimDownHotKey: UInt32 = 620
-    private static let dimUpHotKey: UInt32 = 621
-    private static let micHotKey: UInt32 = 301
-    private static let lockHotKey: UInt32 = 302
-    private static let colorHotKey: UInt32 = 303
+    private static var ocrShortcut: ShortcutBinding { shortcuts[0] }
+    private static var micShortcut: ShortcutBinding { shortcuts[1] }
+    private static var lockShortcut: ShortcutBinding { shortcuts[2] }
+    private static var colorShortcut: ShortcutBinding { shortcuts[3] }
+    private static var dimDownShortcut: ShortcutBinding { shortcuts[4] }
+    private static var dimUpShortcut: ShortcutBinding { shortcuts[5] }
     private let ocr = ScreenTextCapture()
     private let keyboardLock = KeyboardLock()
     private let colorPicker = ScreenColorPicker()
@@ -59,36 +73,12 @@ final class ToolsFeature: BaseFeature {
     }
 
     override func start() {
-        HotKeyCenter.shared.register(id: Self.ocrHotKey,
-                                     keyCode: UInt32(kVK_ANSI_2),
-                                     modifiers: UInt32(cmdKey | shiftKey)) { [weak self] in
-            self?.captureText()
-        }
-        HotKeyCenter.shared.register(id: Self.micHotKey,
-                                     keyCode: UInt32(kVK_ANSI_M),
-                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
-            self?.toggleMicrophone()
-        }
-        HotKeyCenter.shared.register(id: Self.lockHotKey,
-                                     keyCode: UInt32(kVK_ANSI_L),
-                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
-            self?.lockKeyboard()
-        }
-        HotKeyCenter.shared.register(id: Self.colorHotKey,
-                                     keyCode: UInt32(kVK_ANSI_6),
-                                     modifiers: UInt32(cmdKey | shiftKey)) { [weak self] in
-            self?.pickColor()
-        }
-        HotKeyCenter.shared.register(id: Self.dimDownHotKey,
-                                     keyCode: UInt32(kVK_ANSI_Minus),
-                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
-            self?.stepDim(+0.1)
-        }
-        HotKeyCenter.shared.register(id: Self.dimUpHotKey,
-                                     keyCode: UInt32(kVK_ANSI_Equal),
-                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
-            self?.stepDim(-0.1)
-        }
+        HotKeyCenter.shared.bind(Self.ocrShortcut) { [weak self] in self?.captureText() }
+        HotKeyCenter.shared.bind(Self.micShortcut) { [weak self] in self?.toggleMicrophone() }
+        HotKeyCenter.shared.bind(Self.lockShortcut) { [weak self] in self?.lockKeyboard() }
+        HotKeyCenter.shared.bind(Self.colorShortcut) { [weak self] in self?.pickColor() }
+        HotKeyCenter.shared.bind(Self.dimDownShortcut) { [weak self] in self?.stepDim(+0.1) }
+        HotKeyCenter.shared.bind(Self.dimUpShortcut) { [weak self] in self?.stepDim(-0.1) }
         if quitGuardEnabled { quitGuard.start() }
     }
 
@@ -108,12 +98,7 @@ final class ToolsFeature: BaseFeature {
 
     override func stop() {
         dimLevel = 0
-        HotKeyCenter.shared.unregister(id: Self.dimDownHotKey)
-        HotKeyCenter.shared.unregister(id: Self.dimUpHotKey)
-        HotKeyCenter.shared.unregister(id: Self.ocrHotKey)
-        HotKeyCenter.shared.unregister(id: Self.micHotKey)
-        HotKeyCenter.shared.unregister(id: Self.lockHotKey)
-        HotKeyCenter.shared.unregister(id: Self.colorHotKey)
+        for binding in Self.shortcuts { HotKeyCenter.shared.unbind(binding) }
         keyboardLock.unlock()
         quitGuard.stop()
     }

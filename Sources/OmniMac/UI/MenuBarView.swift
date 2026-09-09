@@ -23,8 +23,8 @@ struct MenuBarPage: View {
                         Label(L("Mantén ⌘ pulsado y arrastra los iconos que quieras esconder a la **izquierda de la línea** ❘.",
                                 "Hold ⌘ and drag the icons you want hidden to the **left of the line** ❘."),
                               systemImage: "hand.draw")
-                        Label(L("Pulsa la flecha (o ⌃⌥⌘B) para verlos un momento.",
-                                "Click the arrow (or press ⌃⌥⌘B) to peek at them."),
+                        Label(L("Pulsa la flecha, o el atajo de aquí abajo, para verlos un momento.",
+                                "Click the arrow, or the shortcut below, to peek at them."),
                               systemImage: "cursorarrow.click")
                         Label(L("macOS recuerda dónde dejaste cada icono, así que esto se hace una sola vez.",
                                 "macOS remembers where you left each icon, so you only do this once."),
@@ -32,6 +32,7 @@ struct MenuBarPage: View {
                     }
                     .font(.callout)
                     .labelStyle(.titleAndIcon)
+                    ShortcutSettingRow(MenuBarFeature.shortcut)
                 } header: {
                     Text(L("Cómo se usa", "How to use it"))
                 }

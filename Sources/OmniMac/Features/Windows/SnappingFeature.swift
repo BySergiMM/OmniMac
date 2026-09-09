@@ -61,22 +61,47 @@ final class SnappingFeature: BaseFeature {
             default:                             UInt32(controlKey | optionKey)
             }
         }
+
+        /// Cómo se llama en Ajustes.
+        var title: String {
+            switch self {
+            case .leftHalf:        L("Mitad izquierda", "Left half")
+            case .rightHalf:       L("Mitad derecha", "Right half")
+            case .topHalf:         L("Mitad superior", "Top half")
+            case .bottomHalf:      L("Mitad inferior", "Bottom half")
+            case .maximize:        L("Maximizar", "Maximize")
+            case .almostMaximize:  L("Casi maximizar (con aire alrededor)", "Almost maximize (with a margin)")
+            case .center:          L("Centrar", "Centre")
+            case .topLeft:         L("Cuarto de arriba a la izquierda", "Top-left quarter")
+            case .topRight:        L("Cuarto de arriba a la derecha", "Top-right quarter")
+            case .bottomLeft:      L("Cuarto de abajo a la izquierda", "Bottom-left quarter")
+            case .bottomRight:     L("Cuarto de abajo a la derecha", "Bottom-right quarter")
+            case .firstThird:      L("Primer tercio", "First third")
+            case .centerThird:     L("Tercio central", "Middle third")
+            case .lastThird:       L("Último tercio", "Last third")
+            case .firstTwoThirds:  L("Dos primeros tercios", "First two thirds")
+            case .lastTwoThirds:   L("Dos últimos tercios", "Last two thirds")
+            case .larger:          L("Más grande", "Larger")
+            case .smaller:         L("Más pequeña", "Smaller")
+            case .restore:         L("Restaurar el tamaño anterior", "Restore the previous size")
+            case .nextDisplay:     L("Pasar a la pantalla siguiente", "Move to the next display")
+            case .previousDisplay: L("Pasar a la pantalla anterior", "Move to the previous display")
+            }
+        }
     }
 
-    /// Para mostrar en Ajustes.
-    static let shortcutHelp: [(shortcut: String, action: String)] = [
-        ("⌃⌥ ← / →", L("Mitad izquierda / derecha", "Left / right half")),
-        ("⌃⌥⇧ ↑ / ↓", L("Mitad superior / inferior", "Top / bottom half")),
-        ("⌃⌥ ↑", L("Maximizar", "Maximize")),
-        ("⌃⌥ ↩", L("Casi maximizar (con aire alrededor)", "Almost maximize (with a margin around it)")),
-        ("⌃⌥ ↓", L("Centrar", "Centre")),
-        ("⌃⌥ U / I / J / K", L("Cuartos (arriba izq., arriba der., abajo izq., abajo der.)", "Quarters (top left, top right, bottom left, bottom right)")),
-        ("⌃⌥ D / F / G", L("Tercios: primero, central, último", "Thirds: first, middle, last")),
-        ("⌃⌥ E / T", L("Dos tercios: primeros, últimos", "Two thirds: first, last")),
-        ("⌃⌥ = / −", L("Más grande / más pequeño", "Larger / smaller")),
-        ("⌃⌥ ⌫", L("Restaurar el tamaño anterior", "Restore the previous size")),
-        ("⌃⌥⌘ → / ←", L("Pantalla siguiente / anterior", "Next / previous display")),
-    ]
+    /// Los veintiún atajos del módulo, sacados del propio `Action` para que el valor
+    /// de fábrica y el que se registra no puedan separarse nunca.
+    ///
+    /// Son los que más chocan: quien viene de Rectangle o de Magnet ya tiene ⌃⌥ y las
+    /// flechas cogidas, y hasta ahora eso se traducía en que OmniMac no hacía nada
+    /// sin decir por qué.
+    static let shortcuts: [ShortcutBinding] = Action.allCases.map { action in
+        ShortcutBinding(key: "snapping.\(action)",
+                        hotKeyID: hotKeyBase + action.rawValue,
+                        title: action.title,
+                        fallback: Shortcut(keyCode: action.keyCode, modifiers: action.modifiers))
+    }
 
     /// Ajustar arrastrando a los bordes y esquinas (con huella), como Rectangle.
     @Published var snapByDragging: Bool {
@@ -117,21 +142,15 @@ final class SnappingFeature: BaseFeature {
 
     override func start() {
         WindowLayoutStore.shared.start()
-        for action in Action.allCases {
-            HotKeyCenter.shared.register(id: Self.hotKeyBase + action.rawValue,
-                                         keyCode: action.keyCode,
-                                         modifiers: action.modifiers) { [weak self] in
-                self?.perform(action)
-            }
+        for (binding, action) in zip(Self.shortcuts, Action.allCases) {
+            HotKeyCenter.shared.bind(binding) { [weak self] in self?.perform(action) }
         }
         if snapByDragging { drag.start() }
     }
 
     override func stop() {
         WindowLayoutStore.shared.stop()
-        for action in Action.allCases {
-            HotKeyCenter.shared.unregister(id: Self.hotKeyBase + action.rawValue)
-        }
+        for binding in Self.shortcuts { HotKeyCenter.shared.unbind(binding) }
         drag.stop()
     }
 

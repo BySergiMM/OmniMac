@@ -43,11 +43,15 @@ final class SoundFeature: BaseFeature {
     private lazy var mixerPanel = MixerPanelController(sound: self)
     private var refreshing = false
     private var lastOutput: AudioDeviceID?
-    private static let cycleHotKey: UInt32 = 400
-    private static let mixerHotKey: UInt32 = 401
 
-    static let shortcutHelp: [(shortcut: String, action: String)] = [
-        ("⌃⌥⌘ O", L("Cambia a la siguiente salida de audio (altavoces, auriculares, monitor…)", "Switches to the next audio output (speakers, headphones, monitor…)")),
+    /// Los atajos del módulo. Se pueden cambiar en Ajustes; estos son los de fábrica.
+    static let shortcuts: [ShortcutBinding] = [
+        ShortcutBinding(key: "sound.cycleOutput", hotKeyID: 400,
+                        title: L("Cambiar a la siguiente salida de audio", "Switch to the next audio output"),
+                        fallback: Shortcut(kVK_ANSI_O, controlKey | optionKey | cmdKey)),
+        ShortcutBinding(key: "sound.mixer", hotKeyID: 401,
+                        title: L("Abrir el mezclador de volumen", "Open the volume mixer"),
+                        fallback: Shortcut(kVK_ANSI_V, controlKey | optionKey | cmdKey)),
     ]
 
     var outputDevices: [AudioDevice] { devices.filter(\.hasOutput) }
@@ -83,24 +87,15 @@ final class SoundFeature: BaseFeature {
         refresh()
         mixer.start()
         AudioSystem.startObserving { [weak self] in self?.refresh() }
-        HotKeyCenter.shared.register(id: Self.cycleHotKey,
-                                     keyCode: UInt32(kVK_ANSI_O),
-                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
-            self?.cycleOutput()
-        }
-        HotKeyCenter.shared.register(id: Self.mixerHotKey,
-                                     keyCode: UInt32(kVK_ANSI_V),
-                                     modifiers: UInt32(controlKey | optionKey | cmdKey)) { [weak self] in
-            self?.toggleMixer()
-        }
+        HotKeyCenter.shared.bind(Self.shortcuts[0]) { [weak self] in self?.cycleOutput() }
+        HotKeyCenter.shared.bind(Self.shortcuts[1]) { [weak self] in self?.toggleMixer() }
     }
 
     /// Abre o cierra el mezclador suelto.
     func toggleMixer() { mixerPanel.toggle() }
 
     override func stop() {
-        HotKeyCenter.shared.unregister(id: Self.cycleHotKey)
-        HotKeyCenter.shared.unregister(id: Self.mixerHotKey)
+        for binding in Self.shortcuts { HotKeyCenter.shared.unbind(binding) }
         mixerPanel.hide()
         AudioSystem.stopObserving()
         AudioSystem.stopObservingLevels()

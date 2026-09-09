@@ -20,6 +20,7 @@
 - **Instalador de .dmg**: al terminar una descarga, OmniMac pregunta si monta el disco, copia la app a Aplicaciones, lo expulsa y manda el .dmg a la papelera. Nunca hace nada sin preguntar.
 - Los iconos del notch se reordenan arrastrándolos, y las gráficas de rendimiento se pueden poner en el notch, en la barra de menús o en ningún sitio.
 - Ventana de **Novedades** al actualizar, que puedes saltarte.
+- **Todos los atajos se pueden cambiar**, uno a uno, desde Ajustes. Y si otra app ya tiene esa combinación, OmniMac **lo dice** en vez de quedarse callado: antes `RegisterEventHotKey` fallaba, no había ningún aviso y la función simplemente no hacía nada. Quien tuviera Rectangle o Magnet pulsaba ⌃⌥→ y no pasaba nada, sin explicación.
 
 **Arreglado**
 - **Los menús iban a tirones.** La causa era el monitor global de ratón del notch: mientras existe, macOS despierta la app en cada movimiento del ratón de todo el sistema. Ahora se quita mientras hay un menú abierto.
