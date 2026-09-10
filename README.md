@@ -106,7 +106,7 @@ disappears from the menu.
 
 ## Why it's light
 
-**0.017 % CPU and 80 MB at idle** (35 MB of real memory), measured with a published,
+**0.017–0.033 % CPU and 86 MB at idle** (33–37 MB of real memory), measured with a published,
 reproducible method — the scripts are in the repo.
 
 The rule the whole app is built on: **nothing polls when nothing is visible.** The
@@ -115,10 +115,10 @@ when it folds. The audio engine isn't even created unless you've set something t
 
 | | OmniMac | Amphetamine | AltTab | Rectangle | Maccy | BoringNotch | Ice | FineTune |
 |---|---|---|---|---|---|---|---|---|
-| CPU at idle | **0.017 %** | 0.000 % | 0.020 % | 0.040 % | 0.020 % | 0.340 % | 0.040 % | 0.000 % |
-| Memory (RSS) | **83 MB** | 100 MB | 212 MB | 84 MB | 91 MB | 149 MB | 99 MB | 116 MB |
+| CPU at idle | **0.017–0.033 %** | 0.000 % | 0.020 % | 0.040 % | 0.020 % | 0.340 % | 0.040 % | 0.000 % |
+| Memory (RSS) | **86 MB** | 100 MB | 212 MB | 84 MB | 91 MB | 149 MB | 99 MB | 116 MB |
 
-Those seven together take **851 MB**. OmniMac does their job with **83 MB**.
+Those seven together take **851 MB**. OmniMac does their job with **86 MB**.
 [Full method and caveats →](docs/PERFORMANCE.md)
 
 ## Install

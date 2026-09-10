@@ -29,8 +29,8 @@ let subtitle = spanish ? "Once utilidades en una sola app de la barra de menús.
                        : "Eleven utilities in one menu bar app."
 // Las tres cifras que de verdad convencen, y que son las que hay que revisar al
 // cambiar de versión.
-let stats: [String] = spanish ? ["0,017 % de CPU en reposo", "27–36 MB", "16 MB en disco"]
-                              : ["0.017% CPU at idle", "27–36 MB", "16 MB on disk"]
+let stats: [String] = spanish ? ["0,017 % de CPU en reposo", "33–37 MB", "16 MB en disco"]
+                              : ["0.017% CPU at idle", "33–37 MB", "16 MB on disk"]
 
 // MARK: - Lienzo
 
