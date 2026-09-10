@@ -1,5 +1,11 @@
 # Cambios
 
+## 0.5.1 — 2026-09-11
+
+**Arreglado**
+- Rendimiento: algunos nombres de apps salían con letras rotas, como «Servicio de la m√°quina virtual para Claude». El nombre ya llega así de macOS; ahora OmniMac lo arregla antes de enseñarlo y no toca lo que está bien escrito. Lo mismo en el mezclador de volumen, en ⌘Tab por ventanas, en el aviso de ⌘Q y en el limpiador de apps.
+- Notch: el clic en la batería abría Ajustes del Sistema en General. Ahora abre Batería.
+
 ## 0.5.0 — 2026-09-09
 
 **Nuevo**
