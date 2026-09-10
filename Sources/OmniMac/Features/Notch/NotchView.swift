@@ -216,9 +216,11 @@ struct NotchView: View {
             }
             if model.showBattery {
                 BatteryBadge(state: battery.state) {
-                    // Ajustes del Sistema › Batería (modo de bajo consumo, etc.).
+                    // Ajustes del Sistema › Batería (modo de bajo consumo, etc.). Ojo al
+                    // punto de «.extension»: con guion ese panel no existe, y Ajustes del
+                    // Sistema abre General —o se queda donde estaba— sin dar ningún error.
                     model.onCollapseRequest?()
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings-extension") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension") {
                         NSWorkspace.shared.open(url)
                     }
                 }
