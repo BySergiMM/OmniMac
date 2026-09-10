@@ -60,7 +60,7 @@ https://github.com/user-attachments/assets/757ab088-c1fa-416d-9d5c-fb8088834c68
 Mantener despierto, ⌘Tab por ventanas, notch dinámico, atajos y disposiciones de
 ventanas, historial del portapapeles, utilidades (OCR, color, micrófono…), sonido con
 volumen y ecualizador por app, escondedor de la barra de menús y limpiador de apps.
-Consume **0,017 % de CPU y 83 MB en reposo** (30 MB de memoria física real): un **90 %
+Consume **0,017–0,033 % de CPU y 86 MB en reposo** (33–37 MB de memoria física real): un **90 %
 menos de memoria** que las siete apps residentes a las que sustituye, que juntas ocupan
 851 MB ([estudio](docs/PERFORMANCE.md)). Sin cuentas, sin telemetría; se actualiza sola. La interfaz sigue el idioma del Mac (español o inglés) y se puede fijar en Ajustes.
 
@@ -233,9 +233,9 @@ en cuanto aparece (experimental: solo pulsa un botón llamado cerrar/descartar).
 - **Icono**: chispa blanca + notch sobre degradado violeta (`scripts/make-icon.swift`)
 - Apoyar el proyecto: botones en Ajustes › Inicio y en el menú («Invítame a un café»),
   con enlaces a Ko-fi y GitHub Sponsors (`Brand.coffeeURL` / `Brand.sponsorsURL`).
-- Estudio de consumo y comparativa con Amphetamine, AltTab, Rectangle, Maccy y BoringNotch: [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
-  Última medición (0.4.1, 5 de septiembre de 2026): reposo **0,017 % de CPU, 19–27 MB de memoria real y 0,7 despertares/s**;
-  con el notch abierto y música sonando, 2,1 %. Sin crecimiento de memoria tras abrir y cerrar el notch 10 veces.
+- Estudio de consumo y comparativa con Amphetamine, AltTab, Rectangle, Maccy, BoringNotch, Ice, FineTune y AppCleaner: [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
+  Última medición (0.5.1, 11 de septiembre de 2026): reposo **0,017–0,033 % de CPU, 33–37 MB de memoria real y 0,3 despertares/s**;
+  con el notch abierto y música sonando, 2,3 %. Tras abrir y cerrar el notch tres veces, 0,7 despertares/s.
 - Radiografía de la competencia (todas sus funciones frente a OmniMac y qué añadir): [docs/COMPETENCIA.md](docs/COMPETENCIA.md)
 
 ## Arquitectura
@@ -290,14 +290,14 @@ Reglas de la casa:
   inicio son automáticos. Un módulo apagado **desaparece** del menú y del notch.
 - **Nada trabaja en reposo**: sin temporizadores mientras el notch está plegado; batería,
   audio, música y pantallas avisan por notificación. Los gráficos solo muestrean con la
-  pestaña abierta. Por eso el consumo en reposo es de 0,017 % de CPU (`docs/PERFORMANCE.md`).
+  pestaña abierta. Por eso el consumo en reposo es de 0,017–0,033 % de CPU (`docs/PERFORMANCE.md`).
 - **Sin código repetido entre módulos**: lo común vive en `Support/` (`AX.setFrame`,
   `Notifier.post`, `Toast.show`, `FilePicker.choose`, `HotKeyCenter.register`).
 - **Idioma**: cada texto de la interfaz se escribe una vez en cada idioma, `L("Guardar", "Save")`
   (`Support/Localization.swift`). Sin archivos `.strings`: el texto español queda a la vista en el
   código y es fácil de editar. Los textos de permisos van en `Resources/{es,en}.lproj/InfoPlist.strings`.
 - Los cambios de cada versión van en `CHANGELOG.md`. Licencia MIT.
-- Espacio: la app ocupa 12 MB; la caché (carátulas y restos de actualizaciones) está acotada a 16 MB y se limpia sola a diario, o a mano desde Ajustes › Inicio › Almacenamiento.
+- Espacio: la app ocupa 16 MB; la caché (carátulas y restos de actualizaciones) está acotada a 16 MB y se limpia sola a diario, o a mano desde Ajustes › Inicio › Almacenamiento.
 
 ## Herramientas de desarrollo (`scripts/dev`)
 

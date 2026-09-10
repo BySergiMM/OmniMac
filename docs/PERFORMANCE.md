@@ -172,19 +172,57 @@ actualización; si hay una en marcha, esa carpeta no se toca.
 - Sin procesos hijo, sin fugas de memoria (RSS plano), y los temporizadores se
   paran cuando no se usan. Impacto de batería insignificante.
 
+## Medición 0.5.1 (11 de septiembre de 2026)
+
+Misma metodología (`scripts/dev/measure.sh`). Varios arranques limpios, con Spotify sonando y
+con Spotify en pausa, para descartar que la música cambie algo con el notch plegado.
+
+| Escenario | CPU media | RSS | Memoria real | Hilos |
+|---|---|---|---|---|
+| **Reposo** (notch plegado, 60 s, seis muestras en tres arranques) | **0,017–0,033 %** | 84–86 MB | **33–37 MB** | 6–9 |
+| Notch abierto con música (30 s, dos muestras) | 2,3 % | 86 MB | 29 MB | 8 |
+| Página de Rendimiento abierta (60 s, dos muestras) | 2,6 % | 124–125 MB | 59 MB | 7 |
+| Despertares en reposo | **0,3/s**; 0,7/s tras tres ciclos de abrir y cerrar el notch | | | |
+
+En disco: **16 MB**, igual que en 0.5.0.
+
+- **La memoria sube respecto a 0.5.0** (real: de 27–36 a 33–37 MB; RSS: de 82–83 a 84–86 MB).
+  No sale de lo nuevo, porque los dos arreglos de esta versión no corren en reposo, ni de la
+  música, porque con Spotify en pausa sale lo mismo. Se publica la cifra de ahora.
+- **Notch abierto con música: 2,3 %, no 0,93 %.** La 0.5.0 dio 0,93 % en una sola muestra; ahora
+  dos muestras limpias dan 2,30 y 2,27 %, en la línea de la 0.4.1 (2,1 %). El código del notch no
+  ha cambiado desde entonces: con una sola muestra de referencia, lo prudente es quedarse con esta.
+  (La segunda muestra se tomó después de abrir Ajustes, con la memoria ya más alta: 126 MB de RSS
+  y 54 MB reales. La CPU, la misma.)
+- **Lo que cuesta arreglar los nombres.** `SystemText.repaired` pasa por el nombre de cada proceso
+  en cada muestra de la lista, unos 445 nombres cada 4 s y solo con la página de Rendimiento a la
+  vista. Tal como se escribió costaba 2 µs por nombre: 0,9 ms por muestra, un 0,02 % de CPU. Con la
+  salida rápida para los nombres ASCII (casi todos lo son, y el error nunca está en ellos) son
+  0,015 ms por muestra, 61 veces menos, con exactamente el mismo resultado.
+- **Página de Rendimiento abierta: 2,6 %** (0.5.0: 1,57 %, en una sola muestra). Con la salida
+  rápida da lo mismo que sin ella (2,62 y 2,57 %), así que no es el arreglo de los nombres; el
+  resto de la página no ha cambiado desde 0.5.0. Solo cuesta mientras la página está a la vista.
+- **Al cerrar Ajustes la CPU vuelve al reposo (0,017 %), pero la memoria no baja del todo**: con la
+  página de Rendimiento abierta la memoria real llega a 59 MB, y al cerrar la ventana se queda en
+  54. Queda por ver si la retiene OmniMac o son cachés del sistema.
+- **Una medida descartada.** La primera de la página de Rendimiento abrió Ajustes con
+  `open -b com.seergiii.omnimac`, y lo que se midió ya era otro proceso: LaunchServices tiene
+  registrada además una copia vieja que ya no existe. Se repitió abriendo la app por su ruta.
+
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
 Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),
 50 s de reposo tras 15 s de arranque, sin ninguna ventana suya abierta. CPU = tiempo de CPU
 consumido / tiempo transcurrido; RAM = RSS, sumando procesos ayudantes si los tiene.
-OmniMac se mide en caliente (tras abrir y cerrar el notch una vez), que es su estado normal.
+OmniMac se mide en caliente (tras abrir y cerrar el notch una vez), que es su estado normal; su
+fila es la de la 0.5.1, medida el 11 de septiembre.
 
 Ice, FineTune y AppCleaner se descargaron el 8 de septiembre de 2026, se midieron y se
 borraron. Las otras cinco conservan la medición del 3 de septiembre, mismo Mac y mismo método.
 
 | App | Sustituye a (módulo de OmniMac) | CPU reposo | RSS | Hilos | Disco | Versión |
 |---|---|---|---|---|---|---|
-| **OmniMac** | — (las ocho en una) | **0,017 %** | **80 MB** | 6 | 14 MB | 0.4.2 |
+| **OmniMac** | — (las ocho en una) | **0,017–0,033 %** | **86 MB** | 6 | 16 MB | 0.5.1 |
 | **Amphetamine** | Mantener despierto | 0,000 % | 100 MB | 5 | 7 MB | 5.3.2 |
 | **AltTab** | ⌘Tab por ventanas | 0,020 % | 212 MB | 9 | 11 MB | 11.5.0 |
 | **Rectangle** | Atajos de ventanas | 0,040 % | 84 MB | 4 | 9 MB | 1.100 |
@@ -195,9 +233,9 @@ borraron. Las otras cinco conservan la medición del 3 de septiembre, mismo Mac 
 | **Las 7 residentes juntas** | — | **0,460 %** | **851 MB** | — | 75 MB | — |
 | *AppCleaner* | *Limpiador de apps* | *0,000 %* | *90 MB* | *6* | *9 MB* | *3.6.8* |
 
-**OmniMac hace el trabajo de las siete que viven en la barra de menús con 80 MB en vez de
-851: un 91 % menos de memoria y un 96 % menos de CPU** (0,017 % frente a 0,460 %). En disco,
-14 MB frente a 84 MB entre las ocho.
+**OmniMac hace el trabajo de las siete que viven en la barra de menús con 86 MB en vez de
+851: un 90 % menos de memoria y entre un 93 y un 96 % menos de CPU** (0,017–0,033 % frente a
+0,460 %). En disco, 16 MB frente a 84 MB entre las ocho.
 
 Matices honestos, para que las cifras signifiquen algo:
 
@@ -207,7 +245,7 @@ Matices honestos, para que las cifras signifiquen algo:
   bienvenida delante, daba 3,52 %; eso es la ventana, no la app. Con los permisos concedidos y
   sin ventanas se queda en 0,040 %.
 - **La memoria real (`footprint`) solo la tenemos de las cuatro medidas este mes**: OmniMac
-  35 MB, FineTune 49 MB, Ice 37 MB, AppCleaner 33 MB. Para las otras cuatro solo hay RSS, así
+  33–37 MB (0.5.1), FineTune 49 MB, Ice 37 MB, AppCleaner 33 MB. Para las otras cuatro solo hay RSS, así
   que la comparativa se hace **RSS contra RSS**, que es lo comparable.
 - AltTab captura miniaturas de las ventanas en segundo plano: su RAM crece con el uso (en
   sesiones largas pasó de 300 MB).
