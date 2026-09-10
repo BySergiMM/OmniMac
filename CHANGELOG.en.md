@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 — 2026-09-11
+
+**Fixed**
+- Performance: some app names showed up with garbled letters, like “m√°quina” instead of “máquina”. macOS hands the name over already broken; OmniMac now repairs it before showing it and leaves correctly written names alone. Same in the volume mixer, ⌘Tab by windows, the ⌘Q warning and the app cleaner.
+- Notch: clicking the battery opened System Settings on General. It now opens Battery.
+
 ## 0.5.0 — 2026-09-09
 
 **New**
