@@ -83,8 +83,8 @@ final class AppCleaner: ObservableObject {
                 seen.insert(appURL)
                 guard let bundle = Bundle(url: appURL), let id = bundle.bundleIdentifier,
                       !LeftoverMatcher.isProtected(bundleID: id) else { continue }
-                let display = (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
-                    ?? String(name.dropLast(4))
+                let display = SystemText.repaired((bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+                    ?? String(name.dropLast(4)))
                 result.append(InstalledApp(url: appURL,
                                            name: display,
                                            bundleID: id,

@@ -60,7 +60,7 @@ enum TopProcesses {
         // tienen las apps con interfaz; para el resto vale el del ejecutable.
         var niceNames: [pid_t: String] = [:]
         for app in NSWorkspace.shared.runningApplications {
-            if let name = app.localizedName { niceNames[app.processIdentifier] = name }
+            if let name = app.localizedName { niceNames[app.processIdentifier] = SystemText.repaired(name) }
         }
 
         var result: [Sample] = []
@@ -84,7 +84,7 @@ enum TopProcesses {
     private static func executableName(_ pid: pid_t) -> String? {
         var buffer = [CChar](repeating: 0, count: Int(2 * MAXCOMLEN) + 1)
         guard proc_name(pid, &buffer, UInt32(buffer.count)) > 0 else { return nil }
-        let name = String(cString: buffer)
+        let name = SystemText.repaired(String(cString: buffer))
         return name.isEmpty ? nil : name
     }
 
