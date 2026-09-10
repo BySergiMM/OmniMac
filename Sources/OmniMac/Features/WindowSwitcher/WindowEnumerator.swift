@@ -48,7 +48,7 @@ enum WindowEnumerator {
                 seen.insert(windowID)
 
                 let axTitle = AX.string(axWindow, kAXTitleAttribute as String) ?? ""
-                let appName = app.localizedName ?? "App"
+                let appName = app.localizedName.map(SystemText.repaired) ?? "App"
                 result.append(SwitcherWindow(id: windowID,
                                              pid: app.processIdentifier,
                                              appName: appName,

@@ -75,7 +75,7 @@ final class QuitGuard {
             }
             if !holding {
                 holding = true
-                let name = front.localizedName ?? L("la app", "the app")
+                let name = front.localizedName.map(SystemText.repaired) ?? L("la app", "the app")
                 Toast.show(L("Mantén pulsado ⌘Q para salir de \(name)", "Hold ⌘Q to quit \(name)"), symbol: "hand.raised.fill", duration: Self.holdSeconds + 0.6)
                 let work = DispatchWorkItem { [weak self] in self?.quitAfterHold(front) }
                 holdWork = work

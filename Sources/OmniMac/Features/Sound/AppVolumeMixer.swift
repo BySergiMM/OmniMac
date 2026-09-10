@@ -21,7 +21,7 @@ private func processName(_ pid: pid_t) -> String? {
     var buffer = [CChar](repeating: 0, count: 256)
     let length = proc_name(pid, &buffer, 256)
     guard length > 0 else { return nil }
-    return String(cString: buffer)
+    return SystemText.repaired(String(cString: buffer))
 }
 
 struct AudioApp: Identifiable, Equatable {
@@ -300,7 +300,7 @@ final class AppVolumeMixer: ObservableObject {
             let key = app?.bundleIdentifier ?? process.bundleID ?? "pid:\(ownerPID)"
             let fallbackName = processName(ownerPID) ?? process.bundleID?.components(separatedBy: ".").last ?? L("Proceso \(ownerPID)", "Process \(ownerPID)")
             if groups[key] == nil {
-                groups[key] = Group(pid: ownerPID, name: app?.localizedName ?? fallbackName, icon: app?.icon)
+                groups[key] = Group(pid: ownerPID, name: app?.localizedName.map(SystemText.repaired) ?? fallbackName, icon: app?.icon)
                 order.append(key)
             }
             groups[key]?.objects.append(process.objectID)
