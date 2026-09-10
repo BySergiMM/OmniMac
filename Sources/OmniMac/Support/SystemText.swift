@@ -22,7 +22,11 @@ enum SystemText {
     ///   UTF-8 válido. Si falla cualquiera de las dos cosas, no era este error: un
     ///   «√2» de verdad da bytes que no son UTF-8, y tampoco se toca.
     static func repaired(_ text: String) -> String {
-        guard markers.contains(where: { text.contains($0) }),
+        // Casi todos los nombres son ASCII puro, y ahí no puede estar el error: las tres
+        // marcas son caracteres de fuera de ASCII. Salir antes le quita casi todo el
+        // coste a la página de Rendimiento, que pasa por aquí cientos de nombres por muestra.
+        guard !text.utf8.allSatisfy({ $0 < 0x80 }),
+              markers.contains(where: { text.contains($0) }),
               let bytes = text.data(using: .macOSRoman),
               let fixed = String(data: bytes, encoding: .utf8),
               fixed != text
