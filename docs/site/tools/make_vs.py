@@ -15,7 +15,7 @@ import os, datetime
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 BASE = "https://bysergimm.github.io/OmniMac/"
 DATE = {"es": "9 de septiembre de 2026", "en": "9 September 2026"}
-OMNI = {"rss": "86 MB", "real": "33–37 MB", "cpu": "0,017 %", "cpu_en": "0.017 %", "disk": "16 MB", "threads": "6", "version": "0.5.1"}
+OMNI = {"rss": "86 MB", "real": "33–37 MB", "cpu": "0,017–0,033 %", "cpu_en": "0.017–0.033 %", "disk": "16 MB", "threads": "6", "version": "0.5.1"}
 
 APPS = [
     dict(slug="amphetamine", name="Amphetamine", version="5.3.2", rss="100 MB", cpu="0,000 %", cpu_en="0.000 %", disk="7 MB", threads="5",
@@ -65,8 +65,8 @@ APPS = [
          does={"es": "Convierte el notch en un panel con la música que suena, una bandeja de archivos y otras utilidades.", "en": "Turns the notch into a panel with the playing music, a file shelf and other utilities."},
          theirs={"es": ["«Ahora suena» universal: cualquier app de audio, no solo Spotify y Música", "HUD de volumen y brillo dentro del notch y visualizador de música", "Espejo de la cámara y más opciones de aspecto", "Comunidad grande y muchas más opciones de personalización"],
                  "en": ["Universal “now playing”: any audio app, not only Spotify and Music", "Volume and brightness HUD inside the notch, plus a music visualiser", "Camera mirror and more appearance options", "A large community and many more customisation options"]},
-         ours={"es": ["Pestañas Música (Spotify y Música), Bandeja con zona AirDrop, Calendario, Sonido con volumen por app, Temporizador y Rendimiento", "Tarjeta al estilo iPhone al conectar AirPods o Beats, con la batería de cada pieza", "Vistazo rápido al cambiar de canción, se oculta a pantalla completa, funciona como isla en Macs sin notch", "Consumo medido en reposo: 0,017 % de CPU frente al 0,340 % de BoringNotch, y diez módulos más en la misma app"],
-               "en": ["Music (Spotify and Music), Tray with an AirDrop zone, Calendar, Sound with per-app volume, Timer and Performance tabs", "iPhone-style card when AirPods or Beats connect, with the battery of each piece", "Sneak peek on track change, hides in full screen, works as an island on Macs without a notch", "Measured idle usage: 0.017 % CPU versus BoringNotch's 0.340 %, plus ten more modules in the same app"]},
+         ours={"es": ["Pestañas Música (Spotify y Música), Bandeja con zona AirDrop, Calendario, Sonido con volumen por app, Temporizador y Rendimiento", "Tarjeta al estilo iPhone al conectar AirPods o Beats, con la batería de cada pieza", "Vistazo rápido al cambiar de canción, se oculta a pantalla completa, funciona como isla en Macs sin notch", "Consumo medido en reposo: 0,017–0,033 % de CPU frente al 0,340 % de BoringNotch, y diez módulos más en la misma app"],
+               "en": ["Music (Spotify and Music), Tray with an AirDrop zone, Calendar, Sound with per-app volume, Timer and Performance tabs", "iPhone-style card when AirPods or Beats connect, with the battery of each piece", "Sneak peek on track change, hides in full screen, works as an island on Macs without a notch", "Measured idle usage: 0.017–0.033 % CPU versus BoringNotch's 0.340 %, plus ten more modules in the same app"]},
          pick={"es": ["BoringNotch si escuchas música en apps que no son Spotify ni Música, o quieres el HUD y el visualizador.", "OmniMac si usas Spotify o Música, quieres AirDrop, calendario y volumen por app en el notch, y te importa el consumo."],
                "en": ["BoringNotch if you listen to music in apps other than Spotify or Music, or want the HUD and the visualiser.", "OmniMac if you use Spotify or Music, want AirDrop, calendar and per-app volume in the notch, and care about resource usage."]}),
     dict(slug="ice", name="Ice", version="0.11.12", rss="99 MB", cpu="0,040 %", cpu_en="0.040 %", disk="8 MB", threads="6",

@@ -91,7 +91,7 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
       repositorio aparte, no está en este proyecto. Actualizar ahí la descripción de
       OmniMac y las cifras si las cita.
 - [ ] **Descripción del repositorio en GitHub** (`gh api -X PATCH repos/BySergiMM/OmniMac
-      -f description=…`): también lleva el número de módulos y el 0,017 %.
+      -f description=…`): también lleva el número de módulos y la CPU en reposo.
 
 ## 5 bis. LinkedIn
 
