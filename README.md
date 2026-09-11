@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>The Dynamic Island your Mac never had.</b><br>
-  It works on Macs <i>without</i> a notch, too — and brings eleven more utilities with it.<br>
+  It works on Macs <i>without</i> a notch, too — and brings ten more utilities with it.<br>
   One menu-bar app. 16 MB. 0.017–0.033 % CPU. Free and open source.
 </p>
 
@@ -80,8 +80,8 @@ measured and published.
 | SoundSource | Per-app volume + 10-band equaliser | $47 |
 | TextSniper | Copy text from the screen (OCR) | $7 |
 
-It does **not** replace [Ice](https://github.com/jordanbaird/Ice) (its menu-bar hider is
-much simpler) or [Stats](https://github.com/exelban/stats) (that one reads fans and far
+It doesn't replace everything [Ice](https://github.com/jordanbaird/Ice) does (its menu-bar
+hider is much simpler) or [Stats](https://github.com/exelban/stats) (that one reads fans and far
 more sensors). Both are excellent — go install them if that's what you need.
 
 ## Everything it does
