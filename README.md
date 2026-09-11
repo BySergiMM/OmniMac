@@ -7,7 +7,7 @@
 <p align="center">
   <b>The Dynamic Island your Mac never had.</b><br>
   It works on Macs <i>without</i> a notch, too — and brings eleven more utilities with it.<br>
-  One menu-bar app. 16 MB. 0.017 % CPU. Free and open source.
+  One menu-bar app. 16 MB. 0.017–0.033 % CPU. Free and open source.
 </p>
 
 <p align="center">

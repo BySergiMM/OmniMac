@@ -53,7 +53,7 @@ Reglas de la casa:
   inicio son automáticos. Un módulo apagado **desaparece** del menú y del notch.
 - **Nada trabaja en reposo**: sin temporizadores mientras el notch está plegado; batería,
   audio, música y pantallas avisan por notificación. Los gráficos solo muestrean con la
-  pestaña abierta. Por eso el consumo en reposo es de 0,017 % de CPU (`docs/PERFORMANCE.md`).
+  pestaña abierta. Por eso el consumo en reposo es de 0,017–0,033 % de CPU (`docs/PERFORMANCE.md`).
 - **Sin código repetido entre módulos**: lo común vive en `Support/` (`AX.setFrame`,
   `Notifier.post`, `Toast.show`, `FilePicker.choose`, `HotKeyCenter.register`).
 - **Idioma**: cada texto de la interfaz se escribe una vez en cada idioma, `L("Guardar", "Save")`
