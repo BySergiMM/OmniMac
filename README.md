@@ -165,7 +165,7 @@ is the update check against GitHub, and you can turn it off.
 ```bash
 git clone https://github.com/BySergiMM/OmniMac.git && cd OmniMac
 ./build.sh run     # build and launch
-swift test         # 148 tests
+swift test         # 188 tests
 ```
 
 Requires the Xcode Command Line Tools. [Architecture notes →](docs/ARCHITECTURE.md) ·

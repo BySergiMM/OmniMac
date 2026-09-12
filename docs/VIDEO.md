@@ -4,16 +4,18 @@ Los vídeos se grabaron de la app real y se montaron sin herramientas externas; 
 
 ## Vídeos disponibles
 
-- `omnimac-16x9-{es,en}.mp4` (45 s) y `omnimac-vertical-{es,en}.mp4` (35 s): el tráiler corto.
-- `omnimac-tour-16x9-{es,en}.mp4` (107 s) y `omnimac-tour-vertical-{es,en}.mp4` (79 s): el recorrido
-  completo: música, vistazo rápido, arrastrar archivos a la bandeja, pestañas, temporizador,
-  rendimiento, AirPods, café y menú, ⌘Tab, atajos de ventanas, ajuste por arrastre, portapapeles,
-  utilidades (bloqueo del teclado) y Ajustes. Las especificaciones están en `scripts/dev/video/tour-*.json`.
+- En este repositorio solo va uno: `docs/site/video/omnimac-tour-en.mp4` (113 s, en inglés), el
+  recorrido completo que enseña la web: música, vistazo rápido, arrastrar archivos a la bandeja,
+  pestañas, temporizador, rendimiento, AirPods, café y menú, ⌘Tab, atajos de ventanas, ajuste por
+  arrastre, portapapeles, utilidades (bloqueo del teclado) y Ajustes. Su guion está en
+  `scripts/dev/video/tour050-16x9-en.json`.
+- Los tráileres cortos (45 s en 16:9 y 35 s en vertical) y las versiones en español no van aquí:
+  están en el repositorio privado de material y en la release «media» de GitHub.
 
 ## Cómo se hizo el vídeo (5 de septiembre de 2026) y cómo regenerarlo
 
-Los vídeos de `docs/video/` (no van en git por peso) se grabaron de la app real y se
-montaron sin ninguna herramienta externa:
+Se grabaron de la app real y se montaron sin ninguna herramienta externa (los que no van en
+git es por peso):
 
 1. `swift scripts/dev/backdrop.swift &` pone un fondo degradado oscuro por debajo de las ventanas.
 2. Cada escena se graba con `screencapture -v -V <segundos> -R 0,0,1512,330 clip.mov` (franja del notch)
