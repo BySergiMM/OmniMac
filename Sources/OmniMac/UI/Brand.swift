@@ -20,7 +20,7 @@ enum Brand {
     /// enlaces si mueves las páginas.
     static let sponsorsURL = URL(string: "https://github.com/sponsors/BySergiMM")!
     static let coffeeURL = URL(string: "https://ko-fi.com/seergiii")!
-    static let repoURL = URL(string: "https://github.com/seergiii/OmniMac")!
+    static let repoURL = URL(string: "https://github.com/BySergiMM/OmniMac")!
 
     static var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2"
