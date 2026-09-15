@@ -54,4 +54,33 @@ final class CommandMatcherTests: XCTestCase {
     func testRankingDropsWhatDoesNotMatch() {
         XCTAssertTrue(CommandMatcher.rank(["Sonido"], query: "zzz") { $0 }.isEmpty)
     }
+
+    /// El fallo que hacía que el buscador pareciera tonto: escribir el nombre de una
+    /// app y que Intro ejecutara un comando que solo comparte letras sueltas.
+    func testWhatIsWrittenAsIsWins() {
+        let app = CommandMatcher.score("Mail abrir open launch app", query: "mail")!
+        let scattered = CommandMatcher.score("Mantener el Mac despierto cafe dormir sleep", query: "mail")!
+        XCTAssertGreaterThan(app, scattered)
+    }
+
+    /// Y además lo que apenas encaja ni se enseña, aunque sobre sitio en la lista.
+    func testRankingDropsWhatBarelyMatches() {
+        let ranked = CommandMatcher.rank(["Mail", "Mantener el Mac despierto"], query: "mail") { $0 }
+        XCTAssertEqual(ranked, ["Mail"])
+    }
+
+    /// A igualdad de encaje gana lo de OmniMac, que es de lo que va el buscador.
+    func testTheBonusOnlyDecidesTies() {
+        struct Item: Equatable { let name: String; let isApp: Bool }
+        let items = [Item(name: "Sonido", isApp: true), Item(name: "Sonido", isApp: false)]
+        let ranked = CommandMatcher.rank(items, query: "son", bonus: { $0.isApp ? 0 : 6 }) { $0.name }
+        XCTAssertEqual(ranked.first?.isApp, false)
+    }
+
+    /// Un punto de más no puede dejar la búsqueda en «Nada que coincida».
+    func testPunctuationDoesNotBreakTheSearch() {
+        XCTAssertNotNil(CommandMatcher.score("Micrófono", query: "mic."))
+        XCTAssertEqual(CommandMatcher.normalize("  Mic.  "), "mic")
+        XCTAssertEqual(CommandMatcher.normalize("a-b"), "a b")
+    }
 }
