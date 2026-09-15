@@ -173,7 +173,9 @@ def page(app, lang):
 """
 
 def main():
-    urls = [BASE, BASE + "en/"]
+    urls = [BASE, BASE + "en/",
+            BASE + "privacidad/", BASE + "condiciones/",
+            BASE + "en/privacy/", BASE + "en/terms/"]
     for app in APPS:
         for lang in ("es", "en"):
             folder = os.path.join(ROOT, "vs" if lang == "es" else "en/vs", app["slug"])
