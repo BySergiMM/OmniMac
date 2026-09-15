@@ -455,7 +455,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     @objc private func showWhatsNew() {
-        WhatsNewWindowController.shared.showCurrent()
+        // Lo has pedido tú: se enseñan también los arreglos, y si ni eso hay (falta el
+        // CHANGELOG en el paquete) se dice. Antes, en una versión de solo arreglos, el
+        // menú no hacía nada al pulsarlo y parecía que la app se había colgado.
+        guard !WhatsNewWindowController.shared.showCurrent(includingFixes: true) else { return }
+        Toast.show(L("Esta versión no trae notas", "This version has no release notes"),
+                   symbol: "sparkles")
     }
 
     @objc private func checkForUpdates() {

@@ -148,3 +148,68 @@ final class HighlightsTests: XCTestCase {
                                  ReleaseNotes.maxHighlights)
     }
 }
+
+/// Que «Novedades…» no se quede mudo.
+///
+/// La 0.5.1 solo traía arreglos, el recorrido los descarta a propósito y el menú no
+/// hacía nada al pulsarlo: ninguna pantalla que enseñar, ninguna ventana, ningún
+/// aviso. Al pedirlas a mano hay que enseñar lo que haya.
+final class ReleaseNotesOnlyFixesTests: XCTestCase {
+    private let soloArreglos = """
+    # Cambios
+
+    ## 0.5.1 — 2026-09-11
+
+    **Arreglado**
+    - Rendimiento: algunos nombres de apps salían con letras rotas.
+    - Notch: el clic en la batería abría Ajustes del Sistema en General.
+    """
+
+    private var notes: ReleaseNotes {
+        ReleaseNotes.notes(for: "0.5.1", in: soloArreglos)!
+    }
+
+    func testUnaVersionDeSoloArreglosNoTieneNovedades() {
+        XCTAssertTrue(notes.newItems.isEmpty)
+        XCTAssertTrue(notes.highlights.isEmpty)   // al actualizar no se pasea por los arreglos
+        XCTAssertTrue(notes.isOnlyFixes)
+    }
+
+    func testPedidasAManoSeEnsenanLosArreglos() {
+        XCTAssertEqual(notes.highlights(includingFixes: true).count, 2)
+    }
+
+    /// Y una versión con novedades no cambia: los arreglos van detrás, no en medio.
+    func testConNovedadesLosArreglosVanDespues() {
+        let mixto = """
+        ## 0.6.0 — 2026-09-14
+
+        **Nuevo**
+        - Portapapeles: lista de apps que no se guardan.
+
+        **Arreglado**
+        - Notch: el clic en la batería abría la sección equivocada.
+        """
+        let n = ReleaseNotes.notes(for: "0.6.0", in: mixto)!
+        XCTAssertFalse(n.isOnlyFixes)
+        XCTAssertEqual(n.highlights.count, 1)
+        XCTAssertEqual(n.highlights(includingFixes: true).count, 2)
+        XCTAssertEqual(n.highlights(includingFixes: true).first, n.highlights.first)
+    }
+
+    /// El CHANGELOG de verdad, el que se empaqueta con la app: la versión de arriba
+    /// del todo tiene que tener algo que enseñar al pulsar «Novedades…».
+    func testElChangelogDelRepositorioEnsenaAlgo() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        for archivo in ["CHANGELOG.md", "CHANGELOG.en.md"] {
+            let url = raiz.appendingPathComponent(archivo)
+            guard let markdown = try? String(contentsOf: url, encoding: .utf8) else {
+                throw XCTSkip("No está \(archivo) junto a las fuentes")
+            }
+            let ultima = try XCTUnwrap(ReleaseNotes.all(from: markdown).first, archivo)
+            XCTAssertFalse(ultima.highlights(includingFixes: true).isEmpty,
+                           "\(archivo): la versión \(ultima.version) no enseñaría nada")
+        }
+    }
+}
