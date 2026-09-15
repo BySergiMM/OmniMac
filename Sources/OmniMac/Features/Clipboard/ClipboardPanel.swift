@@ -2,6 +2,72 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
+/// Qué significa cada tecla dentro del panel del portapapeles.
+///
+/// La decisión va aparte del monitor de teclado para poder probarla sin abrir
+/// ninguna ventana: aquí es donde se decide, por ejemplo, que un número suelto
+/// **escribe en el buscador** y que para elegir por número hace falta ⌘.
+enum PanelKey: Equatable {
+    case close
+    case clearQuery
+    case moveUp
+    case moveDown
+    case paste
+    case pin
+    case deleteItem
+    /// Borrar el último carácter del buscador.
+    case backspace
+    /// Elegir directamente el elemento número `n` (⌘1–⌘9).
+    case pick(Int)
+    /// Escribir en el buscador.
+    case type(String)
+    /// No es nuestra: que siga su camino.
+    case passThrough
+
+    static func action(keyCode: Int, flags: NSEvent.ModifierFlags, characters: String?,
+                       queryIsEmpty: Bool, itemCount: Int) -> PanelKey {
+        switch keyCode {
+        case Int(kVK_Escape):
+            // Con algo escrito, Esc limpia la búsqueda antes de cerrar el panel.
+            return queryIsEmpty ? .close : .clearQuery
+        case Int(kVK_DownArrow): return .moveDown
+        case Int(kVK_UpArrow): return .moveUp
+        case Int(kVK_Return), Int(kVK_ANSI_KeypadEnter): return .paste
+        case Int(kVK_ANSI_P) where flags.contains(.option): return .pin
+        case Int(kVK_Delete): return flags.contains(.option) ? .deleteItem : .backspace
+        default: break
+        }
+        guard let characters, !characters.isEmpty else { return .passThrough }
+        // ⌘1–⌘9 elige directamente, y también mientras buscas.
+        //
+        // Antes bastaba el número suelto y no había forma de buscar nada que
+        // empezara por una cifra: teclear «2026» pegaba el segundo elemento del
+        // historial. El buscador manda; para elegir por número, ⌘.
+        if flags.contains(.command), let digit = Int(characters), (1...9).contains(digit) {
+            return digit <= itemCount ? .pick(digit - 1) : .passThrough
+        }
+        guard !flags.contains(.command), !flags.contains(.control) else { return .passThrough }
+        let printable = characters.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
+        return printable ? .type(characters) : .passThrough
+    }
+}
+
+/// Quién manda sobre la fila elegida del panel, el teclado o el ratón.
+///
+/// Al desplazarse la lista, las filas pasan por debajo de un puntero que nadie ha
+/// movido y SwiftUI llama a `onHover` igual que si lo hubieras movido tú. Sin
+/// distinguirlo, pulsar ↓ mueve la lista, la lista dispara el `onHover` de la fila
+/// que cae bajo el puntero, esa fila pasa a estar elegida y vuelve a desplazarse:
+/// el panel da saltos y acabas pegando lo que no era.
+enum PanelSelection {
+    /// El ratón solo manda si se ha movido de verdad desde la última vez que eligió
+    /// el teclado. `nil` en el ancla significa que ya manda el ratón.
+    static func hoverWins(anchor: NSPoint?, mouse: NSPoint) -> Bool {
+        guard let anchor else { return true }
+        return anchor != mouse
+    }
+}
+
 /// Panel sin barra de título que sí puede recibir el teclado.
 final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
@@ -18,6 +84,27 @@ final class ClipboardPanelController: ObservableObject {
     private var allItems: [ClipItem] = []
     private var panel: KeyablePanel?
     private var keyMonitor: Any?
+    private var resignObserver: NSObjectProtocol?
+    /// Dónde estaba el ratón cuando el teclado eligió fila (ver `PanelSelection`).
+    private var mouseAnchor: NSPoint?
+    /// La fila la eligió el teclado: hay que traerla a la vista. Con el ratón ya está.
+    private(set) var selectionFromKeyboard = true
+
+    /// Elegir con el teclado: se ancla el ratón para que la lista al desplazarse no
+    /// le robe la fila.
+    func selectWithKeyboard(_ index: Int) {
+        selectionFromKeyboard = true
+        mouseAnchor = NSEvent.mouseLocation
+        selection = index
+    }
+
+    /// El puntero ha pasado por una fila: solo cuenta si se ha movido de verdad.
+    func hover(_ index: Int) {
+        guard PanelSelection.hoverWins(anchor: mouseAnchor, mouse: NSEvent.mouseLocation) else { return }
+        mouseAnchor = nil
+        selectionFromKeyboard = false
+        selection = index
+    }
 
     var isVisible: Bool { panel?.isVisible ?? false }
 
@@ -25,7 +112,7 @@ final class ClipboardPanelController: ObservableObject {
         allItems = items
         query = ""
         self.items = items
-        selection = 0
+        selectWithKeyboard(0)
 
         let panel = self.panel ?? makePanel()
         self.panel = panel
@@ -33,10 +120,21 @@ final class ClipboardPanelController: ObservableObject {
         resize()
         panel.makeKeyAndOrderFront(nil)
         installKeyMonitor()
+        // Al pulsar en otra app el panel dejaba de recibir teclas —el monitor es
+        // local— pero seguía flotando a nivel de menú por encima de todo, y de ahí no
+        // lo sacaba ni Esc. Si pierde el foco, se va.
+        resignObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) { [weak self] _ in
+                self?.hide()
+            }
     }
 
     func hide() {
         removeKeyMonitor()
+        if let resignObserver {
+            NotificationCenter.default.removeObserver(resignObserver)
+            self.resignObserver = nil
+        }
         panel?.orderOut(nil)
     }
 
@@ -53,7 +151,7 @@ final class ClipboardPanelController: ObservableObject {
     private func applyFilter() {
         let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
         items = needle.isEmpty ? allItems : allItems.filter { $0.text.lowercased().contains(needle) }
-        selection = 0
+        selectWithKeyboard(0)
         resize()
     }
 
@@ -74,59 +172,52 @@ final class ClipboardPanelController: ObservableObject {
         removeKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, self.isVisible else { return event }
-            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            switch Int(event.keyCode) {
-            case Int(kVK_Escape):
-                if self.query.isEmpty {
-                    self.hide()
-                } else {
-                    self.query = ""
-                    self.applyFilter()
-                }
-                return nil
-            case Int(kVK_DownArrow):
-                if self.selection < self.items.count - 1 { self.selection += 1 }
-                return nil
-            case Int(kVK_UpArrow):
-                if self.selection > 0 { self.selection -= 1 }
-                return nil
-            case Int(kVK_Return), Int(kVK_ANSI_KeypadEnter):
-                self.commit(self.selection)
-                return nil
-            case Int(kVK_ANSI_P) where flags.contains(.option):
-                if self.items.indices.contains(self.selection) {
-                    self.onPin?(self.items[self.selection])
-                }
-                return nil
-            case Int(kVK_Delete):
-                if flags.contains(.option) {
-                    if self.items.indices.contains(self.selection) {
-                        let item = self.items[self.selection]
-                        self.onDelete?(item)
-                        self.allItems.removeAll { $0.id == item.id }
-                        self.applyFilter()
-                    }
-                } else if !self.query.isEmpty {
-                    self.query.removeLast()
-                    self.applyFilter()
-                }
-                return nil
-            default:
-                guard !flags.contains(.command), !flags.contains(.control),
-                      let characters = event.charactersIgnoringModifiers, !characters.isEmpty else { return event }
-                // Con el buscador vacío, 1–9 elige directamente.
-                if self.query.isEmpty, let digit = Int(characters),
-                   (1...9).contains(digit), digit <= self.items.count {
-                    self.commit(digit - 1)
-                    return nil
-                }
-                let printable = characters.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
-                guard printable else { return event }
-                self.query += characters
-                self.applyFilter()
-                return nil
-            }
+            let action = PanelKey.action(keyCode: Int(event.keyCode),
+                                         flags: event.modifierFlags.intersection(.deviceIndependentFlagsMask),
+                                         characters: event.charactersIgnoringModifiers,
+                                         queryIsEmpty: self.query.isEmpty,
+                                         itemCount: self.items.count)
+            return self.perform(action) ? nil : event
         }
+    }
+
+    /// Ejecuta la acción. Devuelve `false` si la tecla no era nuestra.
+    private func perform(_ action: PanelKey) -> Bool {
+        switch action {
+        case .passThrough:
+            return false
+        case .close:
+            hide()
+        case .clearQuery:
+            query = ""
+            applyFilter()
+        case .moveDown:
+            if selection < items.count - 1 { selectWithKeyboard(selection + 1) }
+        case .moveUp:
+            if selection > 0 { selectWithKeyboard(selection - 1) }
+        case .paste:
+            commit(selection)
+        case .pick(let index):
+            commit(index)
+        case .pin:
+            if items.indices.contains(selection) { onPin?(items[selection]) }
+        case .deleteItem:
+            if items.indices.contains(selection) {
+                let item = items[selection]
+                onDelete?(item)
+                allItems.removeAll { $0.id == item.id }
+                applyFilter()
+            }
+        case .backspace:
+            if !query.isEmpty {
+                query.removeLast()
+                applyFilter()
+            }
+        case .type(let characters):
+            query += characters
+            applyFilter()
+        }
+        return true
     }
 
     /// ⌥⌫ borra el elemento seleccionado del historial.
@@ -191,7 +282,7 @@ struct ClipboardListView: View {
                         .font(.system(size: 13, weight: .medium))
                 }
                 Spacer()
-                Text(L("↑↓ elegir · ↩ pegar · ⌥P anclar · ⌥⌫ borrar", "↑↓ select · ↩ paste · ⌥P pin · ⌥⌫ delete"))
+                Text(L("↑↓ o ⌘1–9 elegir · ↩ pegar · ⌥P anclar · ⌥⌫ borrar", "↑↓ or ⌘1–9 select · ↩ paste · ⌥P pin · ⌥⌫ delete"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -222,18 +313,21 @@ struct ClipboardListView: View {
                             ForEach(Array(controller.items.enumerated()), id: \.element.id) { index, item in
                                 ClipboardRow(item: item,
                                              index: index,
-                                             showIndex: controller.query.isEmpty,
+                                             showIndex: true,
                                              isSelected: index == controller.selection)
                                     .id(index)
                                     .onTapGesture { controller.commit(index) }
                                     .onHover { hovering in
-                                        if hovering { controller.selection = index }
+                                        if hovering { controller.hover(index) }
                                     }
                             }
                         }
                         .padding(10)
                     }
                     .onChange(of: controller.selection) { _, newValue in
+                        // Con el ratón la fila ya está a la vista; desplazarla solo
+                        // serviría para mover la lista bajo el propio puntero.
+                        guard controller.selectionFromKeyboard else { return }
                         proxy.scrollTo(newValue)
                     }
                 }
@@ -279,7 +373,9 @@ struct ClipboardRow: View {
                     .font(.system(size: 12))
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                Text(Self.timeAgo(item.date))
+                Text(item.truncated
+                     ? Self.timeAgo(item.date) + L(" · texto recortado", " · text trimmed")
+                     : Self.timeAgo(item.date))
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
@@ -323,7 +419,10 @@ struct ClipboardRow: View {
         case ..<60: return L("hace \(seconds) s", "\(seconds) s ago")
         case ..<3600: return L("hace \(seconds / 60) min", "\(seconds / 60) min ago")
         case ..<86_400: return L("hace \(seconds / 3600) h", "\(seconds / 3600) h ago")
-        default: return L("hace \(seconds / 86_400) días", "\(seconds / 86_400) days ago")
+        default:
+            let days = seconds / 86_400
+            return days == 1 ? L("hace 1 día", "1 day ago")
+                             : L("hace \(days) días", "\(days) days ago")
         }
     }
 }

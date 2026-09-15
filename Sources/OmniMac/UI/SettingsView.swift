@@ -1032,7 +1032,8 @@ struct ClipboardPage: View {
                         .labelsHidden()
                     }
                     SettingToggle(title: L("Guardar el historial en disco", "Save the history to disk"),
-                                  subtitle: L("Se conserva al cerrar la app (en tu carpeta de Application Support, sin cifrar). Apagado, solo vive en memoria.", "Kept when the app quits (in your Application Support folder, unencrypted). Off, it lives only in memory."),
+                                  subtitle: L("Se conserva al cerrar la app (en tu carpeta de Application Support, sin cifrar). Apagado, solo vive en memoria; los anclados se guardan siempre, que para eso los anclas.",
+                                              "Kept when the app quits (in your Application Support folder, unencrypted). Off, it lives only in memory; pinned items are always saved, which is the point of pinning."),
                                   isOn: $feature.persist)
                     SettingToggle(title: L("Pausar el historial", "Pause the history"),
                                   subtitle: L("Mientras esté en pausa no se guarda nada de lo que copies.", "While paused, nothing you copy is saved."),
@@ -1052,7 +1053,36 @@ struct ClipboardPage: View {
                 } header: {
                     Text(L("Opciones", "Options"))
                 } footer: {
-                    Text(L("Guarda texto, imágenes y archivos. Se ignoran los gestores de contraseñas y las copias marcadas como confidenciales.", "Saves text, images and files. Password managers and copies marked confidential are ignored."))
+                    Text(L("Guarda texto, imágenes y archivos.", "Saves text, images and files."))
+                }
+
+                Section {
+                    SettingToggle(title: L("Ignorar los gestores de contraseñas", "Ignore password managers"),
+                                  subtitle: knownManagersSubtitle,
+                                  isOn: $feature.ignoreKnownPasswordManagers)
+                    ForEach(builtInApps) { app in
+                        ExcludedAppRow(app: app, builtIn: true)
+                    }
+                    ForEach(feature.excludedAppEntries) { app in
+                        ExcludedAppRow(app: app) { feature.stopExcluding(app.bundleID) }
+                    }
+                    HStack(spacing: 12) {
+                        if feature.excludedApps.isEmpty {
+                            Text(L("Añade las apps de las que no quieras guardar nada: el banco, el trabajo, lo que sea.",
+                                   "Add the apps whose copies should never be saved: your bank, work, whatever it is."))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
+                        Button(L("Añadir app…", "Add app…")) { addExcludedApp() }
+                            .controlSize(.small)
+                    }
+                } header: {
+                    Text(L("Apps que no se guardan", "Apps that are never saved"))
+                } footer: {
+                    Text(L("Al copiar se mira qué app tienes delante. Lo que una app marque como confidencial no se guarda nunca, esté en la lista o no; eso sí, si copias desde la extensión del gestor en el navegador, la app de delante es el navegador.",
+                           "When you copy, it looks at which app is in front. Anything an app marks as confidential is never saved, list or no list; but when you copy from your manager's browser extension, the app in front is the browser."))
                 }
 
                 Section {
@@ -1064,11 +1094,87 @@ struct ClipboardPage: View {
 
                 Section(L("Dentro del panel", "Inside the panel")) {
                     ShortcutRow(keys: L("Escribir", "Type"), text: L("busca en lo copiado", "searches what you copied"))
-                    ShortcutRow(keys: L("↑ ↓ o 1–9", "↑ ↓ or 1–9"), text: L("elige un elemento", "selects an item"))
+                    ShortcutRow(keys: L("↑ ↓ o ⌘1–⌘9", "↑ ↓ or ⌘1–⌘9"), text: L("elige un elemento", "selects an item"))
                     ShortcutRow(keys: "↩", text: L("lo pega donde estabas escribiendo", "pastes it where you were typing"))
-                    ShortcutRow(keys: "⌥ P", text: L("ancla el elemento (siempre arriba y se conserva)", "pins the item (always on top and kept)"))
+                    ShortcutRow(keys: "⌥ P", text: L("ancla el elemento (siempre arriba y se guarda en disco)", "pins the item (always on top and saved to disk)"))
                     ShortcutRow(keys: "⌥ ⌫", text: L("borra el elemento elegido", "deletes the selected item"))
                 }
+            }
+        }
+    }
+
+    /// La lista de gestores conocidos, y solo si hay filas debajo, que son las que
+    /// dicen a cuáles cubre de verdad en este Mac: apagado el interruptor, o sin
+    /// ninguno instalado, no hay nada debajo y prometerlo quedaría raro.
+    private var knownManagersSubtitle: String {
+        let names = L("1Password, Bitwarden, KeePassXC, Enpass, Dashlane, LastPass, Strongbox, Acceso a Llaveros y Contraseñas.",
+                      "1Password, Bitwarden, KeePassXC, Enpass, Dashlane, LastPass, Strongbox, Keychain Access and Passwords.")
+        guard !builtInApps.isEmpty else { return names }
+        return names + " " + L("Debajo, los que tienes instalados.", "Below, the ones you have installed.")
+    }
+
+    /// Los gestores de serie que se enseñan: los instalados que no haya añadido ya a
+    /// mano, para no repetir la misma app en dos filas.
+    private var builtInApps: [ExcludedApp] {
+        guard feature.ignoreKnownPasswordManagers else { return [] }
+        let mine = Set(feature.excludedApps.map(ClipboardFilter.normalize))
+        return feature.installedPasswordManagers.filter { !mine.contains(ClipboardFilter.normalize($0.bundleID)) }
+    }
+
+    private func addExcludedApp() {
+        FilePicker.chooseApps(message: L("Elige las apps de las que no quieres guardar nada en el historial",
+                                         "Choose the apps whose copies should never be saved to the history"),
+                              prompt: L("No guardar", "Never save")) { urls in
+            // Las repetidas y lo que no sea una app de verdad se quedan fuera solas.
+            urls.forEach { feature.excludeApp(at: $0) }
+        }
+    }
+}
+
+/// Una app de la lista: icono, nombre y, si la puso el usuario, botón de quitar.
+struct ExcludedAppRow: View {
+    let app: ExcludedApp
+    var builtIn = false
+    var remove: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Group {
+                if let icon = app.icon {
+                    Image(nsImage: icon).resizable()
+                } else {
+                    Image(systemName: "questionmark.app.dashed")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 22, height: 22)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(app.name)
+                    .lineLimit(1)
+                // Sin icono es que macOS no sabe de esta app: se dice, en vez de
+                // dejar un identificador suelto que parezca un error.
+                if app.icon == nil {
+                    Text(L("No está instalada", "Not installed"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 12)
+
+            if builtIn {
+                Text(L("de serie", "built in"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if let remove {
+                Button(action: remove) {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help(L("Quitar de la lista", "Remove from the list"))
             }
         }
     }

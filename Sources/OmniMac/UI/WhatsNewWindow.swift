@@ -38,10 +38,17 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
             ?? ReleaseNotes.all(from: markdown).first
     }
 
+    /// Abre el recorrido. Devuelve `false` si esa versión no trae nada que enseñar,
+    /// y entonces le toca a quien llama decir algo: al pulsar «Novedades…» lo que no
+    /// vale es que no pase nada (ver `StatusItemController`).
     @discardableResult
-    func showCurrent() -> Bool {
-        guard let notes = Self.currentNotes, !notes.highlights.isEmpty else { return false }
-        window?.contentView = NSHostingView(rootView: WhatsNewView(notes: notes) { [weak self] in
+    func showCurrent(includingFixes: Bool = false) -> Bool {
+        guard let notes = Self.currentNotes else { return false }
+        let highlights = notes.highlights(includingFixes: includingFixes)
+        guard !highlights.isEmpty else { return false }
+        window?.contentView = NSHostingView(rootView: WhatsNewView(notes: notes,
+                                                                   highlights: highlights,
+                                                                   onlyFixes: notes.isOnlyFixes) { [weak self] in
             self?.close()
         })
         window?.center()
@@ -58,6 +65,10 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
 /// El recorrido: una portada y después una novedad por pantalla.
 struct WhatsNewView: View {
     let notes: ReleaseNotes
+    /// Las pantallas, ya elegidas: al abrirlo a mano llevan también los arreglos.
+    let highlights: [ReleaseNotes.Highlight]
+    /// Esta versión solo arregla cosas: llamarlas «novedades» sería mentir un poco.
+    var onlyFixes = false
     let onClose: () -> Void
 
     @State private var page = 0
@@ -65,7 +76,7 @@ struct WhatsNewView: View {
     @State private var forward = true
 
     /// Portada + una pantalla por novedad.
-    private var pageCount: Int { notes.highlights.count + 1 }
+    private var pageCount: Int { highlights.count + 1 }
     private var isLast: Bool { page == pageCount - 1 }
 
     var body: some View {
@@ -114,7 +125,7 @@ struct WhatsNewView: View {
             if page == 0 {
                 cover.transition(transition)
             } else {
-                highlight(notes.highlights[page - 1]).transition(transition)
+                highlight(highlights[page - 1]).transition(transition)
             }
         }
     }
@@ -200,9 +211,15 @@ struct WhatsNewView: View {
         withAnimation(.easeInOut(duration: 0.22)) { page -= 1 }
     }
 
-    /// «1 novedad» / «3 novedades», que el plural mal puesto canta mucho.
+    /// «1 novedad» / «3 novedades», que el plural mal puesto canta mucho. Y si la
+    /// versión solo arregla cosas, se dice: son arreglos, no novedades.
     private var count: String {
-        let n = notes.highlights.count
+        let n = highlights.count
+        if onlyFixes {
+            return n == 1
+                ? L("1 arreglo en esta versión.", "1 fix in this version.")
+                : L("\(n) arreglos en esta versión.", "\(n) fixes in this version.")
+        }
         return n == 1
             ? L("1 novedad en esta versión.", "1 new thing in this version.")
             : L("\(n) novedades en esta versión.", "\(n) new things in this version.")

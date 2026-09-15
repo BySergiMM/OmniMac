@@ -46,8 +46,8 @@ struct MenuBarPage: View {
                         }
                     }
                     SettingRow(title: L("Recolocar los iconos", "Put the icons back"),
-                               subtitle: L("Deja la línea, la flecha y el icono de OmniMac en su sitio, por si algún arrastre los dejó desordenados.",
-                                           "Puts the line, the arrow and OmniMac's own icon back in order, in case a drag left them out of order.")) {
+                               subtitle: L("Devuelve la flecha y los iconos de OmniMac a la derecha de la línea y en su orden. La línea no se mueve: es tu límite, y moverla destaparía lo que tengas escondido.",
+                                           "Puts the arrow and OmniMac's own icons back to the right of the line, in order. The line itself doesn't move: it's your boundary, and moving it would reveal whatever you had hidden.")) {
                         Button(L("Recolocar", "Put back")) { feature.rearrange() }
                     }
                     SettingToggle(title: L("Volver a esconderlos solos", "Hide them again on their own"),

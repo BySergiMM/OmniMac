@@ -20,6 +20,9 @@ struct ReleaseNotes: Equatable {
     /// Lo nuevo, sin los arreglos.
     var newItems: [String] { Array(items.prefix(fixedFrom ?? items.count)) }
 
+    /// Esta versión no trae nada nuevo, solo arreglos (que también se cuentan).
+    var isOnlyFixes: Bool { newItems.isEmpty && !items.isEmpty }
+
     /// Todas las versiones del archivo, de la más nueva a la más vieja.
     ///
     /// El formato es el del propio archivo: `## 0.4.2 — 2026-09-06` abre una versión
@@ -111,11 +114,19 @@ struct ReleaseNotes: Equatable {
     /// que se escriben primero por algo, y el resto está en el CHANGELOG.
     static let maxHighlights = 8
 
-    var highlights: [Highlight] {
+    var highlights: [Highlight] { highlights(includingFixes: false) }
+
+    /// `includingFixes` es para cuando abres las novedades **a mano** desde el menú.
+    ///
+    /// Al actualizar no se pasea a nadie por los arreglos, pero una versión que solo
+    /// arregla cosas —la 0.5.1, sin ir más lejos— dejaba el recorrido sin ninguna
+    /// pantalla, y «Novedades…» no hacía nada de nada al pulsarlo. Si has pedido ver
+    /// las novedades, algo hay que enseñar: lo que trae esa versión, sea lo que sea.
+    func highlights(includingFixes: Bool) -> [Highlight] {
         // Una pantalla por área. Si no, una versión con cuatro mejoras de sonido
         // seguidas se lleva medio recorrido y el resto de la app no sale.
         var seen = Set<String>()
-        let picked = newItems.filter { seen.insert(Self.area(for: $0)).inserted }
+        let picked = (includingFixes ? items : newItems).filter { seen.insert(Self.area(for: $0)).inserted }
         return picked.prefix(Self.maxHighlights).map { item in
             let symbol = Self.symbol(for: item)
             guard let colon = item.firstIndex(of: ":"), colon > item.startIndex else {
