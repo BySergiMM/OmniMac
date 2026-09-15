@@ -9,10 +9,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         // Barra de título normal (opaca, unificada con la barra de herramientas), como
         // Ajustes del Sistema: el contenido se desplaza por debajo sin superponerse al
         // título. (Antes era transparente y a pantalla completa y el título pisaba la cabecera.)
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 880, height: 620),
-                              styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                              backing: .buffered,
-                              defer: false)
+        let window = ClosableWindow(contentRect: NSRect(x: 0, y: 0, width: 880, height: 620),
+                                    styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                                    backing: .buffered,
+                                    defer: false)
         window.title = "OmniMac"
         window.titlebarAppearsTransparent = false
         window.titleVisibility = .visible
