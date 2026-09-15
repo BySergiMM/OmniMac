@@ -92,7 +92,7 @@ more sensors). Both are excellent — go install them if that's what you need.
 | ☕ **Keep awake** | Indefinitely, on a timer, or until a given time. Stays awake with the lid closed, stops on low battery, turns on with the charger or an external display. |
 | ⌘ **⌘Tab by windows** | All your windows, not just apps, with live thumbnails. Type to search; ⌘W / ⌘M / ⌘H / ⌘Q act on the highlighted one. |
 | ▭ **Window shortcuts** | Halves, thirds, quarters, almost-maximize, next display. Drag to an edge to snap. Layouts saved on ⌃⌥1…9, like radio presets. |
-| 📋 **Clipboard** | Text, images and files. Search, pins, pause, optional persistence. **⌥⇧⌘V pastes without formatting**, and it can strip tracking from links as you copy them. |
+| 📋 **Clipboard** | Text, images and files. Search, pins, pause, optional persistence. **It never records what you copy in a password manager**, or in any app you add to the list. **⌥⇧⌘V pastes without formatting**, and it can strip tracking from links as you copy them. |
 | 🔊 **Sound** | Per-app volume, a **10-band equaliser** (global or per app) with nine presets, boost past 100 % with a limiter, output priority, and a standalone mixer on ⌃⌥⌘V. |
 | 📈 **Performance** | Per-core CPU (efficiency vs performance), GPU, memory with pressure, disk, network, **temperature**, and **which apps are eating your Mac**. Alerts when something goes wrong. |
 | 🛠 **Tools** | OCR (⇧⌘2), colour picker (⇧⌘6), mic mute, keyboard lock for cleaning, hide desktop icons, hold-to-quit guard, and dimming **below macOS's minimum brightness**. |
@@ -156,7 +156,8 @@ is the update check against GitHub, and you can turn it off.
 - The notch reads Spotify and Music via AppleScript, so it doesn't pick up
   "now playing" from other apps.
 - Album art only shows for Spotify — Music doesn't expose an artwork URL.
-- Clipboard history lives in memory unless you turn on "save to disk" (unencrypted).
+- Clipboard history lives in memory unless you turn on "save to disk" (unencrypted);
+  pinned items are always saved to disk, which is the point of pinning.
 - macOS won't let *any* app remove `~/Library/Containers` folders, so the cleaner
   marks those "Finder only" instead of failing silently.
 
@@ -165,7 +166,7 @@ is the update check against GitHub, and you can turn it off.
 ```bash
 git clone https://github.com/BySergiMM/OmniMac.git && cd OmniMac
 ./build.sh run     # build and launch
-swift test         # 188 tests
+swift test         # 237 tests
 ```
 
 Requires the Xcode Command Line Tools. [Architecture notes →](docs/ARCHITECTURE.md) ·
