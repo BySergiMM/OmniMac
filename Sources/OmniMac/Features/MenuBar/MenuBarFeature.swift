@@ -72,29 +72,114 @@ final class MenuBarFeature: BaseFeature {
     /// crearlo, no después. Y los valores se leen como decimales, que es como los
     /// guarda macOS; leyéndolos como enteros no se reconocía ninguno.
     static func ensureOwnIconsVisible() {
-        let defaults = UserDefaults.standard
-        guard defaults.bool(forKey: "feature.menubar.enabled") else { return }
+        guard UserDefaults.standard.bool(forKey: "feature.menubar.enabled") else { return }
+        placeOwnIcons(force: false)
+    }
 
-        func key(_ name: String) -> String { "NSStatusItem Preferred Position \(name)" }
+    /// Nuestros iconos, a la derecha de la línea **y en su orden**.
+    ///
+    /// Antes solo se miraba que estuvieran a la derecha de la línea, no en qué orden:
+    /// macOS reescribe estas posiciones cada vez que aparece un icono nuevo y la
+    /// gráfica de rendimiento acababa colada entre la línea y la flecha, donde nada
+    /// de lo que sueltes se esconde. Si uno se sale de la fila, vuelve a ella y los de
+    /// su derecha se corren; el orden es el de `arrangement`.
+    ///
+    /// **La línea no se mueve nunca.** Es el límite que ha puesto la persona
+    /// arrastrando sus iconos a un lado o a otro: devolverla a la posición de fábrica
+    /// destapaba de golpe todo lo que hubiera escondido entre medias.
+    ///
+    /// - Parameter force: recoloca todos los nuestros (el botón «Recolocar»). Sin
+    ///   ello solo se tocan los que se hayan salido de sitio.
+    @discardableResult
+    private static func placeOwnIcons(force: Bool) -> Bool {
+        let defaults = UserDefaults.standard
         func position(_ name: String) -> Double? {
-            (defaults.object(forKey: key(name)) as? NSNumber)?.doubleValue
+            (defaults.object(forKey: positionKey(name)) as? NSNumber)?.doubleValue
         }
 
-        let limit = position(arrangement[0].name) ?? Double(arrangement[0].position)
+        let line = arrangement[0].name
+        let limit = position(line) ?? Double(arrangement[0].position)
+        if position(line) == nil { defaults.set(limit, forKey: positionKey(line)) }
 
-        // De izquierda a derecha, en el orden en que los queremos ver.
-        var names = [arrangement[1].name, arrangement[2].name, arrangement[3].name]
-        names += ModuleIcons.available.map { "omnimac.module.\($0)" }
+        let names = ownIconNames
+        let current = names.reduce(into: [String: Double]()) { $0[$1] = position($1) }
+        let moves = placements(for: names, current: current, limit: limit, force: force)
+        for (name, value) in moves {
+            defaults.set(value, forKey: positionKey(name))
+        }
+        return !moves.isEmpty
+    }
 
-        var next = limit - 18
+    /// Recoloca los iconos de OmniMac si alguno se ha ido de sitio, y los rehace.
+    ///
+    /// Arrastrando la línea se puede dejar la **flecha** a su izquierda, y entonces el
+    /// escondedor se traga su propio botón de rescate: los iconos desaparecen y no hay
+    /// dónde pulsar para recuperarlos. Antes eso duraba hasta el siguiente arranque.
+    /// Ahora, en cuanto se pide abrir o cerrar —con la flecha, con el atajo o desde
+    /// Ajustes—, se comprueba y se arregla. Si está todo en su sitio no se toca nada:
+    /// rehacer los iconos parpadea.
+    private func healIfNeeded() {
+        guard isEnabled, Self.someIconIsSwallowed() else { return }
+        Self.placeOwnIcons(force: false)
+        stop()
+        start()
+    }
+
+    /// ¿Se está tragando el escondedor algún icono nuestro?
+    ///
+    /// Es lo único que justifica rehacer los iconos en caliente. Que estén algo
+    /// desordenados se arregla al arrancar y no molesta a nadie; que la **flecha**
+    /// quede a la izquierda de la línea sí, porque entonces desaparece con los demás
+    /// y no queda dónde pulsar para recuperarlos.
+    private static func someIconIsSwallowed() -> Bool {
+        let defaults = UserDefaults.standard
+        func position(_ name: String) -> Double? {
+            (defaults.object(forKey: positionKey(name)) as? NSNumber)?.doubleValue
+        }
+        guard let limit = position(arrangement[0].name) else { return true }   // sin línea, a recolocar
+        let current = ownIconNames.reduce(into: [String: Double]()) { $0[$1] = position($1) }
+        return swallowed(positions: current, names: ownIconNames, limit: limit)
+    }
+
+    /// Fuera de UserDefaults para poder probarlo: a más número, más a la izquierda,
+    /// así que un icono nuestro con posición mayor o igual que la línea está perdido.
+    static func swallowed(positions: [String: Double], names: [String], limit: Double) -> Bool {
+        names.contains { name in
+            guard let position = positions[name] else { return true }   // sin posición, se recoloca
+            return position >= limit
+        }
+    }
+
+    static func positionKey(_ name: String) -> String { "NSStatusItem Preferred Position \(name)" }
+
+    /// Nuestros iconos de izquierda a derecha, sin la línea (que no se mueve).
+    static var ownIconNames: [String] {
+        arrangement.dropFirst().map(\.name) + ModuleIcons.available.map { "omnimac.module.\($0)" }
+    }
+
+    /// Hueco entre dos iconos nuestros.
+    private static let spacing: Double = 18
+
+    /// Qué iconos hay que mover y adónde, dadas las posiciones que tienen ahora.
+    ///
+    /// Fuera de UserDefaults y de la barra a propósito: así se puede probar en
+    /// `swift test` lo que aquí se fue de las manos sin que nadie lo viera —un icono
+    /// colado entre la línea y la flecha—. Devuelve **solo los que hay que mover**;
+    /// los que ya están en su sitio ni se tocan.
+    static func placements(for names: [String], current: [String: Double],
+                           limit: Double, force: Bool) -> [String: Double] {
+        var result: [String: Double] = [:]
+        var next = limit - spacing
         for name in names {
-            if let current = position(name), current < limit {
-                next = min(next, current - 18)   // ya estaba a la derecha: se respeta
+            // Ya está a la derecha del anterior: se respeta y se sigue desde ahí.
+            if !force, let position = current[name], position <= next {
+                next = position - spacing
                 continue
             }
-            defaults.set(next, forKey: key(name))
-            next -= 18
+            result[name] = next
+            next -= spacing
         }
+        return result
     }
 
     /// Sitio de la gráfica de rendimiento, a la derecha de la flecha para que el
@@ -151,22 +236,39 @@ final class MenuBarFeature: BaseFeature {
         HotKeyCenter.shared.unbind(Self.shortcut)
         autoHideWork?.cancel()
         autoHideWork = nil
+        // Al quitar un NSStatusItem, AppKit **borra** su posición guardada. Sin
+        // devolverla, la línea y la flecha reaparecen donde macOS quiera: era lo que
+        // hacía que los iconos pegaran un salto al pulsar la flecha, y de paso se
+        // perdía el límite que el usuario había colocado a mano.
+        let guardadas = Self.savedPositions(of: Self.arrangement.prefix(2).map(\.name))
         if let separator { NSStatusBar.system.removeStatusItem(separator) }
         if let expander { NSStatusBar.system.removeStatusItem(expander) }
+        Self.restore(guardadas)
         self.separator = nil
         self.expander = nil
     }
 
-    /// Devuelve los tres iconos de OmniMac a su sitio.
+    /// Las posiciones guardadas de unos iconos, para poder devolverlas.
+    static func savedPositions(of names: [String]) -> [String: Double] {
+        names.reduce(into: [:]) { result, name in
+            if let value = (UserDefaults.standard.object(forKey: positionKey(name)) as? NSNumber)?.doubleValue {
+                result[name] = value
+            }
+        }
+    }
+
+    static func restore(_ positions: [String: Double]) {
+        for (name, value) in positions { UserDefaults.standard.set(value, forKey: positionKey(name)) }
+    }
+
+    /// Devuelve los iconos de OmniMac a su sitio, sin tocar la línea.
     ///
     /// Hace falta porque macOS recuerda dónde dejó el usuario cada icono, y basta un
     /// arrastre desafortunado para que el de OmniMac acabe entre la línea y la
     /// flecha: entonces lo que sueltes ahí en medio no se esconde y parece que la
     /// función está rota.
     func rearrange() {
-        for item in Self.arrangement {
-            UserDefaults.standard.set(item.position, forKey: "NSStatusItem Preferred Position \(item.name)")
-        }
+        Self.placeOwnIcons(force: true)
         // Las posiciones se leen al crear cada icono, así que hay que rehacerlos.
         guard isEnabled else { return }
         stop()
@@ -176,11 +278,13 @@ final class MenuBarFeature: BaseFeature {
     // MARK: - Abrir y cerrar
 
     func toggle() {
+        healIfNeeded()
         collapsed.toggle()
     }
 
     func expand() {
         guard collapsed else { return }
+        healIfNeeded()
         collapsed = false
     }
 
