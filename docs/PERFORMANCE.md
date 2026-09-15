@@ -204,10 +204,78 @@ En disco: **16 MB**, igual que en 0.5.0.
   resto de la página no ha cambiado desde 0.5.0. Solo cuesta mientras la página está a la vista.
 - **Al cerrar Ajustes la CPU vuelve al reposo (0,017 %), pero la memoria no baja del todo**: con la
   página de Rendimiento abierta la memoria real llega a 59 MB, y al cerrar la ventana se queda en
-  54. Queda por ver si la retiene OmniMac o son cachés del sistema.
+  54. No la retiene OmniMac: ver «Lo que queda en memoria al cerrar Ajustes», justo debajo.
 - **Una medida descartada.** La primera de la página de Rendimiento abrió Ajustes con
   `open -b com.seergiii.omnimac`, y lo que se midió ya era otro proceso: LaunchServices tiene
   registrada además una copia vieja que ya no existe. Se repitió abriendo la app por su ruta.
+
+## Lo que queda en memoria al cerrar Ajustes (11 de septiembre de 2026)
+
+La pregunta que dejó abierta la medición de la 0.5.1: si Ajustes destruye su vista al cerrarse
+(desde la 0.4.1), ¿por qué la memoria real se queda en 54 MB y no vuelve a los 33–37 del reposo?
+
+**OmniMac no retiene nada de la página.** Lo que se queda es lo que macOS estrena la primera vez
+que se abre una ventana de SwiftUI —metadatos de Swift, símbolos, tipografías, cachés de los
+marcos— y el hueco que eso deja en el asignador de memoria. Y no crece: abrir y cerrar Ajustes
+cinco veces deja lo mismo que una.
+
+Método: en cada foto, `footprint`, `vmmap --summary`, un memgraph de `leaks` y `heap` sobre él.
+Cada ciclo abre Ajustes, pasa a Rendimiento, espera 60 s, cierra la ventana y espera 20 s. Todo
+sin Accesibilidad (la fila se elige con un clic de verdad y la ventana se cierra con el botón
+rojo), para no contar también lo que la app crea para atender a un cliente de Accesibilidad.
+
+En la app de verdad (0.5.1, arranque limpio y tres ciclos seguidos):
+
+| Momento | CPU media | RSS | Memoria real | Objetos vivos |
+|---|---|---|---|---|
+| **Reposo recién abierta** (60 s) | 0,017 % | 82 MB | **36 MB** | 9,5 MB |
+| Con la página de Rendimiento a la vista | 2,4 % | — | pico de **66 MB** | — |
+| **Tras cerrar Ajustes** (primer ciclo) | — | 118 MB | **55 MB** | 17,7 MB |
+| Tras el tercer ciclo | — | 119 MB | **55 MB** | 17,8 MB |
+| Reposo tras cerrar (60 s) | 0,033 % | 121 MB | 56 MB | 18,2 MB |
+
+Los 19 MB que no vuelven están ahí desde el primer ciclo: el segundo y el tercero no suman nada.
+El último reposo sube medio megabyte, y entre medias `measure.sh` abre y cierra el notch una vez
+para calentar, así que no es de Ajustes.
+
+**Qué hay en lo que se queda.** Medido en una copia de la app con otro identificador y todos los
+módulos apagados, para que la diferencia saliera limpia y sin tocar la app que había en marcha.
+Por eso sus cifras absolutas no se comparan con las de arriba; lo que cuenta es la diferencia:
+
+| Foto (copia, módulos apagados) | Memoria real | Objetos vivos | Sucio en malloc | Sucio y vacío |
+|---|---|---|---|---|
+| Recién abierta | 11 MB | 3,1 MB | 6,9 MB | 1,5 MB |
+| Tras abrir y cerrar Ajustes en **Inicio** (no mide nada) | 40 MB | 11,9 MB | 29,4 MB | 8,1 MB |
+| Tras pasar después por **Rendimiento** | 46 MB | 13,3 MB | 34,8 MB | 9,7 MB |
+| Tras cinco ciclos de Rendimiento (otra tanda, mismo arranque) | 46 MB | 13,5 MB | 34,9 MB | 9,4 MB |
+
+- **Nada de la página sigue vivo.** Su `SystemStats` se libera (queda solo el de la barra de
+  menús), no queda ninguna `NSHostingView<SettingsView>` ni grafo de SwiftUI de Ajustes, y con
+  ellos se van el histórico y la lista de procesos. Lo único nuestro que sobrevive está hecho a
+  propósito: la ventana, que el controlador reutiliza (86 KB de objetos con su marco), y el
+  cliente de los sensores de temperatura (`Temperature.Bridge.shared`, unos 8 KB con sus 47
+  servicios).
+- **Es la ventana, no la página.** Abrir Ajustes en Inicio, que no muestrea, ya deja 29 de los
+  34 MB. Rendimiento añade unos 5 la primera vez: sus vistas, los trazos de las gráficas y el hueco
+  que deja su muestreo. En la app de verdad la subida es menor porque al arrancar ya ha pagado
+  parte de ese estreno: el notch también es SwiftUI.
+- **De quién son los objetos vivos:** metadatos de Swift (2 MB, el runtime no los suelta nunca),
+  símbolos e imágenes de CoreUI (1,6 MB), tipografías de CoreGraphics, CoreText y SwiftUI
+  (1,4 MB), cachés de métodos de Objective-C (0,8 MB) y cachés de SwiftUI, de trazos y de capas.
+  Todos cuelgan de variables globales de los marcos del sistema; ninguno, de código de OmniMac.
+- **El resto es hueco del asignador.** De los 34,9 MB sucios en malloc, 13,5 son objetos vivos,
+  unos 12 son huecos en páginas que comparten con algún objeto vivo (esos no se pueden devolver) y
+  9,4 son páginas sucias sin nada vivo: lo que malloc puede devolver al sistema cuando macOS avisa
+  de presión de memoria. (No se ha provocado presión para comprobarlo: afectaría a todo el Mac.)
+  Sin presión se quedan, y la siguiente vez que se abre Ajustes se reutilizan: por eso los ciclos
+  siguientes no suben.
+- **No crece.** El segundo ciclo aún estrena algo (140 KB: más cachés de métodos y formateadores
+  de números); del segundo al quinto, unos 18 KB por ciclo, entre ellos contabilidad de KVO de
+  AppKit en la ventana reutilizada. En 60 s de reposo después, ni un objeto de diferencia.
+
+No hay nada que arreglar en el código. Soltar también la ventana al cerrar ahorraría esos 86 KB,
+sus capas y los 18 KB por ciclo —menos de 1 MB en total— a cambio de que Ajustes olvidara su
+tamaño entre una apertura y otra: no compensa.
 
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
