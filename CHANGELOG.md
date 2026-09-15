@@ -1,5 +1,20 @@
 # Cambios
 
+## 0.5.2 — 2026-09-15
+
+**Nuevo**
+- **Portapapeles: las apps de las que no se guarda nada.** En Ajustes › Portapapeles hay ahora una lista de apps cuyas copias nunca entran en el historial, con su selector de apps, y un interruptor para los gestores de contraseñas conocidos (1Password, Bitwarden, KeePassXC, Enpass, Dashlane, LastPass, Strongbox, Acceso a Llaveros y Contraseñas), encendido de fábrica. Es un interruptor y no una copia de identificadores, para que el gestor que instales mañana quede cubierto sin volver a Ajustes; debajo se enseñan los que tienes instalados de verdad, en vez de prometer una lista de apps que no tienes. Lo que una app marque como confidencial no se guarda nunca, esté en la lista o no.
+
+**Arreglado**
+- Portapapeles: al abrir el historial desde el icono de la barra o desde el buscador de comandos, la app de delante era OmniMac y el ⌘V se lo comía él: quedaba copiado, pero no se pegaba en ningún sitio. Ahora se vuelve a la app donde estabas.
+- Portapapeles: copiar dos cosas seguidas perdía la primera, porque se miraba el portapapeles una vez por segundo. Mientras copias se mira cuatro veces por segundo y se vuelve a la calma a los cuatro segundos; en reposo se mira igual que antes y el consumo no cambia.
+- Portapapeles: en el panel, el ratón quieto le robaba al teclado el elemento elegido cuando la lista se desplazaba. Ahora el ratón solo manda si lo mueves de verdad.
+- Portapapeles: no había forma de buscar nada que empezara por una cifra, porque el número pegaba directamente ese elemento. Los números buscan, y para elegir por número es ⌘1–⌘9, que además funciona mientras buscas.
+- Portapapeles: el panel se quedaba flotando por encima de todo al pulsar en otra app, y allí ni Esc lo cerraba. Ahora se cierra al perder el foco.
+- Portapapeles: los textos de más de 20.000 caracteres se recortaban en silencio; ahora la fila lo dice. Y Ajustes ya no promete que sin «Guardar en disco» nada toque el disco: los anclados se guardan siempre.
+- Novedades: en una versión que solo arreglara cosas, «Novedades…» no hacía nada al pulsarlo —el recorrido descarta los arreglos a propósito y se quedaba sin ninguna pantalla—. Pedidas a mano se enseñan también los arreglos, y si no hubiera nada que enseñar, se dice.
+- Barra de menús: los iconos saltaban de sitio. Al quitar un icono de estado, macOS borra la posición donde lo habías dejado, y rehacerlos perdía el sitio de la línea y de la flecha. Ahora se guardan y se devuelven, se respeta el orden al arrancar, y «Recolocar» ya no mueve la línea, que es el límite que pones tú: moverla destapaba de golpe lo que tuvieras escondido.
+
 ## 0.5.1 — 2026-09-11
 
 **Arreglado**

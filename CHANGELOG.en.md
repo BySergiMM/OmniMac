@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.2 — 2026-09-15
+
+**New**
+- **Clipboard: the apps whose copies are never saved.** Settings › Clipboard now has a list of apps whose copies never make it into the history, with an app picker, plus a switch for the well-known password managers (1Password, Bitwarden, KeePassXC, Enpass, Dashlane, LastPass, Strongbox, Keychain Access and Passwords), on by default. It's a switch rather than a copy of identifiers, so a manager you install tomorrow is covered without going back to Settings; below it you see the ones you actually have installed, instead of promising a list of apps you don't. Anything an app marks as confidential is never saved, list or no list.
+
+**Fixed**
+- Clipboard: opening the history from the menu bar icon or the command bar left OmniMac in front, so it ate the ⌘V itself: the item was copied but never pasted anywhere. It now goes back to the app you were in.
+- Clipboard: copying two things in a row lost the first one, because the clipboard was only checked once per second. While you are copying it is checked four times a second, settling down again after four seconds; at rest it is checked exactly as before and idle cost doesn't change.
+- Clipboard: in the panel, a motionless mouse stole the selection from the keyboard whenever the list scrolled. The mouse now only wins if you actually move it.
+- Clipboard: you couldn't search for anything starting with a digit, because the number pasted that item outright. Digits now search, and picking by number is ⌘1–⌘9, which also works while searching.
+- Clipboard: the panel stayed floating above everything when you clicked another app, and not even Esc closed it there. It now closes when it loses focus.
+- Clipboard: text longer than 20,000 characters was trimmed silently; the row now says so. And Settings no longer claims that nothing touches the disk with "save to disk" off: pinned items are always saved.
+- What's new: in a version that only fixed things, "What's new…" did nothing at all — the tour skips fixes on purpose and was left without a single screen. Asked for by hand it now shows the fixes too, and if there were nothing to show, it says so.
+- Menu bar: the icons jumped around. When a status icon is removed, macOS forgets where you had left it, so rebuilding them lost the position of the line and the arrow. They are now saved and put back, their order is kept at launch, and "Put the icons back" no longer moves the line, which is the boundary you set: moving it revealed everything you had hidden.
+
 ## 0.5.1 — 2026-09-11
 
 **Fixed**
