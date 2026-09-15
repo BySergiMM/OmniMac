@@ -28,7 +28,7 @@ Welcome, with two house rules:
 1. **Nothing runs when nothing is visible.** Timers stop, monitors are removed, panels
    free their resources. `scripts/dev/measure.sh` measures idle cost — if a change
    moves that number, say so in the PR.
-2. **Logic lives outside the view**, so it can be tested. `swift test` runs 151 tests
+2. **Logic lives outside the view**, so it can be tested. `swift test` runs 237 tests
    and they should stay green.
 
 Code and comments are written in **Spanish**, explaining *why* rather than *what*.

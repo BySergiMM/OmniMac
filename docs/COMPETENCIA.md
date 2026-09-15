@@ -139,14 +139,14 @@ Fuente: README + textos de los 7 paneles de ajustes.
 | Función | OmniMac | Qué hacer | Nota |
 |---|---|---|---|
 | Historial de texto | ✅ Ya |  |  |
-| Imágenes y archivos en el historial | ❌ Falta | **Añadir** | Lo que más se echa en falta |
-| Historial persistente en disco (200 por defecto) | ❌ Falta | **Añadir** | Opcional y con aviso: hoy vive en memoria por privacidad |
+| Imágenes y archivos en el historial | ✅ Ya |  | Con vista previa en el panel |
+| Historial persistente en disco (200 por defecto) | ✅ Ya |  | Opcional y apagado de fábrica; el tope se elige (20/40/100) |
 | Buscar escribiendo (exacta, aproximada, mixta, regex) | ❌ Falta | **Añadir** | Búsqueda simple al escribir |
 | Anclar elementos (⌥P) con atajo, título y contenido editables | ❌ Falta | **Añadir** | Fragmentos fijos: direcciones, firmas… |
-| Pegar automáticamente / solo copiar / pegar sin formato | 🟡 Parcial | **Añadir** | Pegamos; falta «sin formato» |
+| Pegar automáticamente / solo copiar / pegar sin formato | 🟡 Parcial | **Añadir** | Pegamos, y sin formato con ⌥⇧⌘V; falta «solo copiar» |
 | Borrar un elemento, borrar todo, borrar al salir | 🟡 Parcial |  |  |
-| Ignorar la próxima copia o pausar temporalmente | ❌ Falta | **Añadir** | Un clic con ⌥ en el icono |
-| Ignorar apps concretas y tipos de portapapeles (gestores de contraseñas) | 🟡 Parcial | Más adelante | Ignoramos gestores; falta lista de apps |
+| Ignorar la próxima copia o pausar temporalmente | 🟡 Parcial | **Añadir** | Se pausa desde el menú y Ajustes; falta «ignorar la próxima» |
+| Ignorar apps concretas y tipos de portapapeles (gestores de contraseñas) | ✅ Ya |  | Lista de apps en Ajustes, con los gestores conocidos de serie |
 | Vista previa (⌃Espacio) con retardo | ❌ Falta | Más adelante |  |
 | Ventana en el cursor, centro o última posición | ❌ Falta | Descartar |  |
 | Última copia junto al icono, iconos de apps, símbolos especiales, muestras de color hex | ❌ Falta | Más adelante | Iconos de app y color hex son detalles bonitos |
