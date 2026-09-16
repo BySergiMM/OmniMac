@@ -21,7 +21,7 @@ TOOLS=".build/sparkle-tools"
 if [[ ! -x "$TOOLS/bin/generate_appcast" ]]; then
   echo "⬇️  Descargando las herramientas de Sparkle…"
   mkdir -p "$TOOLS"
-  curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/2.9.6/Sparkle-2.9.6.tar.xz" | tar -xJ -C "$TOOLS"
+  curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/2.10.0/Sparkle-2.10.0.tar.xz" | tar -xJ -C "$TOOLS"
 fi
 
 # Versión visible y número de build (siempre creciente: Sparkle compara este).

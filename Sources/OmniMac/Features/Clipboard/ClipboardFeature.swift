@@ -306,7 +306,7 @@ final class ClipboardFeature: BaseFeature {
                        symbol: "doc.on.clipboard")
             return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { Self.sendCmdV() }
+        Self.sendCmdVWhenReady(after: 0.05)
     }
 
     override func stop() {
@@ -513,8 +513,23 @@ final class ClipboardFeature: BaseFeature {
 
         // Sin Accesibilidad no podemos simular ⌘V: queda copiado y el usuario pega a mano.
         guard Permissions.hasAccessibility else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            Self.sendCmdV()
+        Self.sendCmdVWhenReady(after: 0.18)
+    }
+
+    /// Manda ⌘V cuando de verdad va a llegar a la app de la persona: sin ninguna
+    /// ventana nuestra como clave (si la hubiera, el ⌘V se lo quedaría OmniMac, que es
+    /// lo que pasaba en macOS 27 con el panel del notch) y sin ⌥, ⇧ ni ⌃ pulsados (con
+    /// ⌥⇧⌘V el ⌘V salía con las teclas aún apretadas y la app recibía otra vez el
+    /// atajo, no el pegado). Espera como mucho un segundo y entonces lo manda igual.
+    private static func sendCmdVWhenReady(after delay: TimeInterval, attempts: Int = 40) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            let held = CGEventSource.flagsState(.combinedSessionState)
+                .intersection([.maskShift, .maskAlternate, .maskControl])
+            if (NSApp.keyWindow == nil && held.isEmpty) || attempts == 0 {
+                sendCmdV()
+            } else {
+                sendCmdVWhenReady(after: 0.025, attempts: attempts - 1)
+            }
         }
     }
 

@@ -6,10 +6,11 @@ import Combine
 ///
 /// La técnica no tiene misterio ni usa APIs privadas ni permisos: OmniMac pone dos
 /// iconos propios en la barra y se aprovecha de que macOS los coloca de derecha a
-/// izquierda. El **expansor** es un icono invisible que, al hacerse enormemente
-/// ancho, empuja fuera de la pantalla todo lo que tiene a su izquierda; al
-/// devolverle su ancho normal, los iconos vuelven a aparecer. El **separador** es
-/// la flecha en la que pulsas para abrir y cerrar.
+/// izquierda. El **expansor** es un icono invisible que, al hacerse muy ancho,
+/// empuja todo lo que tiene a su izquierda fuera de la pantalla (en macOS 27, al
+/// desbordamiento nativo de la barra); al devolverle su ancho normal, los iconos
+/// vuelven a aparecer. El **separador** es la flecha en la que pulsas para abrir y
+/// cerrar.
 ///
 /// Quién se esconde lo decides tú una sola vez: mantén ⌘ y arrastra los iconos que
 /// quieras ocultar a la izquierda de la flecha. macOS recuerda esas posiciones.
@@ -18,9 +19,29 @@ final class MenuBarFeature: BaseFeature {
                                           title: L("Enseñar u ocultar los iconos", "Show or hide the icons"),
                                           fallback: Shortcut(kVK_ANSI_B, controlKey | optionKey | cmdKey))
 
-    /// Ancho al que crece el expansor. Cualquier cosa mayor que la pantalla vale:
-    /// lo que sobra se sale por la izquierda, que es justo lo que queremos.
-    private static let pushWidth: CGFloat = 10_000
+    /// Ancho al que crece el expansor cuando los iconos están escondidos.
+    ///
+    /// Hasta macOS 26 cualquier cosa mayor que la pantalla valía: AppKit recortaba el
+    /// icono al ancho de la barra y lo que sobraba se salía por la izquierda. macOS 27
+    /// rehízo la barra (una sola ventana) y ya no recorta: un icono que llegue a la
+    /// mitad del ancho de la pantalla se **descarta** sin avisar, con lo que el
+    /// escondedor no escondía nada y la línea desaparecía. Ahí el tope es el 45 % de
+    /// la pantalla más estrecha (cada pantalla tiene su copia del icono y todas tienen
+    /// que pasar por debajo de su propio límite), y lo que se empuja más allá del borde
+    /// va al desbordamiento nativo («), no fuera de la pantalla.
+    static func pushWidth(screenWidths: [CGFloat], macOS27: Bool) -> CGFloat {
+        guard macOS27 else { return 10_000 }
+        let narrowest = screenWidths.min() ?? 1_440
+        return max(200, (narrowest * 0.45).rounded(.down))
+    }
+
+    private static var isMacOS27: Bool {
+        ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27
+    }
+
+    private static var currentPushWidth: CGFloat {
+        pushWidth(screenWidths: NSScreen.screens.map { $0.frame.width }, macOS27: isMacOS27)
+    }
     /// Ancho de la barrita que marca el límite cuando los iconos están a la vista.
     private static let dividerWidth: CGFloat = 10
 
@@ -189,6 +210,9 @@ final class MenuBarFeature: BaseFeature {
     private var separator: NSStatusItem?
     private var expander: NSStatusItem?
     private var autoHideWork: DispatchWorkItem?
+    /// En macOS 27 el ancho del expansor depende de las pantallas: al enchufar o
+    /// quitar un monitor hay que volver a calcularlo.
+    private var screensObserver: NSObjectProtocol?
 
     init() {
         let defaults = UserDefaults.standard
@@ -229,11 +253,19 @@ final class MenuBarFeature: BaseFeature {
         self.expander = expander
 
         HotKeyCenter.shared.bind(Self.shortcut) { [weak self] in self?.toggle() }
+        screensObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self, self.collapsed else { return }
+            self.expander?.length = Self.currentPushWidth
+        }
         apply()
     }
 
     override func stop() {
         HotKeyCenter.shared.unbind(Self.shortcut)
+        if let screensObserver { NotificationCenter.default.removeObserver(screensObserver) }
+        screensObserver = nil
         autoHideWork?.cancel()
         autoHideWork = nil
         // Al quitar un NSStatusItem, AppKit **borra** su posición guardada. Sin
@@ -325,7 +357,10 @@ final class MenuBarFeature: BaseFeature {
 
     /// Lleva el estado a los iconos de la barra.
     private func apply() {
-        expander?.length = collapsed ? Self.pushWidth : Self.dividerWidth
+        expander?.length = collapsed ? Self.currentPushWidth : Self.dividerWidth
+        // En macOS 27 el expansor plegado sigue en pantalla (mide menos de media
+        // barra), y la barrita saldría dibujada en mitad de la nada: se esconde.
+        expander?.button?.image = (collapsed && Self.isMacOS27) ? nil : Self.dividerImage()
         let symbol = collapsed ? "chevron.left" : "chevron.right"
         let image = NSImage(systemSymbolName: symbol,
                             accessibilityDescription: collapsed
