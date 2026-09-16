@@ -14,6 +14,9 @@
 - Portapapeles: los textos de más de 20.000 caracteres se recortaban en silencio; ahora la fila lo dice. Y Ajustes ya no promete que sin «Guardar en disco» nada toque el disco: los anclados se guardan siempre.
 - Novedades: en una versión que solo arreglara cosas, «Novedades…» no hacía nada al pulsarlo —el recorrido descarta los arreglos a propósito y se quedaba sin ninguna pantalla—. Pedidas a mano se enseñan también los arreglos, y si no hubiera nada que enseñar, se dice.
 - Barra de menús: los iconos saltaban de sitio. Al quitar un icono de estado, macOS borra la posición donde lo habías dejado, y rehacerlos perdía el sitio de la línea y de la flecha. Ahora se guardan y se devuelven, se respeta el orden al arrancar, y «Recolocar» ya no mueve la línea, que es el límite que pones tú: moverla destapaba de golpe lo que tuvieras escondido.
+- **macOS 27**: el escondedor de la barra no escondía nada y la línea desaparecía. La barra de menús es ahora una sola ventana y macOS descarta cualquier icono que llegue a la mitad del ancho de la pantalla, en vez de recortarlo como antes; el expansor medía 10 000 puntos. Ahora, en macOS 27, mide el 45 % de la pantalla más estrecha, se recalcula al cambiar de monitores y no se dibuja mientras está plegado.
+- **macOS 27**: al elegir algo en el historial del portapapeles no se pegaba, y tras cerrar el panel con Esc lo que escribías no llegaba a tu app. Al cerrarse el panel, AppKit hacía ventana clave al panel del notch y el teclado se quedaba en OmniMac. El notch ya solo puede ser ventana clave mientras enseña algo, y el ⌘V del pegado espera a que ninguna ventana nuestra tenga el foco y a que sueltes ⌥, ⇧ y ⌃ (con ⌥⇧⌘V salía con las teclas aún apretadas).
+- Actualizaciones: Sparkle 2.10.0, que arregla la aplicación de las actualizaciones por diferencias en macOS 27.
 
 ## 0.5.1 — 2026-09-11
 

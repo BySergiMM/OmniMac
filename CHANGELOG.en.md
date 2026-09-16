@@ -14,6 +14,9 @@
 - Clipboard: text longer than 20,000 characters was trimmed silently; the row now says so. And Settings no longer claims that nothing touches the disk with "save to disk" off: pinned items are always saved.
 - What's new: in a version that only fixed things, "What's new…" did nothing at all — the tour skips fixes on purpose and was left without a single screen. Asked for by hand it now shows the fixes too, and if there were nothing to show, it says so.
 - Menu bar: the icons jumped around. When a status icon is removed, macOS forgets where you had left it, so rebuilding them lost the position of the line and the arrow. They are now saved and put back, their order is kept at launch, and "Put the icons back" no longer moves the line, which is the boundary you set: moving it revealed everything you had hidden.
+- **macOS 27**: the menu bar hider hid nothing and its divider vanished. The menu bar is now a single window and macOS discards any icon that reaches half the screen's width instead of clamping it as before; the expander was 10,000 points wide. On macOS 27 it is now 45 % of the narrowest screen, recalculated when displays change, and not drawn while collapsed.
+- **macOS 27**: picking an item in the clipboard history didn't paste, and after closing the panel with Esc what you typed never reached your app. When the panel closed, AppKit made the notch panel the key window and the keyboard stayed with OmniMac. The notch can now only be the key window while it shows something, and the paste's ⌘V waits until no window of ours has focus and until you release ⌥, ⇧ and ⌃ (with ⌥⇧⌘V it went out with the keys still held).
+- Updates: Sparkle 2.10.0, which fixes applying delta updates on macOS 27.
 
 ## 0.5.1 — 2026-09-11
 

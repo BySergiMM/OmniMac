@@ -14,6 +14,15 @@ final class MenuBarPlacementTests: XCTestCase {
 
     private var orden: [String] { [flecha, app, grafica] }
 
+    /// macOS 27 descarta un icono que llegue a la mitad de la pantalla: el expansor se
+    /// queda por debajo, medido en la pantalla más estrecha; antes, cualquier ancho valía.
+    func testEnMacOS27ElExpansorNoLlegaAMediaPantalla() {
+        XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [1512, 2560], macOS27: true), 680)
+        XCTAssertLessThan(MenuBarFeature.pushWidth(screenWidths: [1512, 2560], macOS27: true), 1512 / 2)
+        XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [], macOS27: true), 648)
+        XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [1512], macOS27: false), 10_000)
+    }
+
     /// Todo en su sitio: no se toca nada.
     func testLoQueYaEstaBienNoSeMueve() {
         let ahora = [flecha: 261.0, app: 243.0, grafica: 225.0]

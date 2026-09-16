@@ -400,7 +400,13 @@ private final class NotchPanel: NSPanel {
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
         frameRect
     }
-    override var canBecomeKey: Bool { true }
+    /// Solo puede ser ventana clave mientras enseña algo. Plegado no hay nada que
+    /// teclear, y si pudiera serlo AppKit se lo daría en cuanto otro panel nuestro se
+    /// cierre: en macOS 27, al cerrar el historial del portapapeles el foco del teclado
+    /// se quedaba en el notch, el ⌘V del pegado se lo comía OmniMac y lo que
+    /// escribieras después no llegaba a tu app hasta hacer clic en ella.
+    var acceptsKey = false
+    override var canBecomeKey: Bool { acceptsKey }
 }
 
 /// Hace que el primer clic sobre el panel cuente (si no, macOS lo gasta solo en
@@ -444,7 +450,7 @@ private final class FirstMouseHostingView<Content: View>: NSHostingView<Content>
 }
 
 final class NotchWindowController {
-    private let panel: NSPanel
+    private let panel: NotchPanel
     private var hosting: NSHostingView<NotchView>?
     private let model: NotchModel
     private let media = MediaBridge()
@@ -717,7 +723,18 @@ final class NotchWindowController {
         guard !model.expanded, model.peek == nil else { return }
         panel.setFrame(collapsedFrame, display: true)
         setBlack(false)
+        releaseKey()
         lowerWhenIdle()
+    }
+
+    /// Plegado, el panel deja de poder ser clave; y si lo era (un clic en el notch
+    /// abierto), lo suelta reordenándose, que es lo único que hace que el teclado
+    /// vuelva a la app de la persona sin activar ni desactivar nada.
+    private func releaseKey() {
+        panel.acceptsKey = false
+        guard panel.isKeyWindow else { return }
+        panel.orderOut(nil)
+        if !hiddenForFullscreen, !hiddenForMenu { panel.orderFrontRegardless() }
     }
 
     /// En reposo, y solo si no está dibujando nada, el panel baja de capa.
@@ -734,6 +751,7 @@ final class NotchWindowController {
 
     /// Vuelve a la capa alta justo antes de enseñar algo.
     private func raiseForDisplay() {
+        panel.acceptsKey = true
         guard panel.level != .popUpMenu else { return }
         panel.level = .popUpMenu
     }
