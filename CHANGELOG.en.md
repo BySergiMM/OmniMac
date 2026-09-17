@@ -17,6 +17,8 @@
 - **macOS 27**: the menu bar hider hid nothing and its divider vanished. The menu bar is now a single window and macOS discards any icon that reaches half the screen's width instead of clamping it as before; the expander was 10,000 points wide. On macOS 27 it is now 45 % of the narrowest screen, recalculated when displays change, and not drawn while collapsed.
 - **macOS 27**: picking an item in the clipboard history didn't paste, and after closing the panel with Esc what you typed never reached your app. When the panel closed, AppKit made the notch panel the key window and the keyboard stayed with OmniMac. The notch can now only be the key window while it shows something, and the paste's ⌘V waits until no window of ours has focus and until you release ⌥, ⇧ and ⌃ (with ⌥⇧⌘V it went out with the keys still held).
 - Updates: Sparkle 2.10.0, which fixes applying delta updates on macOS 27.
+- **macOS 27**: the AirPods card showed no battery. macOS 27 writes the level with a non-breaking space before the "%" ("100 %"), which was left stuck to the number so it couldn't be parsed. It now reads the digits only. Added the product id of the newest AirPods Pro too.
+- **Keyboard lock**: brightness, volume and media keys still worked. They arrive as a different event type (regular keys don't), and the system handles them before a session-level tap sees them. The tap now sits at the lowest level (HID) and catches them too, and re-enables itself if macOS disables it under load.
 
 ## 0.5.1 — 2026-09-11
 

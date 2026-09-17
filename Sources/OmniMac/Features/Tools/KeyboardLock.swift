@@ -21,19 +21,38 @@ final class KeyboardLock {
             onUnlock()
             return
         }
+        // Las teclas normales van como keyDown/keyUp/flagsChanged; pero brillo, volumen
+        // y multimedia (la fila de función) llegan como NSSystemDefined, tipo 14, que no
+        // está en el enum de CGEventType, así que se añade a mano.
+        let systemDefined: UInt32 = 14
         let mask: CGEventMask = (CGEventMask(1) << CGEventType.keyDown.rawValue)
             | (CGEventMask(1) << CGEventType.keyUp.rawValue)
             | (CGEventMask(1) << CGEventType.flagsChanged.rawValue)
-        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap,
-                                          place: .headInsertEventTap,
-                                          options: .defaultTap,
-                                          eventsOfInterest: mask,
-                                          callback: { _, type, event, _ in
+            | (CGEventMask(1) << systemDefined)
+        // Nivel HID, no de sesión: el brillo y el volumen los atiende el sistema
+        // (SkyLight) antes de que un tap de sesión los vea, así que colgados ahí se
+        // colaban aunque estuvieran en la máscara. En el nivel HID el evento pasa por
+        // aquí primero, antes de que nadie actúe. `userInfo` lleva la instancia para
+        // poder reactivar el tap si macOS lo desactiva.
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        let callback: CGEventTapCallBack = { _, type, event, refcon in
+            // macOS desactiva el tap si se satura o si tarda; sin reactivarlo, el
+            // teclado se «desbloquea» solo y las teclas vuelven a pasar.
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                if let refcon {
+                    let lock = Unmanaged<KeyboardLock>.fromOpaque(refcon).takeUnretainedValue()
+                    if let tap = lock.tap { CGEvent.tapEnable(tap: tap, enable: true) }
+                }
                 return Unmanaged.passUnretained(event)
             }
             return nil // tecla tragada
-        }, userInfo: nil) else {
+        }
+        guard let tap = CGEvent.tapCreate(tap: .cghidEventTap,
+                                          place: .headInsertEventTap,
+                                          options: .defaultTap,
+                                          eventsOfInterest: mask,
+                                          callback: callback,
+                                          userInfo: refcon) else {
             onUnlock()
             return
         }

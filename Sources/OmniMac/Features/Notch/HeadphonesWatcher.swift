@@ -37,7 +37,7 @@ enum AppleHeadphones {
         case 0x2002, 0x200F: return ok("airpods", "airpod.left", "airpod.right", "airpods.chargingcase.wireless")
         case 0x2013: return ok("airpods.gen3", "airpod.gen3.left", "airpod.gen3.right", "airpods.gen3.chargingcase.wireless")
         case 0x2019, 0x201B: return ok("airpods.gen4", "airpod.gen3.left", "airpod.gen3.right", "airpods.gen4.chargingcase.wireless")
-        case 0x200E, 0x2014, 0x2024: return ok("airpodspro", "airpodpro.left", "airpodpro.right", "airpodspro.chargingcase.wireless")
+        case 0x200E, 0x2014, 0x2024, 0x2027: return ok("airpodspro", "airpodpro.left", "airpodpro.right", "airpodspro.chargingcase.wireless")
         case 0x200A, 0x201F: return ok("airpodsmax", nil, nil, nil)
         case 0x2003: return ok("beats.powerbeats3", nil, nil, nil)
         case 0x200B: return ok("beats.powerbeatspro", nil, nil, nil)
@@ -137,6 +137,18 @@ final class HeadphonesWatcher {
 
     private struct Details { var vendorID: Int?; var productID: Int?; var left: Int?; var right: Int?; var caseLevel: Int?; var main: Int? }
 
+    /// El porcentaje de batería, sacando solo las cifras.
+    ///
+    /// macOS 27 escribe el nivel con un **espacio duro** (U+00A0) antes del `%`
+    /// —`"100\u{00a0}%"`—, y quitar solo el espacio normal y el `%` dejaba pegado ese
+    /// carácter, con lo que `Int(...)` fallaba y la batería salía vacía aunque la
+    /// tarjeta se mostrara. Quedarse con los dígitos vale para cualquier separador.
+    static func battery(_ value: Any?) -> Int? {
+        guard let text = value as? String else { return nil }
+        let digits = String(text.unicodeScalars.filter(CharacterSet.decimalDigits.contains))
+        return digits.isEmpty ? nil : Int(digits)
+    }
+
     /// `system_profiler SPBluetoothDataType -json`: busca el dispositivo conectado por nombre.
     private static func profile(named name: String) -> Details? {
         let process = Process()
@@ -151,10 +163,7 @@ final class HeadphonesWatcher {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let section = (root["SPBluetoothDataType"] as? [[String: Any]])?.first,
               let connected = section["device_connected"] as? [[String: Any]] else { return nil }
-        func percent(_ value: Any?) -> Int? {
-            guard let text = value as? String else { return nil }
-            return Int(text.trimmingCharacters(in: CharacterSet(charactersIn: "% ")))
-        }
+        func percent(_ value: Any?) -> Int? { Self.battery(value) }
         func hex(_ value: Any?) -> Int? {
             guard let text = value as? String else { return nil }
             return Int(text.replacingOccurrences(of: "0x", with: ""), radix: 16)
