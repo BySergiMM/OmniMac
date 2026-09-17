@@ -71,13 +71,14 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
 - [ ] Páginas de comparación (`docs/site/vs`): `python3 docs/site/tools/make_vs.py`.
 - [ ] `sitemap.xml` con las páginas nuevas y la fecha.
 - [ ] Que las etiquetas Open Graph de las dos versiones digan lo suyo: la raíz está en
-      español y `/en/` en inglés (si se comparte la raíz con angloparlantes, la tarjeta
-      sale en español).
+      inglés y `/es/` en español. La tarjeta por defecto (`img/social-preview.png`, la que
+      sube GitHub y la que captura cualquiera al compartir) es la inglesa; `/es/` usa
+      `img/es/social-preview.png`.
 - [ ] **Tarjeta social**, que lleva el número de módulos y las cifras de consumo
       escritos dentro de la imagen y por eso caduca sin que se note:
 
-      swift scripts/dev/social.swift es docs/site/img/social-preview.png
-      swift scripts/dev/social.swift en docs/site/img/en/social-preview.png
+      swift scripts/dev/social.swift en docs/site/img/social-preview.png
+      swift scripts/dev/social.swift es docs/site/img/es/social-preview.png
 
       Los textos están arriba del guion: número de módulos, CPU en reposo, memoria y
       disco. Súbela también a GitHub › Settings › General › **Social preview** — eso

@@ -6,8 +6,8 @@ import AppKit
 // Se hacía a mano recortando el hero de la web, y por eso se quedó en español y
 // anunciando siete módulos cuando ya eran once. Ahora se genera:
 //
-//   swift scripts/dev/social.swift es docs/site/img/social-preview.png
-//   swift scripts/dev/social.swift en docs/site/img/en/social-preview.png
+//   swift scripts/dev/social.swift en docs/site/img/social-preview.png   (por defecto, la del repo)
+//   swift scripts/dev/social.swift es docs/site/img/es/social-preview.png
 //
 // Al subir de versión hay que volver a lanzarla (está en docs/RELEASE.md).
 
