@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacidad · OmniMac</title>
+<meta name="description" content="Qué guarda OmniMac y dónde, cuándo sale algo a internet y qué permisos pide. Sin cuentas, sin telemetría, sin analítica.">
+<link rel="canonical" href="https://bysergimm.github.io/OmniMac/es/privacidad/">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="../../img/icon.png">
+<style>:root{--bg:#fff;--bg2:#f5f5f7;--ink:#1d1d1f;--ink2:#6e6e73;--line:#d2d2d7;--accent:#5b5bd6;--max:760px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+header{border-bottom:1px solid var(--line);padding:18px 0}
+header .wrap{display:flex;align-items:center;gap:10px;font-weight:600}
+header img{width:26px;height:26px;border-radius:7px}
+main{padding:44px 0 64px}
+h1{font-size:40px;line-height:1.1;letter-spacing:-.02em;margin:0 0 6px}
+h2{font-size:22px;margin:38px 0 10px;letter-spacing:-.01em}
+p,li{color:var(--ink);font-size:17px}
+ul{padding-left:20px}li{margin:6px 0}
+.fecha{color:var(--ink2);font-size:15px;margin:0 0 8px}
+.entradilla{font-size:19px;color:var(--ink)}
+.caja{background:var(--bg2);border-radius:14px;padding:18px 20px;margin:24px 0}
+.caja p{margin:0}
+footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--ink2);font-size:15px}
+footer a{color:var(--ink2);text-decoration:underline}
+@media(max-width:560px){h1{font-size:32px}p,li{font-size:16px}}</style>
+</head>
+<body>
+<header><div class="wrap"><img src="../../img/icon.png" alt=""><a href="../">OmniMac</a></div></header>
+<main><div class="wrap">
+<p class="fecha">Última actualización: 12 de septiembre de 2026</p>
+<h1>Privacidad</h1>
+<p class="entradilla">OmniMac no recoge nada. No hay cuentas, ni telemetría, ni analítica, ni anuncios. Lo que haces con la app se queda en tu Mac.</p>
+
+<h2>Qué se guarda y dónde</h2>
+<ul>
+<li><b>Ajustes y preferencias</b>, en <code>~/Library/Preferences/com.seergiii.omnimac.plist</code>.</li>
+<li><b>Historial del portapapeles</b>: en tu Mac. Se puede pausar cuando quieras, vaciar, y elegir si se conserva al cerrar la app.</li>
+<li><b>Disposiciones de ventanas guardadas y la caché de carátulas</b>, en <code>~/Library/Application Support/OmniMac</code>.</li>
+</ul>
+<p>Nada de eso sale del ordenador, y se borra todo al desinstalar la app.</p>
+
+<h2>Cuándo sale algo a internet</h2>
+<p>Dos cosas, y las dos las decides tú:</p>
+<ul>
+<li><b>Buscar actualizaciones.</b> Una vez al día la app le pregunta a GitHub si hay una versión nueva. Se apaga en Ajustes, en «Buscar actualizaciones automáticamente». GitHub registra esa petición como registra cualquier descarga desde su web.</li>
+<li><b>La carátula de la música.</b> Cuando el notch enseña lo que estás escuchando, descarga la imagen de la carátula desde la dirección que le da Spotify o Música. Sin música sonando, no ocurre.</li>
+</ul>
+<div class="caja"><p>No hay ninguna otra conexión. Ni al arrancar, ni en reposo, ni al usar el resto de módulos.</p></div>
+
+<h2>Permisos que pide macOS, y para qué</h2>
+<ul>
+<li><b>Accesibilidad</b>: colocar ventanas, ⌘Tab por ventanas y los atajos.</li>
+<li><b>Grabación de pantalla</b>: copiar el texto de la pantalla (OCR) y las miniaturas de las ventanas.</li>
+<li><b>Calendario</b>: enseñar los eventos de hoy en el notch.</li>
+<li><b>Automatización de Música y Spotify</b>: ver y controlar lo que suena.</li>
+<li><b>Captura de audio</b>: el volumen por app y el ecualizador.</li>
+</ul>
+<p>Cada permiso se pide cuando usas ese módulo, y cada módulo se puede apagar. Apagado no pide nada y no consume nada.</p>
+
+<h2>Esta web</h2>
+<p>Está alojada en GitHub Pages. No usa cookies, no tiene analítica y no carga nada de terceros: ni tipografías, ni vídeos externos, ni botones de redes. GitHub, como cualquier servidor, registra las peticiones que recibe.</p>
+
+<h2>Quién está detrás</h2>
+<p>OmniMac lo hace Sergi Martí, en Barcelona, como proyecto personal. Para cualquier cosa —dudas, fallos, privacidad— escribe en los <a href="https://github.com/BySergiMM/OmniMac/issues">issues del repositorio</a>.</p>
+</div></main>
+<footer><div class="wrap"><p>OmniMac, software libre con licencia MIT · <a href="../condiciones/">Condiciones de uso</a> · <a href="../">OmniMac</a> · <a href="https://github.com/BySergiMM/OmniMac">GitHub</a></p></div></footer>
+</body>
+</html>
