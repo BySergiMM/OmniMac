@@ -25,20 +25,22 @@
 <p align="center">
   <a href="https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg"><img src="https://img.shields.io/badge/Descargar%20OmniMac.pkg-5b5bd6?style=for-the-badge&logo=apple&logoColor=white" alt="Descargar OmniMac.pkg"></a>
   &nbsp;
-  <a href="https://bysergimm.github.io/OmniMac/"><img src="https://img.shields.io/badge/Web-bysergimm.github.io%2FOmniMac-1d1d1f?style=for-the-badge" alt="Web de OmniMac"></a>
+  <a href="https://bysergimm.github.io/OmniMac/es/"><img src="https://img.shields.io/badge/Web-bysergimm.github.io%2FOmniMac-1d1d1f?style=for-the-badge" alt="Web de OmniMac"></a>
   &nbsp;
   <a href="https://ko-fi.com/seergiii"><img src="https://img.shields.io/badge/Inv%C3%ADtame%20a%20un%20caf%C3%A9-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"></a>
 </p>
 
 https://github.com/user-attachments/assets/757ab088-c1fa-416d-9d5c-fb8088834c68
 
-<p align="center"><sub>▶ Recorrido completo (113 s, en inglés): <a href="https://bysergimm.github.io/OmniMac/#video">en la web</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">también en vertical</a></sub></p>
+<p align="center"><sub>▶ Recorrido completo (113 s, en inglés): <a href="https://bysergimm.github.io/OmniMac/es/#video">en la web</a> · <a href="https://github.com/BySergiMM/OmniMac/releases/tag/media">también en vertical</a></sub></p>
 
 <p align="center">
   <img src="docs/site/img/notch-media.png" width="681" alt="El notch de OmniMac desplegado con la música">
 </p>
 
 <p align="center"><sub>Capturas reales, generadas por la propia app (<code>OmniMac --snapshots</code>).</sub></p>
+
+<p align="center"><sub>⭐ Si OmniMac se gana un sitio en tu Mac, una estrella ayuda a que otros la encuentren.</sub></p>
 
 <table align="center">
   <tr>
