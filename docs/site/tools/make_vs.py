@@ -4,7 +4,7 @@ robots.txt a partir de los datos de abajo. Ejecutar desde cualquier sitio:
 
     python3 docs/site/tools/make_vs.py
 
-Salida: docs/site/vs/<app>/index.html y docs/site/en/vs/<app>/index.html.
+Salida: docs/site/vs/<app>/index.html (inglés, la raíz) y docs/site/es/vs/<app>/index.html.
 Los datos de consumo son los de docs/PERFORMANCE.md (mediciones del 3 y el 8 de septiembre de 2026; OmniMac, el 11 con la 0.5.1;
 cada app sola en el mismo Mac); las funciones salen de docs/COMPETENCIA.md y de la
 documentación pública de cada app. Reglas: solo hechos comprobables, nada de adjetivos
@@ -106,13 +106,13 @@ APPS = [
 
 T = {
     "es": dict(lang="es", title="OmniMac frente a {name}: comparativa con datos", desc="{name} y OmniMac comparados con datos medidos: consumo en reposo, precio, lo que hace mejor cada uno y cuándo elegir cada app.",
-               home="Inicio", other_lang="English", other_href="../../en/vs/{slug}/", eyebrow="Comparativa", h1="OmniMac frente a {name}", lead="{name} hace una cosa ({module}). OmniMac la hace y añade otros seis módulos en la misma app. Aquí van los datos, sin adjetivos: consumo medido en el mismo Mac, qué hace mejor cada uno y cuándo elegir uno u otro.",
+               home="Inicio", other_lang="English", other_href="../../../vs/{slug}/", eyebrow="Comparativa", h1="OmniMac frente a {name}", lead="{name} hace una cosa ({module}). OmniMac la hace y añade otros seis módulos en la misma app. Aquí van los datos, sin adjetivos: consumo medido en el mismo Mac, qué hace mejor cada uno y cuándo elegir uno u otro.",
                facts="Los datos", th=["", "{name} {version}", "OmniMac {oversion}"], rows=[("Qué hace", "{does}", "Siete módulos: mantener despierto, ⌘Tab por ventanas, notch dinámico, atajos de ventanas, portapapeles, utilidades (OCR, color, teclado, micrófono) y sonido"), ("Precio y código", "{price}", "Gratis, código abierto (MIT), sin cuentas ni telemetría"), ("Memoria en reposo (RSS)", "{rss}", "{orss} ({oreal} de memoria física real)"), ("CPU en reposo", "{cpu}", "{ocpu}"), ("Tamaño en disco", "{disk}", "{odisk}"), ("Hilos en reposo", "{threads}", "{othreads}"), ("Requisitos", "macOS (ver su web)", "macOS 14.2 o posterior, Apple silicon e Intel")],
                theirs="Lo que {name} hace y OmniMac no", ours="Lo que OmniMac añade", pick="Cuándo elegir cada una", method="Cómo se midió", methodtext="Cada app sola en el mismo MacBook con Apple silicon y macOS 26.5, el {date}, 50 s de reposo con el cursor lejos del notch tras 15 s de arranque. CPU = tiempo de CPU consumido dividido por el tiempo transcurrido (<code>ps -o cputime</code>); memoria = RSS (<code>ps -o rss</code>); la memoria física real de OmniMac (<code>footprint</code>) es de 33–37 MB en la medición de 0.5.1. Una sola tanda: son órdenes de magnitud, no décimas. Metodología completa y resultados en <a href=\"https://github.com/BySergiMM/OmniMac/blob/main/docs/PERFORMANCE.md\">docs/PERFORMANCE.md</a>; el inventario de funciones, en <a href=\"https://github.com/BySergiMM/OmniMac/blob/main/docs/COMPETENCIA.md\">docs/COMPETENCIA.md</a>.",
                cta="Prueba OmniMac", dl="Descargar OmniMac.pkg", gh="Ver el código en GitHub", ctanote="Gratis, sin cuentas. macOS 14.2 o posterior. Instala también con <code>brew install --cask BySergiMM/tap/omnimac</code>.",
                foot="{name} es una marca de sus autores; esta comparativa se basa en mediciones propias y en la documentación pública de cada app, y se corrige si nos avisan de un error: <a href=\"https://github.com/BySergiMM/OmniMac/issues\">issues</a>.", others="Otras comparativas:", back="← Todas las comparativas y la app"),
     "en": dict(lang="en", title="OmniMac vs {name}: a comparison with data", desc="{name} and OmniMac compared with measured data: idle usage, price, what each does better and when to pick each app.",
-               home="Home", other_lang="Español", other_href="../../../vs/{slug}/", eyebrow="Comparison", h1="OmniMac vs {name}", lead="{name} does one thing ({module}). OmniMac does it and adds six more modules in the same app. Here are the facts, no adjectives: usage measured on the same Mac, what each does better and when to pick one or the other.",
+               home="Home", other_lang="Español", other_href="../../es/vs/{slug}/", eyebrow="Comparison", h1="OmniMac vs {name}", lead="{name} does one thing ({module}). OmniMac does it and adds six more modules in the same app. Here are the facts, no adjectives: usage measured on the same Mac, what each does better and when to pick one or the other.",
                facts="The facts", th=["", "{name} {version}", "OmniMac {oversion}"], rows=[("What it does", "{does}", "Seven modules: keep awake, ⌘Tab by windows, dynamic notch, window shortcuts, clipboard, tools (OCR, colour, keyboard, microphone) and sound"), ("Price and code", "{price}", "Free, open source (MIT), no accounts, no telemetry"), ("Memory at idle (RSS)", "{rss}", "{orss} ({oreal} of real physical memory)"), ("CPU at idle", "{cpu}", "{ocpu}"), ("Size on disk", "{disk}", "{odisk}"), ("Threads at idle", "{threads}", "{othreads}"), ("Requirements", "macOS (see its site)", "macOS 14.2 or later, Apple silicon and Intel")],
                theirs="What {name} does that OmniMac doesn't", ours="What OmniMac adds", pick="When to pick each", method="How it was measured", methodtext="Each app on its own on the same Apple silicon MacBook running macOS 26.5, on {date}, 50 s at idle with the cursor away from the notch after 15 s of startup. CPU = CPU time consumed divided by elapsed time (<code>ps -o cputime</code>); memory = RSS (<code>ps -o rss</code>); OmniMac's real physical memory (<code>footprint</code>) is 33–37 MB in the 0.5.1 measurement. One run: think orders of magnitude, not decimals. Full methodology and results in <a href=\"https://github.com/BySergiMM/OmniMac/blob/main/docs/PERFORMANCE.md\">docs/PERFORMANCE.md</a> (Spanish); the feature inventory in <a href=\"https://github.com/BySergiMM/OmniMac/blob/main/docs/COMPETENCIA.md\">docs/COMPETENCIA.md</a>.",
                cta="Try OmniMac", dl="Download OmniMac.pkg", gh="See the code on GitHub", ctanote="Free, no accounts. macOS 14.2 or later. Also <code>brew install --cask BySergiMM/tap/omnimac</code>.",
@@ -129,10 +129,10 @@ def fmt(s, app, lang):
 
 def page(app, lang):
     t = T[lang]
-    prefix = "../../" if lang == "es" else "../../../"          # hasta docs/site/
-    home = prefix if lang == "es" else prefix + "en/"
-    url = BASE + ("vs/" if lang == "es" else "en/vs/") + app["slug"] + "/"
-    alt_es, alt_en = BASE + "vs/" + app["slug"] + "/", BASE + "en/vs/" + app["slug"] + "/"
+    prefix = "../../../" if lang == "es" else "../../"          # hasta docs/site/
+    home = prefix + "es/" if lang == "es" else prefix
+    url = BASE + ("es/vs/" if lang == "es" else "vs/") + app["slug"] + "/"
+    alt_es, alt_en = BASE + "es/vs/" + app["slug"] + "/", BASE + "vs/" + app["slug"] + "/"
     others = " · ".join(f'<a href="../{a["slug"]}/">{a["name"]}</a>' for a in APPS if a is not app)
     rows = "".join(f"<tr><td>{fmt(r[0], app, lang)}</td><td>{fmt(r[1], app, lang)}</td><td class=\"me\">{fmt(r[2], app, lang)}</td></tr>" for r in t["rows"])
     li = lambda items: "".join(f"<li>{x}</li>" for x in items)
@@ -173,16 +173,16 @@ def page(app, lang):
 """
 
 def main():
-    urls = [BASE, BASE + "en/",
-            BASE + "privacidad/", BASE + "condiciones/",
-            BASE + "en/privacy/", BASE + "en/terms/"]
+    urls = [BASE, BASE + "es/",
+            BASE + "es/privacidad/", BASE + "es/condiciones/",
+            BASE + "privacy/", BASE + "terms/"]
     for app in APPS:
         for lang in ("es", "en"):
-            folder = os.path.join(ROOT, "vs" if lang == "es" else "en/vs", app["slug"])
+            folder = os.path.join(ROOT, "es/vs" if lang == "es" else "vs", app["slug"])
             os.makedirs(folder, exist_ok=True)
             with open(os.path.join(folder, "index.html"), "w", encoding="utf-8") as f:
                 f.write(page(app, lang))
-            urls.append(BASE + ("vs/" if lang == "es" else "en/vs/") + app["slug"] + "/")
+            urls.append(BASE + ("es/vs/" if lang == "es" else "vs/") + app["slug"] + "/")
     today = datetime.date.today().isoformat()
     with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"  <url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n" for u in urls) + "</urlset>\n")
