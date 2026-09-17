@@ -8,6 +8,12 @@ cd "$(dirname "$0")"
 
 echo "🔨 Compilando OmniMac (release)…"
 # Binario universal (Apple silicon + Intel) sin Xcode: dos compilaciones y lipo.
+# Build limpio por arquitectura: al publicar, release.sh llama a build.sh dos veces
+# (la app y luego el .pkg), y hacer el build incremental del mismo triple x86_64 dos
+# veces seguidas dispara un bug de SwiftPM ("command ... not registered") que rompe
+# el segundo. Limpiar antes hace cada build reproducible. build.sh solo se usa para
+# publicar; el día a día va por scripts/dev/quickbuild.sh (arm64), que no se toca.
+rm -rf .build/arm64-apple-macosx .build/x86_64-apple-macosx
 swift build -c release
 swift build -c release --triple x86_64-apple-macosx
 BIN=.build/release
