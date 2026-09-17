@@ -277,6 +277,36 @@ No hay nada que arreglar en el código. Soltar también la ventana al cerrar aho
 sus capas y los 18 KB por ciclo —menos de 1 MB en total— a cambio de que Ajustes olvidara su
 tamaño entre una apertura y otra: no compensa.
 
+## Medición 0.5.2 (17 de septiembre de 2026, macOS 27 «Golden Gate», Apple M5)
+
+Primera medición en **macOS 27.0 (26A428)** y en un **Apple M5**, con la 0.5.2 ya publicada
+(build 11, binario universal). Misma metodología (`scripts/dev/measure.sh`: calentar abriendo y
+cerrando el notch una vez, 60 s de reposo comprobando cada 5 s que sigue plegado, `ps -o cputime`
+para la CPU y `footprint` para la memoria real; despertares con `scripts/dev/wakeups.sh`, restando
+dos muestras de `top`). Trece muestras de reposo en varios arranques.
+
+| Escenario | CPU media | RSS | Memoria real | Despertares | Hilos |
+|---|---|---|---|---|---|
+| **Reposo** (notch plegado, arranque limpio, 60 s) | **0,017–0,033 %** | 85–100 MB | **23 MB** | **0,0/s** | 4–5 |
+| Reposo tras abrir y cerrar Ajustes | 0,017–0,033 % | 85–100 MB | 36–41 MB | 0,0/s | 4–5 |
+
+- **Las cifras se mantienen en macOS 27 y en el M5.** La CPU en reposo es el mismo intervalo
+  cuantizado que en la 0.5.0 y la 0.5.1 (0,017–0,033 %); los arreglos de macOS 27 (escondedor,
+  foco del portapapeles, batería de AirPods, bloqueo de teclado) no añaden nada en reposo.
+- **Despertares: 0,0/s**, aún más bajos que los 0,3/s de la 0.5.1; el M5 y macOS 27 no cambian el
+  patrón de «nada sondea con el notch plegado».
+- **Memoria real: 23 MB** en un arranque limpio (dentro de los 19–27 MB de la 0.5.1), y 36–41 MB
+  tras abrir Ajustes, en línea con los 33–37 MB publicados. La diferencia es la ventana de SwiftUI
+  que macOS estrena la primera vez (ver «Lo que queda en memoria al cerrar Ajustes»).
+- **Dos muestras descartadas por arranque**: la primera medida justo tras `open` dio 0,200 % y, una
+  vez, 0,550 %, con la app aún asentándose (13 hilos bajando a 4–5). measure.sh calienta con un
+  ciclo del notch, pero el propio arranque bleedea al primer intento; las trece muestras estables se
+  toman después.
+- **No se han vuelto a medir las siete apps de la comparativa** (Amphetamine, AltTab, Rectangle,
+  Maccy, BoringNotch, Ice, FineTune): eso pide descargarlas otra vez y el permiso de Sergi, y la
+  tabla de abajo sigue siendo un retrato coherente del 3–11 de septiembre en el otro Mac. La fila de
+  OmniMac de esa tabla es la de la 0.5.1; esta medición de la 0.5.2 confirma que su consumo no se mueve.
+
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
 Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),
