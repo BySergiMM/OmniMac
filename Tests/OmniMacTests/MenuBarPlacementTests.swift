@@ -23,6 +23,26 @@ final class MenuBarPlacementTests: XCTestCase {
         XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [1512], macOS27: false), 10_000)
     }
 
+    /// En un portátil con notch, el expansor no puede crecer más allá del filo del
+    /// notch: si su borde derecho está a 416 pt del filo, se topa ahí (más un pelín
+    /// para meter el último icono bajo el notch), no en el 45 % de la pantalla.
+    func testConNotchElExpansorNoCruzaAlOtroLado() {
+        // 416 + 12 de margen = 428, por debajo del 45 % (680): manda el notch.
+        XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [1512], macOS27: true,
+                                                notchRightEdgeGap: 416), 428)
+        XCTAssertLessThan(MenuBarFeature.pushWidth(screenWidths: [1512], macOS27: true,
+                                                   notchRightEdgeGap: 416), 680)
+        // Si el hueco es enorme (pocos iconos a la derecha), el 45 % sigue mandando.
+        XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [1512], macOS27: true,
+                                                notchRightEdgeGap: 5_000), 680)
+        // Nunca baja del mínimo aunque el hueco sea minúsculo (o dejaría de esconder).
+        XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [1512], macOS27: true,
+                                                notchRightEdgeGap: 50), 200)
+        // Sin notch en juego, el tope es el de siempre.
+        XCTAssertEqual(MenuBarFeature.pushWidth(screenWidths: [1512], macOS27: true,
+                                                notchRightEdgeGap: nil), 680)
+    }
+
     /// Todo en su sitio: no se toca nada.
     func testLoQueYaEstaBienNoSeMueve() {
         let ahora = [flecha: 261.0, app: 243.0, grafica: 225.0]

@@ -1,5 +1,10 @@
 # Cambios
 
+## 0.5.3 — 2026-09-18
+
+**Arreglado**
+- **macOS 27**: en un portátil con notch, al esconder los iconos de la barra reaparecían al otro lado del notch, junto a los menús de la app, en vez de ocultarse. El expansor crecía hasta el 45 % de la pantalla, pero la zona a la derecha del notch es más estrecha que eso, así que cruzaba al otro lado y se llevaba los iconos con él. Ahora se mide cuánto sitio hay hasta el filo del notch y el expansor se topa ahí: los iconos se meten bajo el notch y desaparecen.
+
 ## 0.5.2 — 2026-09-17
 
 **Nuevo**

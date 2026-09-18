@@ -29,18 +29,60 @@ final class MenuBarFeature: BaseFeature {
     /// la pantalla más estrecha (cada pantalla tiene su copia del icono y todas tienen
     /// que pasar por debajo de su propio límite), y lo que se empuja más allá del borde
     /// va al desbordamiento nativo («), no fuera de la pantalla.
-    static func pushWidth(screenWidths: [CGFloat], macOS27: Bool) -> CGFloat {
+    ///
+    /// Pero en un portátil con notch el 45 % de la pantalla se pasa de largo. El
+    /// expansor crece hacia la izquierda (su borde derecho lo ancla la flecha) y empuja
+    /// los iconos hacia el notch; la zona de estado (a la derecha del notch) es más
+    /// estrecha que ese 45 %, así que el expansor cruza al otro lado y los iconos
+    /// «escondidos» reaparecen junto a los menús de la app. Cuando sabemos a qué
+    /// distancia está el borde derecho del expansor del filo derecho del notch
+    /// (`notchRightEdgeGap`), topamos el ancho para que el borde izquierdo del expansor
+    /// caiga justo en ese filo: los iconos se meten bajo el notch en vez de salir por
+    /// la izquierda.
+    static func pushWidth(screenWidths: [CGFloat], macOS27: Bool,
+                          notchRightEdgeGap: CGFloat? = nil) -> CGFloat {
         guard macOS27 else { return 10_000 }
         let narrowest = screenWidths.min() ?? 1_440
-        return max(200, (narrowest * 0.45).rounded(.down))
+        let base = max(200, (narrowest * 0.45).rounded(.down))
+        guard let gap = notchRightEdgeGap, gap > 0 else { return base }
+        // Un pelín más allá del filo para que el último icono se meta bajo el notch y
+        // no se quede a medio ver en el canto; nunca por debajo del mínimo (o el
+        // escondedor deja de funcionar) ni por encima del 45 % (o macOS lo descarta).
+        return max(200, min(base, (gap + notchTuck).rounded(.down)))
     }
+
+    /// Cuánto se mete el expansor bajo el notch al toparlo, para que el último icono no
+    /// se quede justo en el filo.
+    private static let notchTuck: CGFloat = 12
 
     private static var isMacOS27: Bool {
         ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27
     }
 
-    private static var currentPushWidth: CGFloat {
-        pushWidth(screenWidths: NSScreen.screens.map { $0.frame.width }, macOS27: isMacOS27)
+    /// El ancho de empuje de ahora mismo, teniendo en cuenta el notch bajo el expansor.
+    private func pushWidthNow() -> CGFloat {
+        Self.pushWidth(screenWidths: NSScreen.screens.map { $0.frame.width },
+                       macOS27: Self.isMacOS27,
+                       notchRightEdgeGap: notchRightEdgeGap())
+    }
+
+    /// Lo estrecho que es el sitio a la derecha del notch por donde puede crecer el
+    /// expansor sin cruzarlo. Mide la copia del expansor que podemos leer (la de su
+    /// pantalla) y, como red de seguridad, mete también la zona de estado de cualquier
+    /// otra pantalla con notch, para que el expansor no se pase de largo en ninguna.
+    /// `nil` cuando no hay ningún notch en juego: entonces manda solo el 45 %.
+    private func notchRightEdgeGap() -> CGFloat? {
+        guard Self.isMacOS27 else { return nil }
+        var gaps: [CGFloat] = []
+        if let window = expander?.button?.window, let screen = window.screen,
+           let right = screen.auxiliaryTopRightArea {
+            // Filo derecho del notch = borde derecho de la pantalla menos la zona de estado.
+            gaps.append(window.frame.maxX - (screen.frame.maxX - right.width))
+        }
+        for screen in NSScreen.screens {
+            if let right = screen.auxiliaryTopRightArea { gaps.append(right.width) }
+        }
+        return gaps.filter { $0 > 0 }.min()
     }
     /// Ancho de la barrita que marca el límite cuando los iconos están a la vista.
     private static let dividerWidth: CGFloat = 10
@@ -257,7 +299,7 @@ final class MenuBarFeature: BaseFeature {
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
         ) { [weak self] _ in
             guard let self, self.collapsed else { return }
-            self.expander?.length = Self.currentPushWidth
+            self.expander?.length = self.pushWidthNow()
         }
         apply()
     }
@@ -357,7 +399,7 @@ final class MenuBarFeature: BaseFeature {
 
     /// Lleva el estado a los iconos de la barra.
     private func apply() {
-        expander?.length = collapsed ? Self.currentPushWidth : Self.dividerWidth
+        expander?.length = collapsed ? pushWidthNow() : Self.dividerWidth
         // En macOS 27 el expansor plegado sigue en pantalla (mide menos de media
         // barra), y la barrita saldría dibujada en mitad de la nada: se esconde.
         expander?.button?.image = (collapsed && Self.isMacOS27) ? nil : Self.dividerImage()
