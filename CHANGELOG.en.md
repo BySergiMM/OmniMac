@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 — 2026-09-18
+
+**Fixed**
+- **macOS 27**: on a notched laptop, hiding the menu bar icons made them reappear on the other side of the notch, next to the app's menus, instead of tucking away. The expander grew to 45% of the screen, but the area to the right of the notch is narrower than that, so it crossed over and dragged the icons with it. It now measures how much room there is up to the notch's edge and stops there: the icons slip under the notch and vanish.
+
 ## 0.5.2 — 2026-09-17
 
 **New**
