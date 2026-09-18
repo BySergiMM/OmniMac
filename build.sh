@@ -7,18 +7,21 @@ set -e
 cd "$(dirname "$0")"
 
 echo "🔨 Compilando OmniMac (release)…"
-# Binario universal (Apple silicon + Intel) sin Xcode: dos compilaciones y lipo.
-# Build limpio por arquitectura: al publicar, release.sh llama a build.sh dos veces
-# (la app y luego el .pkg), y hacer el build incremental del mismo triple x86_64 dos
-# veces seguidas dispara un bug de SwiftPM ("command ... not registered") que rompe
-# el segundo. Limpiar antes hace cada build reproducible. build.sh solo se usa para
+# Binario universal (Apple silicon + Intel) sin Xcode: una compilación por
+# arquitectura y lipo. El build system de SwiftPM (swiftbuild, por defecto desde
+# Swift 6.4) deja el binario en .build/release sin separarlo por arquitectura: el
+# segundo build pisaría al primero, y alternar el triple en la misma carpeta marea la
+# caché incremental (el viejo bug "command ... not registered"). Por eso cada
+# arquitectura va a su propia ruta de build, y de paso el .pkg —release.sh llama a
+# build.sh dos veces— reusa esas dos en incremental. build.sh solo se usa para
 # publicar; el día a día va por scripts/dev/quickbuild.sh (arm64), que no se toca.
-rm -rf .build/arm64-apple-macosx .build/x86_64-apple-macosx
-swift build -c release
-swift build -c release --triple x86_64-apple-macosx
-BIN=.build/release
+ARM=.build-arm64
+X86=.build-x86_64
+swift build -c release --scratch-path "$ARM"
+swift build -c release --triple x86_64-apple-macosx --scratch-path "$X86"
+BIN="$ARM/release"
 mkdir -p .build/universal
-lipo -create .build/arm64-apple-macosx/release/OmniMac .build/x86_64-apple-macosx/release/OmniMac -output .build/universal/OmniMac
+lipo -create "$ARM/release/OmniMac" "$X86/release/OmniMac" -output .build/universal/OmniMac
 
 APP="dist/OmniMac.app"
 rm -rf "$APP"
