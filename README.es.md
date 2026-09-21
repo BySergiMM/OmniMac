@@ -6,7 +6,8 @@
 
 <p align="center">
   <b>Todo lo que le falta a tu Mac.</b><br>
-  Siete utilidades en una sola app de barra de menús: ligera, gratis y de código abierto.
+  Funciona también en los Mac <i>sin</i> notch, y trae diez utilidades más consigo.<br>
+  Una sola app de barra de menús. 16 MB. 0,017–0,033 % de CPU. Gratis y de código abierto.
 </p>
 
 <p align="center">
