@@ -1,5 +1,10 @@
 # Cambios
 
+## 0.5.4 — 2026-09-29
+
+**Arreglado**
+- Barra de menús: los iconos propios de OmniMac se fuerzan a visibles al crearse. macOS guarda la visibilidad de cada icono junto a su posición, y ese estado se puede quedar pegado en «oculto»: entonces el icono no volvía a salir ni reiniciando la app ni el Mac. Ahora, pase lo que pase, los iconos de OmniMac aparecen siempre.
+
 ## 0.5.3 — 2026-09-18
 
 **Arreglado**

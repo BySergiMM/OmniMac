@@ -88,6 +88,7 @@ final class MenuBarStats: ObservableObject {
         }
         let item = NSStatusBar.system.statusItem(withLength: Self.itemWidth)
         item.autosaveName = Self.autosaveName
+        item.isVisible = true   // macOS persiste la visibilidad; forzarla evita que se quede oculto
         item.button?.target = self
         item.button?.action = #selector(openSettings)
         item.button?.imagePosition = .imageOnly

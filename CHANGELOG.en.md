@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.4 — 2026-09-29
+
+**Fixed**
+- Menu bar: OmniMac's own icons are now forced visible when created. macOS stores each icon's visibility alongside its position, and that state can get stuck on "hidden": the icon then wouldn't come back even after restarting the app or the Mac. Now OmniMac's icons always show up, no matter what.
+
 ## 0.5.3 — 2026-09-18
 
 **Fixed**
