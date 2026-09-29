@@ -22,6 +22,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.autosaveName = Self.autosaveName
         super.init()
+        // macOS guarda la VISIBILIDAD junto al autosaveName. El icono general debe verse
+        // siempre (el escondedor esconde empujando, no ocultando este icono), así que la
+        // forzamos: si algo la dejó en false, quedaría oculto entre reinicios sin
+        // manera de recuperarlo.
+        statusItem.isVisible = true
 
         updateIcon()
 
@@ -218,6 +223,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             }
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             item.autosaveName = name
+            item.isVisible = true   // macOS persiste la visibilidad; forzarla evita que se quede oculto
             item.button?.image = NSImage(systemSymbolName: feature.symbol, accessibilityDescription: feature.displayName)
             item.button?.toolTip = feature.displayName
             let menu = NSMenu()
