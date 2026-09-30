@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# El GITHUB_TOKEN de este flujo solo necesita leer el repositorio para
+# descargarlo; sin este bloque hereda los permisos por defecto del repo.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-15
