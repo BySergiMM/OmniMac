@@ -1,3 +1,4 @@
+import CAtomics
 import Foundation
 
 /// Un filtro de pico: sube o baja una banda estrecha dejando el resto igual.
@@ -78,46 +79,67 @@ enum EqualizerBands {
 ///
 /// Es una `class` con memoria reservada de una vez porque el hilo de audio no puede
 /// reservar ni bloquear. Los coeficientes se cambian desde el hilo principal con
-/// `setGains`, que escribe en el juego que no se está usando y luego cambia el
-/// índice: así el hilo de audio nunca ve media actualización.
+/// `setGains`, que los escribe en un juego que el hilo de audio no está leyendo y
+/// lo publica por un buzón sin cerrojos (`CAtomics`): publicar es un `release` y
+/// recoger un `acquire`, así que el hilo de audio ve el juego entero o el anterior,
+/// nunca media actualización.
+///
+/// Hilos: `setGains` lo llama un solo hilo (el principal) y `process` e `isFlat` otro
+/// solo (el de audio). Con más de un hilo por lado el buzón deja de ser correcto.
 final class Equalizer {
     static let maxChannels = 8
 
-    /// Dos juegos de coeficientes seguidos en memoria; `active` dice cuál vale.
+    /// Tres juegos de coeficientes: uno que escribe el hilo principal, uno que lee el
+    /// de audio y uno en el buzón. Con dos, publicar dos veces seguidas podía
+    /// reescribir el juego que el hilo de audio aún estaba leyendo.
+    private static let setCount = 3
+
+    /// Los tres juegos seguidos en memoria; el buzón dice cuál toca a cada hilo.
     ///
     /// Memoria reservada de una vez y punteros en vez de `Array`: leer un `Array` de
     /// Swift desde el hilo de audio puede copiar y tocar el contador de referencias,
     /// y ahí no se puede reservar memoria ni bloquear.
     private let coefficients: UnsafeMutablePointer<Biquad>
+    /// Por cada juego, si todas sus bandas están a cero: no hay nada que hacer y se
+    /// salta el filtro entero. Viaja con su juego: se escribe antes de publicarlo.
+    private let flatFlags: UnsafeMutablePointer<Bool>
+    private let mailbox: UnsafeMutablePointer<omnimac_mailbox>
     private let state: UnsafeMutablePointer<Float>
-    private var active = 0
-    /// Con todas las bandas a cero no hay nada que hacer y se salta el filtro entero.
-    private(set) var isFlat = true
     private(set) var sampleRate: Double = 48_000
 
     private static let stateSize = maxChannels * EqualizerBands.count * 4
 
     init() {
-        coefficients = .allocate(capacity: 2 * EqualizerBands.count)
-        coefficients.initialize(repeating: .identity, count: 2 * EqualizerBands.count)
+        let filterCount = Self.setCount * EqualizerBands.count
+        coefficients = .allocate(capacity: filterCount)
+        coefficients.initialize(repeating: .identity, count: filterCount)
+        flatFlags = .allocate(capacity: Self.setCount)
+        flatFlags.initialize(repeating: true, count: Self.setCount)
+        mailbox = .allocate(capacity: 1)
+        mailbox.initialize(to: omnimac_mailbox())
+        omnimac_mailbox_init(mailbox)
         state = .allocate(capacity: Self.stateSize)
         state.initialize(repeating: 0, count: Self.stateSize)
     }
 
     deinit {
-        coefficients.deinitialize(count: 2 * EqualizerBands.count)
+        coefficients.deinitialize(count: Self.setCount * EqualizerBands.count)
         coefficients.deallocate()
+        flatFlags.deinitialize(count: Self.setCount)
+        flatFlags.deallocate()
+        mailbox.deinitialize(count: 1)
+        mailbox.deallocate()
         state.deinitialize(count: Self.stateSize)
         state.deallocate()
     }
 
     /// Cambia las ganancias (en dB, una por banda). Se llama desde el hilo principal:
-    /// escribe en el juego que no se está usando y luego cambia el índice, así el
-    /// hilo de audio nunca ve media actualización.
+    /// escribe en el juego que es solo suyo y lo publica de una vez. El hilo de audio
+    /// sigue con el que tenía hasta que recoge el nuevo entero.
     func setGains(_ gains: [Double], sampleRate: Double? = nil) {
         if let sampleRate, sampleRate > 0 { self.sampleRate = sampleRate }
-        let inactive = 1 - active
-        let base = coefficients + inactive * EqualizerBands.count
+        let slot = Int(omnimac_mailbox_writer_slot(mailbox))
+        let base = coefficients + slot * EqualizerBands.count
         var flat = true
         for band in 0..<EqualizerBands.count {
             let gain = band < gains.count ? gains[band] : 0
@@ -127,20 +149,37 @@ final class Equalizer {
             base[band] = filter
             if filter != .identity { flat = false }
         }
-        isFlat = flat
-        active = inactive
+        flatFlags[slot] = flat
+        // El `release` de publicar es lo que hace visibles los coeficientes y la marca
+        // de plano para el hilo de audio; hasta aquí nadie más tocaba este juego.
+        omnimac_mailbox_publish(mailbox)
     }
 
     /// Olvida las muestras anteriores (al arrancar o al cambiar de salida): si no, el
-    /// filtro arrastra un chasquido del audio de antes.
+    /// filtro arrastra un chasquido del audio de antes. Toca la memoria que usa
+    /// `process`, así que solo se llama con el audio parado (el motor lo hace antes de
+    /// crear el proceso de audio).
     func reset() {
         state.update(repeating: 0, count: Self.stateSize)
     }
 
+    /// Juego que debe leer el hilo de audio ahora. Si se ha publicado uno nuevo lo
+    /// recoge (`acquire`), y con él todo lo que `setGains` dejó escrito antes.
+    @inline(__always)
+    private func currentSlot() -> Int {
+        Int(omnimac_mailbox_reader_slot(mailbox))
+    }
+
+    /// Con todas las bandas a cero no hay nada que hacer y se salta el filtro entero.
+    /// Es de lectura y la usa el hilo de audio (o una prueba de un solo hilo): recoge
+    /// lo último publicado igual que `process`.
+    var isFlat: Bool { flatFlags[currentSlot()] }
+
     /// Filtra un canal. `samples` puede ir entrelazado con otros, de ahí el salto.
     func process(_ samples: UnsafeMutablePointer<Float>, stride: Int, count: Int, channel: Int) {
-        guard !isFlat, count > 0, channel < Self.maxChannels else { return }
-        let filters = coefficients + active * EqualizerBands.count
+        let slot = currentSlot()
+        guard !flatFlags[slot], count > 0, channel < Self.maxChannels else { return }
+        let filters = coefficients + slot * EqualizerBands.count
         for band in 0..<EqualizerBands.count {
             let filter = filters[band]
             if filter == .identity { continue }
@@ -158,6 +197,16 @@ final class Equalizer {
             base[0] = x1; base[1] = x2
             base[2] = y1; base[3] = y2
         }
+    }
+
+    /// Lo que vería ahora el hilo de audio: los diez filtros del juego vigente y si es
+    /// plano. Pasa por el mismo camino de lectura que `process`, pero devuelve un
+    /// `Array` (reserva memoria): es solo para pruebas.
+    func publishedForTesting() -> (filters: [Biquad], isFlat: Bool) {
+        let slot = currentSlot()
+        let base = coefficients + slot * EqualizerBands.count
+        let filters = (0..<EqualizerBands.count).map { base[$0] }
+        return (filters, flatFlags[slot])
     }
 }
 
