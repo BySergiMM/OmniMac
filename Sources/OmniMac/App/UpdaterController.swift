@@ -30,9 +30,23 @@ final class UpdaterController: ObservableObject {
     }
 
     var lastCheckText: String {
-        guard let lastCheck else { return L("Aún no se ha comprobado", "Not checked yet") }
+        UpdateCheckText.lastCheck(lastCheck, spanish: Localization.isSpanish)
+    }
+}
+
+/// El texto de «última comprobación» que enseña Ajustes. Vive fuera de
+/// `UpdaterController` porque ese arranca Sparkle al crearse y no se puede
+/// instanciar en una prueba.
+enum UpdateCheckText {
+    /// La fecha relativa ha de salir en el idioma de la frase que la rodea. Antes el
+    /// formateador llevaba siempre `es_ES` y en inglés se leía «Last check: hace 2
+    /// horas». El idioma se recibe por parámetro (en la app, el efectivo de la
+    /// interfaz) para poder probar los dos sin depender del Mac donde corra la prueba.
+    static func lastCheck(_ date: Date?, now: Date = Date(), spanish: Bool) -> String {
+        guard let date else { return spanish ? "Aún no se ha comprobado" : "Not checked yet" }
         let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        return L("Última comprobación: \(formatter.localizedString(for: lastCheck, relativeTo: Date()))", "Last check: \(formatter.localizedString(for: lastCheck, relativeTo: Date()))")
+        formatter.locale = Locale(identifier: spanish ? "es_ES" : "en_US")
+        let when = formatter.localizedString(for: date, relativeTo: now)
+        return spanish ? "Última comprobación: \(when)" : "Last check: \(when)"
     }
 }
