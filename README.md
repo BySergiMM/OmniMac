@@ -101,7 +101,7 @@ more sensors). Both are excellent — go install them if that's what you need.
 | ⌘ **Command bar** | ⌥Space and type: every OmniMac feature and every app. Off by default — ⌥Space belongs to Raycast for a lot of people. |
 | 🫥 **Menu bar** | Hides the icons you don't use every day. |
 | 🗑️ **App cleaner** | Uninstalls an app with everything it leaves behind, and finds leftovers from apps you already deleted. Everything goes to the Trash. |
-| 📦 **Downloads** | Offers to install the apps you download as `.dmg`, then ejects and bins the image. Always asks first. |
+| 📦 **Downloads** | Offers to install the apps you download as `.dmg`, then ejects and bins the image. Always asks first, shows who signed the app (its Team ID) before copying it, and warns you if it isn't who signed the one you already have. Off by default. |
 
 Every module can be switched off, and a switched-off module frees its resources and
 disappears from the menu.
