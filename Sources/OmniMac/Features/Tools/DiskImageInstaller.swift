@@ -15,6 +15,11 @@ import AppKit
 /// - **Nada se borra**: el .dmg acaba en la papelera, de donde se recupera.
 /// - **Si hay algo raro dentro, se rinde**: un .dmg con un instalador `.pkg`, con
 ///   varias apps o sin ninguna se deja en paz y lo abre como habrías hecho tú.
+/// - **Enseña quién firmó la app antes de copiarla** (su Team ID) y avisa si no es el
+///   mismo que el de la que ya tienes, o si no hay firma de la que fiarse. Ver
+///   `InstallReview`.
+/// - **Nunca quita la marca de «descargado de Internet»**: la copia queda con la del
+///   .dmg, para que Gatekeeper la revise al abrirla. Ver `QuarantineMark`.
 enum DiskImageRules {
 
     /// ¿Merece la pena mirar este archivo?
@@ -47,7 +52,27 @@ enum DiskImageRules {
     }
 }
 
+/// Lo que se ve al montar el disco: lo que se le enseña al usuario antes de copiar nada.
+struct DiskImageInspection {
+    /// «Ice.app»
+    let appName: String
+    /// Quién firmó la app que trae el disco.
+    let incoming: AppSigner
+    /// Quién firmó la que ya hay en el destino. `nil` si no hay ninguna.
+    let installed: AppSigner?
+    /// La carpeta donde se copiaría.
+    let folder: String
+
+    /// «Ice»
+    var displayName: String { String(appName.dropLast(4)) }
+}
+
 /// Vigila la carpeta de Descargas y ofrece instalar lo que llega.
+///
+/// Son dos avisos seguidos, y es a propósito. El primero pide permiso para montar el disco,
+/// que es lo mínimo que se necesita para poder mirar quién firmó la app: sin él se montaría
+/// cualquier .dmg que cayera en Descargas sin que nadie lo hubiera pedido. El segundo ya
+/// enseña el Team ID y es el que decide.
 @MainActor
 final class DiskImageInstaller {
     static let shared = DiskImageInstaller()
@@ -116,25 +141,78 @@ final class DiskImageInstaller {
         }
     }
 
+    // MARK: - Primer aviso: ¿puedo mirar el disco?
+
     private func offer(_ image: URL) {
         let alert = NSAlert()
         alert.messageText = L("¿Instalo \(image.lastPathComponent)?",
                               "Install \(image.lastPathComponent)?")
-        alert.informativeText = L("OmniMac puede montar el disco, copiar la app a Aplicaciones, expulsarlo y mandar el .dmg a la papelera.",
-                                  "OmniMac can mount the image, copy the app to Applications, eject it and move the .dmg to the Trash.")
-        alert.addButton(withTitle: L("Instalar", "Install"))
+        alert.informativeText = L("OmniMac puede montar el disco, comprobar quién firmó la app, copiarla a Aplicaciones, expulsarlo y mandar el .dmg a la papelera. Antes de copiar nada te enseña quién la firmó y te vuelve a preguntar.",
+                                  "OmniMac can mount the image, check who signed the app, copy it to Applications, eject it and move the .dmg to the Trash. Before copying anything it shows you who signed it and asks you again.")
+        alert.addButton(withTitle: L("Revisar", "Check it"))
         alert.addButton(withTitle: L("Ahora no", "Not now"))
         alert.alertStyle = .informational
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        install(image)
+        inspect(image)
     }
 
-    private func install(_ image: URL) {
+    private func inspect(_ image: URL) {
         busy = true
+        Toast.show(L("Revisando la app…", "Checking the app…"), symbol: "magnifyingglass", duration: 3)
+        Task.detached(priority: .userInitiated) {
+            let result = Self.inspectImage(image)
+            await MainActor.run {
+                switch result {
+                case .ready(let inspection):
+                    self.review(image, inspection)
+                case .failure(let reason):
+                    self.fail(reason, image: image)
+                }
+            }
+        }
+    }
+
+    /// Si no se pudo, se abre el disco como habrías hecho tú.
+    private func fail(_ reason: String, image: URL) {
+        busy = false
+        Toast.show(reason, symbol: "exclamationmark.triangle.fill")
+        NSWorkspace.shared.open(image)
+    }
+
+    // MARK: - Segundo aviso: quién la firmó
+
+    private func review(_ image: URL, _ inspection: DiskImageInspection) {
+        let spanish = Localization.isSpanish
+        let app = inspection.displayName
+        let verdict = InstallReview.verdict(incoming: inspection.incoming, installed: inspection.installed)
+        let buttons = InstallReview.buttons(for: verdict, spanish: spanish)
+
+        let alert = NSAlert()
+        alert.messageText = InstallReview.title(app: app, verdict: verdict, spanish: spanish)
+        alert.informativeText = InstallReview.message(app: app, verdict: verdict,
+                                                      folder: inspection.folder, spanish: spanish)
+        alert.alertStyle = verdict.severity == .fine ? .informational : .warning
+        for title in buttons.titles { alert.addButton(withTitle: title) }
+        if buttons.installIndex == 0 && buttons.titles.count == 2 {
+            // Con el botón de instalar por defecto, Esc cancela. Con un aviso el botón por
+            // defecto es el de no instalar, y a ese le quedaría sin Intro.
+            alert.buttons[1].keyEquivalent = "\u{1b}"
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        let index = alert.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+        guard index == buttons.installIndex else {
+            // Cancelar, o una firma rota que no se instala: el .dmg se queda donde está.
+            busy = false
+            return
+        }
+        install(image, inspection)
+    }
+
+    private func install(_ image: URL, _ inspection: DiskImageInspection) {
         let name = image.lastPathComponent
         Task.detached(priority: .userInitiated) {
-            let result = Self.performInstall(image)
+            let result = Self.performInstall(image, reviewed: inspection)
             await MainActor.run {
                 self.busy = false
                 switch result {
@@ -151,13 +229,98 @@ final class DiskImageInstaller {
         }
     }
 
+    // MARK: - Fuera del hilo principal
+
+    private enum Inspected {
+        case ready(DiskImageInspection)
+        case failure(String)
+    }
+
     private enum InstallResult {
         case success(String)
         case failure(String)
     }
 
-    /// Monta, copia, expulsa y tira el .dmg. Fuera del hilo principal.
-    nonisolated private static func performInstall(_ image: URL) -> InstallResult {
+    /// Monta el disco, mira qué app trae y quién la firmó (y quién firmó la que ya hay), y lo
+    /// expulsa. No copia nada.
+    nonisolated private static func inspectImage(_ image: URL) -> Inspected {
+        let inspected = withMountedImage(image) { mount -> Inspected in
+            guard let contents = try? FileManager.default.contentsOfDirectory(atPath: mount.path),
+                  let appName = DiskImageRules.appToInstall(in: contents) else {
+                return .failure(L("Este disco no trae una sola app: lo abro para que lo mires.",
+                                  "This image doesn't hold a single app: opening it for you."))
+            }
+            let folder = destinationFolder()
+            let target = URL(fileURLWithPath: folder).appending(path: appName)
+            var installed: AppSigner?
+            if FileManager.default.fileExists(atPath: target.path) {
+                installed = CodeSignature.signer(of: target)
+            }
+            let incoming = CodeSignature.signer(of: mount.appending(path: appName))
+            return .ready(DiskImageInspection(appName: appName, incoming: incoming,
+                                              installed: installed, folder: folder))
+        }
+        return inspected ?? .failure(L("No se pudo abrir el disco.", "Couldn't open the image."))
+    }
+
+    /// Vuelve a montar el disco, copia lo que se revisó y manda el .dmg a la papelera.
+    nonisolated private static func performInstall(_ image: URL, reviewed: DiskImageInspection) -> InstallResult {
+        let outcome = withMountedImage(image) { mount -> InstallResult in
+            // El .dmg está en Descargas y ahí puede escribir cualquiera: pudo cambiar entre
+            // que se revisó y ahora. Solo se instala lo que se le enseñó al usuario.
+            guard let contents = try? FileManager.default.contentsOfDirectory(atPath: mount.path),
+                  DiskImageRules.appToInstall(in: contents) == reviewed.appName else {
+                return .failure(L("El disco ha cambiado desde que se revisó: no se instala nada.",
+                                  "The image changed after it was checked: nothing was installed."))
+            }
+            let folder = URL(fileURLWithPath: reviewed.folder)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let result = AppInstall.install(source: mount.appending(path: reviewed.appName),
+                                            into: folder,
+                                            expecting: reviewed.incoming,
+                                            imageQuarantine: QuarantineAttribute.read(at: image),
+                                            using: .live)
+            switch result {
+            case .success:
+                return .success(reviewed.displayName)
+            case .failure(let failure):
+                return .failure(text(for: failure))
+            }
+        }
+        guard let result = outcome else {
+            return .failure(L("No se pudo abrir el disco.", "Couldn't open the image."))
+        }
+        // El .dmg a la papelera, nunca borrado. Solo si se instaló.
+        if case .success = result {
+            try? FileManager.default.trashItem(at: image, resultingItemURL: nil)
+        }
+        return result
+    }
+
+    nonisolated private static func text(for failure: AppInstall.Failure) -> String {
+        switch failure {
+        case .copyFailed(let why):
+            return L("No se pudo copiar la app: \(why)", "Couldn't copy the app: \(why)")
+        case .signerChanged:
+            return L("La copia no lleva la firma que se revisó: no se instala nada.",
+                     "The copy doesn't carry the signature that was checked: nothing was installed.")
+        case .quarantineNotApplied:
+            return L("No se pudo conservar la marca de «descargado de Internet»: no se instala nada.",
+                     "Couldn't keep the “downloaded from the Internet” mark: nothing was installed.")
+        case .replaceFailed(let why):
+            return L("No se pudo colocar la app: \(why)", "Couldn't put the app in place: \(why)")
+        }
+    }
+
+    /// `/Applications` si se puede escribir; si no, la del usuario.
+    nonisolated private static func destinationFolder() -> String {
+        let canWrite = FileManager.default.isWritableFile(atPath: "/Applications")
+        return DiskImageRules.destination(canWriteToApplications: canWrite, home: NSHomeDirectory())
+    }
+
+    /// Monta el disco en una carpeta temporal, ejecuta `body` con ella y lo expulsa. `nil`
+    /// si no se pudo montar.
+    nonisolated private static func withMountedImage<T>(_ image: URL, _ body: (URL) -> T) -> T? {
         let mount = URL(fileURLWithPath: NSTemporaryDirectory())
             .appending(path: "omnimac-dmg-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: mount) }
@@ -165,37 +328,10 @@ final class DiskImageInstaller {
         // `-nobrowse` para que no salga en el Finder, y sin autoabrir nada.
         guard run("/usr/bin/hdiutil", ["attach", image.path, "-nobrowse", "-readonly",
                                        "-mountpoint", mount.path, "-quiet"]) == 0 else {
-            return .failure(L("No se pudo abrir el disco.", "Couldn't open the image."))
+            return nil
         }
         defer { _ = run("/usr/bin/hdiutil", ["detach", mount.path, "-quiet", "-force"]) }
-
-        guard let contents = try? FileManager.default.contentsOfDirectory(atPath: mount.path),
-              let appName = DiskImageRules.appToInstall(in: contents) else {
-            return .failure(L("Este disco no trae una sola app: lo abro para que lo mires.",
-                              "This image doesn't hold a single app: opening it for you."))
-        }
-
-        let applications = "/Applications"
-        let canWrite = FileManager.default.isWritableFile(atPath: applications)
-        let folder = DiskImageRules.destination(canWriteToApplications: canWrite, home: NSHomeDirectory())
-        try? FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
-
-        let source = mount.appending(path: appName)
-        let target = URL(fileURLWithPath: folder).appending(path: appName)
-        // Si ya estaba, la anterior va a la papelera: es una actualización, y así se
-        // puede volver atrás.
-        if FileManager.default.fileExists(atPath: target.path) {
-            try? FileManager.default.trashItem(at: target, resultingItemURL: nil)
-        }
-        do {
-            try FileManager.default.copyItem(at: source, to: target)
-        } catch {
-            return .failure(L("No se pudo copiar la app: \(error.localizedDescription)",
-                              "Couldn't copy the app: \(error.localizedDescription)"))
-        }
-        // El .dmg a la papelera, nunca borrado.
-        try? FileManager.default.trashItem(at: image, resultingItemURL: nil)
-        return .success(String(appName.dropLast(4)))
+        return body(mount)
     }
 
     nonisolated private static func run(_ path: String, _ arguments: [String]) -> Int32 {
