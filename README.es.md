@@ -243,8 +243,8 @@ en cuanto aparece (experimental: solo pulsa un botón llamado cerrar/descartar).
 - Apoyar el proyecto: botones en Ajustes › Inicio y en el menú («Invítame a un café»),
   con enlaces a Ko-fi y GitHub Sponsors (`Brand.coffeeURL` / `Brand.sponsorsURL`).
 - Estudio de consumo y comparativa con Amphetamine, AltTab, Rectangle, Maccy, BoringNotch, Ice, FineTune y AppCleaner: [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
-  Última medición (0.5.1, 11 de septiembre de 2026): reposo **0,017–0,033 % de CPU, 33–37 MB de memoria real y 0,3 despertares/s**;
-  con el notch abierto y música sonando, 2,3 %. Tras abrir y cerrar el notch tres veces, 0,7 despertares/s.
+  Última medición (0.5.5, 1 de octubre de 2026, Apple M5 y macOS 27): reposo **0,033 % de CPU, 37 MB de memoria real y 0,7 despertares/s**;
+  con el notch abierto, música sonando y el ecualizador activo, 0,90 %. Tras abrir y cerrar el notch tres veces, 0,7 despertares/s.
 - Radiografía de la competencia (todas sus funciones frente a OmniMac y qué añadir): [docs/COMPETENCIA.md](docs/COMPETENCIA.md)
 
 ## Arquitectura

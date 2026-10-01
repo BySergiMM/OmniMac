@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.5 — unreleased
+## 0.5.5 — 2026-10-01
 
 **Changed**
 - Keep awake: closed-lid mode now starts off, and updating turns it off even if you had it on. When you turn it on, OmniMac explains which administrator rule it needs (the file `/etc/sudoers.d/omnimac-lid`, your user and exactly two `pmset` commands) and what it costs (any program running as your user could use them), and asks your permission before asking for your password. If you say no, nothing is installed. If you already have the rule from an earlier version it isn't installed again, but it isn't used either until you accept.

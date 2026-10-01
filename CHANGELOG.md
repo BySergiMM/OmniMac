@@ -1,6 +1,6 @@
 # Cambios
 
-## 0.5.5 — sin publicar
+## 0.5.5 — 2026-10-01
 
 **Cambiado**
 - Mantener despierto: el modo «tapa cerrada» viene apagado, y al actualizar se apaga también si lo tenías encendido. Al encenderlo, OmniMac te explica qué regla de administrador necesita (el archivo `/etc/sudoers.d/omnimac-lid`, tu usuario y exactamente dos comandos de `pmset`) y qué cuesta (cualquier programa que corra con tu usuario podría usarlos), y te pide permiso antes de pedirte la contraseña. Si dices que no, no se instala nada. Si ya tienes la regla de una versión anterior, no se vuelve a instalar, pero tampoco se usa hasta que aceptes.

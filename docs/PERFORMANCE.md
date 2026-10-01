@@ -307,6 +307,30 @@ dos muestras de `top`). Trece muestras de reposo en varios arranques.
   tabla de abajo sigue siendo un retrato coherente del 3–11 de septiembre en el otro Mac. La fila de
   OmniMac de esa tabla es la de la 0.5.1; esta medición de la 0.5.2 confirma que su consumo no se mueve.
 
+## Medición 0.5.5 (1 de octubre de 2026, macOS 27.0, Apple M5)
+
+Primera medición con el ecualizador nuevo, que pasa los coeficientes al hilo de audio sin cerrojos.
+Compilación de `main` (`ea64241`) con `./build.sh`, binario universal; el `Info.plist` aún dice 0.5.4
+porque `release.sh` sube la versión al publicar. Misma metodología que en la 0.5.2
+(`scripts/dev/measure.sh` y `scripts/dev/wakeups.sh`); las tres muestras de reposo se tomaron tras
+90 s de asentarse la app.
+
+| Escenario | CPU media | RSS | Memoria real | Despertares | Hilos |
+|---|---|---|---|---|---|
+| **Reposo** (notch plegado, 60 s, tres muestras) | **0,033 %** en las tres | 87 MB | **37 MB** | **0,7/s** | 4–5 |
+| Notch abierto, Spotify sonando y ecualizador activo (30 s) | 0,90 % | — | 40 MB | — | 7 |
+
+- **La CPU en reposo sigue en el intervalo publicado** (0,017–0,033 %). Sin audio sonando el
+  ecualizador no monta el tap, así que el cambio no se nota en reposo.
+- **Despertares: 0,7/s**, en reposo y tras abrir y cerrar el notch tres veces, frente a 0,0/s en la
+  0.5.2 y 0,3/s en la 0.5.1. Sigue por debajo de uno por segundo; `wakeups.sh` mide pocos segundos
+  después de reabrir la app.
+- **Caso peor comprobado de verdad**: el alto del panel era 232 (abierto) al empezar y al acabar la
+  medida. No es comparable con el «expandido + música» de versiones anteriores, que no tenía el
+  ecualizador activo.
+- **Una muestra descartada**: la primera, justo tras abrir la app recién compilada, dio 0,417 %
+  con la app aún asentándose, igual que pasó en la 0.5.2.
+
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
 Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),
