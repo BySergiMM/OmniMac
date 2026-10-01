@@ -1,0 +1,19 @@
+OmniMac — The Dynamic Island your Mac never had.
+
+This installer:
+
+  • Copies OmniMac to /Applications and opens it.
+  • Does not install any administrator rule.
+  • Sets the “disablesleep” power setting back to its normal value, in case an
+    earlier session left it on.
+
+The administrator password this installer asks for is only used to copy the app
+to /Applications.
+
+Keep awake’s “closed lid” mode (staying awake with the lid closed) is off by
+default. Only if you turn it on in Settings does OmniMac first explain what the
+administrator rule it needs allows and ask your permission to use it; without
+your permission it installs nothing.
+
+To undo everything later: scripts/uninstall.sh (or drag the app to the Trash
+and, if you used closed-lid mode, run “sudo rm /etc/sudoers.d/omnimac-lid”).

@@ -7,6 +7,7 @@ Siguientes pasos (solo la primera vez):
   2. Opcional: Grabación de pantalla, para ver miniaturas en vivo en ⌘Tab.
   3. En Ajustes › Notch, elige tu app de música (Spotify o Música).
 
-El modo «tapa cerrada» ya está autorizado: activa el café, cierra el MacBook
-y la música seguirá sonando. Recuerda desactivarlo antes de guardar el Mac
-en una bolsa.
+Opcional: el modo «tapa cerrada» (Ajustes › Mantener despierto) viene apagado.
+Al activarlo, OmniMac te explica qué permite la regla de administrador que
+necesita y te pide permiso antes de instalarla. Y recuerda desactivarlo antes de
+guardar el Mac en una bolsa.

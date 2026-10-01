@@ -64,8 +64,9 @@ echo "      no hará falta repetirlo tras cada recompilación."
 
 if [[ "$1" == "pkg" ]]; then
   # Instalador .pkg: al instalarlo, macOS pide la contraseña UNA vez y el propio
-  # instalador deja la app en /Applications y la regla del modo «tapa cerrada»
-  # (scripts/pkg/postinstall). La app no vuelve a pedir nada.
+  # instalador deja la app en /Applications y la abre (scripts/pkg/postinstall).
+  # No instala la regla de administrador del modo «tapa cerrada»: ese modo viene
+  # apagado y la app la pide, con un aviso delante, si el usuario lo activa.
   VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist 2>/dev/null || echo 0.2.0)
   echo "📦 Creando el instalador…"
   chmod +x scripts/pkg/preinstall scripts/pkg/postinstall
@@ -76,7 +77,7 @@ if [[ "$1" == "pkg" ]]; then
     --package-path dist "dist/OmniMac-$VERSION.pkg" >/dev/null
   rm -f dist/OmniMac-component.pkg dist/distribution.xml
   echo "✅ Instalador: dist/OmniMac-$VERSION.pkg"
-  echo "   Doble clic → contraseña una sola vez → app en /Applications + modo tapa cerrada listo."
+  echo "   Doble clic → contraseña una sola vez → app en /Applications (sin reglas de administrador)."
 fi
 
 if [[ "$1" == "run" ]]; then

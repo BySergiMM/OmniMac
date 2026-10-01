@@ -1,0 +1,13 @@
+Done! OmniMac is now in /Applications and has opened in the menu bar.
+
+Next steps (first time only):
+
+  1. Grant the Accessibility permission when it asks (⌘Tab by window,
+     window shortcuts and pasting from the clipboard).
+  2. Optional: Screen Recording, to see live thumbnails in ⌘Tab.
+  3. In Settings › Notch, choose your music app (Spotify or Music).
+
+Optional: closed-lid mode (Settings › Keep awake) is off by default. When you
+turn it on, OmniMac explains what the administrator rule it needs allows and
+asks your permission before installing it. And remember to turn it off before
+putting your Mac in a bag.
