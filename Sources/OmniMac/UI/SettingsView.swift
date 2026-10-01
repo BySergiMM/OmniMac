@@ -1226,8 +1226,8 @@ struct ToolsPage: View {
 
                 Section {
                     SettingToggle(title: L("Instalar las apps que descargas en .dmg", "Install apps you download as .dmg"),
-                                  subtitle: L("Al terminar una descarga, OmniMac pregunta si monta el disco, copia la app a Aplicaciones, lo expulsa y manda el .dmg a la papelera. Nunca hace nada sin preguntar, y nada se borra: todo va a la papelera.",
-                                              "When a download finishes, OmniMac asks whether to mount the image, copy the app to Applications, eject it and move the .dmg to the Trash. It never acts without asking, and nothing is deleted — everything goes to the Trash."),
+                                  subtitle: L("Al terminar una descarga, OmniMac pregunta si monta el disco; antes de copiar la app a Aplicaciones te enseña quién la firmó (su Team ID) y te avisa si no es quien firmó la que ya tienes. Después expulsa el disco y manda el .dmg a la papelera. Nunca hace nada sin preguntar, y nada se borra: todo va a la papelera.",
+                                              "When a download finishes, OmniMac asks whether to mount the image; before copying the app to Applications it shows you who signed it (its Team ID) and warns you if it isn't who signed the one you already have. Then it ejects the image and moves the .dmg to the Trash. It never acts without asking, and nothing is deleted — everything goes to the Trash."),
                                   isOn: Binding(get: { DiskImageInstaller.shared.enabled },
                                                 set: { DiskImageInstaller.shared.enabled = $0 }))
                 } header: {
