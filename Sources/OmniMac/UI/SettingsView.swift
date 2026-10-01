@@ -627,9 +627,12 @@ struct KeepAwakePage: View {
                     SettingToggle(title: L("Mantener también la pantalla encendida", "Keep the display on too"),
                                   subtitle: L("Si lo desactivas, la pantalla podrá apagarse pero el Mac seguirá despierto.", "If you turn this off, the display may sleep but the Mac stays awake."),
                                   isOn: $feature.keepDisplayOn)
+                    // Apagado de fábrica. Encenderlo pasa por `setClosedLidMode`, que antes de
+                    // usar la regla de administrador enseña qué permite y pide permiso.
                     SettingToggle(title: L("Seguir despierto con la tapa cerrada", "Stay awake with the lid closed"),
-                                  subtitle: L("Cierra el MacBook y la música sigue. La primera vez macOS pide tu contraseña de administrador; después no vuelve a pedirla.", "Close the MacBook and the music keeps playing. The first time macOS asks for your administrator password; it never asks again."),
-                                  isOn: $feature.closedLidMode)
+                                  subtitle: L("Cierra el MacBook y la música sigue. Al activarlo se explica el permiso de administrador que necesita; macOS pide tu contraseña como mucho una vez.", "Close the MacBook and the music keeps playing. Turning it on explains the administrator permission it needs; macOS asks for your password at most once."),
+                                  isOn: Binding(get: { feature.closedLidMode },
+                                                set: { feature.setClosedLidMode($0) }))
                     if feature.closedLidMode, feature.isActive, feature.closedLidActive {
                         Label(L("Activo: el Mac no se dormirá al cerrar la tapa. No lo guardes en una bolsa con el café puesto.", "Active: the Mac won't sleep when you close the lid. Don't put it in a bag with keep-awake on."), systemImage: "laptopcomputer")
                             .font(.caption)
@@ -664,7 +667,7 @@ struct KeepAwakePage: View {
                 } header: {
                     Text(L("Opciones", "Options"))
                 } footer: {
-                    Text(L("El modo tapa cerrada instala una regla que solo permite a OmniMac cambiar el ajuste de energía «disablesleep». Para quitarla: sudo rm /etc/sudoers.d/omnimac-lid", "Closed-lid mode installs a rule that only lets OmniMac change the “disablesleep” power setting. To remove it: sudo rm /etc/sudoers.d/omnimac-lid"))
+                    Text(ClosedLidRule.settingsFooter(spanish: Localization.isSpanish))
                 }
 
                 Section {
