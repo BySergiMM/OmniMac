@@ -28,8 +28,8 @@ Welcome, with two house rules:
 1. **Nothing runs when nothing is visible.** Timers stop, monitors are removed, panels
    free their resources. `scripts/dev/measure.sh` measures idle cost — if a change
    moves that number, say so in the PR.
-2. **Logic lives outside the view**, so it can be tested. `swift test` runs 237 tests
-   and they should stay green.
+2. **Logic lives outside the view**, so it can be tested. `swift test` runs the whole
+   suite and it should stay green.
 
 Code and comments are written in **Spanish**, explaining *why* rather than *what*.
 Anything a user reads goes through `L("español", "English")` — both languages, always.
@@ -43,7 +43,23 @@ swift test         # the tests
 
 ## What I won't merge
 
-- Private APIs where a public one exists. (Temperature is the one exception, and it's
-  loaded at runtime so it degrades instead of crashing.)
+- Private APIs where a public one exists. OmniMac uses four today, and they don't all
+  fail the same way:
+  - `_AXUIElementGetWindow` (Accessibility → window ID) for ⌘Tab by windows and window
+    snapping. It is linked directly, not looked up at run time, so if a macOS update
+    removed it the app would crash instead of degrading. If a call returns an error,
+    that window is left out of the ⌘Tab list, and snapping can't restore its size or
+    cycle ½ → ⅔ → ⅓.
+  - `responsibility_get_pid_responsible_for_pid` for per-app volume, to group a helper
+    process under the app that owns it. Also linked directly, with the same consequence if
+    it disappears. If a call returns an error, the process is listed on its own instead
+    of under its app.
+  - IOKit's `IOHIDEventSystemClient…` functions, for the temperature sensors. Loaded at
+    run time with `dlopen`/`dlsym`: if a symbol is missing, the temperature readout
+    simply doesn't appear.
+  - MultitouchSupport's `MT…` functions, for the trackpad haptic when the notch opens.
+    Loaded at run time: if a symbol is missing it falls back to the public
+    `NSHapticFeedbackManager`.
 - Telemetry, analytics, crash reporters, accounts.
-- Anything that makes the app phone home for something other than update checks.
+- Anything that makes the app phone home for something other than update checks (and
+  the Spotify cover art the notch shows).

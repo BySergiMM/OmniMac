@@ -51,13 +51,17 @@ Reglas de la casa:
 - **Un módulo = una subclase de `BaseFeature`** con `start()`/`stop()`, registrada en
   `FeatureManager` y con su página en `SettingsView`. Persistencia, menú y tarjeta de
   inicio son automáticos. Un módulo apagado **desaparece** del menú y del notch.
-- **Nada trabaja en reposo**: sin temporizadores mientras el notch está plegado; batería,
-  audio, música y pantallas avisan por notificación. Los gráficos solo muestrean con la
-  pestaña abierta. Por eso el consumo en reposo es de 0,017–0,033 % de CPU (`docs/PERFORMANCE.md`).
+- **Solo se trabaja cuando hace falta**: batería, audio, música y pantallas avisan por
+  notificación, y los gráficos solo muestrean con la pestaña abierta. Lo que sí corre en
+  segundo plano es poco y barato: el portapapeles se mira una vez por segundo (cuatro por
+  segundo durante cuatro segundos tras copiar algo), los avisos de rendimiento toman una
+  muestra por minuto y, si lo activas, el instalador de descargas mira la carpeta
+  Descargas cada 8 segundos. Por eso el consumo en reposo es de 0,017–0,033 % de CPU
+  (`docs/PERFORMANCE.md`).
 - **Sin código repetido entre módulos**: lo común vive en `Support/` (`AX.setFrame`,
   `Notifier.post`, `Toast.show`, `FilePicker.choose`, `HotKeyCenter.register`).
 - **Idioma**: cada texto de la interfaz se escribe una vez en cada idioma, `L("Guardar", "Save")`
   (`Support/Localization.swift`). Sin archivos `.strings`: el texto español queda a la vista en el
   código y es fácil de editar. Los textos de permisos van en `Resources/{es,en}.lproj/InfoPlist.strings`.
 - Los cambios de cada versión van en `CHANGELOG.md`. Licencia MIT.
-- Espacio: la app ocupa 12 MB; la caché (carátulas y restos de actualizaciones) está acotada a 16 MB y se limpia sola a diario, o a mano desde Ajustes › Inicio › Almacenamiento.
+- Espacio: la app ocupa 16 MB; la caché (carátulas y restos de actualizaciones) está acotada a 16 MB y se limpia sola a diario, o a mano desde Ajustes › Inicio › Almacenamiento.

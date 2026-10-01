@@ -95,9 +95,9 @@ Requisitos: macOS 14.2+ y las Command Line Tools de Xcode (`xcode-select --insta
 ```
 
 Genera `dist/OmniMac-<versión>.pkg`. Al abrirlo, macOS pide la contraseña de
-administrador **una sola vez** y el instalador deja la app en `/Applications` y
-la regla del modo *tapa cerrada* (ver Permisos): a partir de ahí la app nunca
-vuelve a pedir contraseña. Al terminar, OmniMac se abre en la barra de menús.
+administrador **una sola vez** y el instalador deja la app en `/Applications`;
+no instala ninguna regla de administrador (el modo *tapa cerrada* viene apagado:
+ver Permisos). Al terminar, OmniMac se abre en la barra de menús.
 
 **Actualizaciones**: la app busca versiones nuevas una vez al día (Sparkle) en las
 releases de GitHub y te avisa; también desde el menú («Buscar actualizaciones…») o
@@ -129,8 +129,9 @@ portapapeles, utilidades, sonido y actualizaciones.
 Esto compila con Swift Package Manager, genera `dist/OmniMac.app` (con su icono,
 que se crea una vez con `scripts/make-icon.swift`), cierra la instancia que
 hubiera abierta y la abre. Sin `run` solo compila. La app vive en la barra de
-menús, no aparece en el Dock. Si no se instaló con el `.pkg`, el modo tapa
-cerrada pide la contraseña la primera vez que activas el café (también una vez).
+menús, no aparece en el Dock. El modo tapa cerrada viene apagado: al activarlo
+en Ajustes, OmniMac explica qué permite su regla de administrador y, si aceptas,
+macOS pide la contraseña la primera vez que usas el café con ese modo.
 
 La primera vez se abre la ventana de Ajustes y se pide el permiso de Accesibilidad.
 
@@ -145,14 +146,19 @@ La primera vez se abre la ventana de Ajustes y se pide el permiso de Accesibilid
 - **Audio del sistema**: solo si pones a alguna app un volumen distinto del 100 %
   (OmniMac capta el audio de esa app para reproducirlo al nivel elegido; las demás no
   se tocan y, si OmniMac se cierra, todo vuelve a la normalidad).
-- **Administrador (solo una vez)**: el modo *tapa cerrada* de «Mantener
-  despierto» usa `pmset -a disablesleep`, el único ajuste que evita el reposo al
-  cerrar la tapa. La primera vez que actives el café con ese modo, macOS pedirá
-  tu contraseña e instalará `/etc/sudoers.d/omnimac-lid`, una regla que permite
-  a tu usuario ejecutar **solo** `pmset -a disablesleep 1` y `… 0` sin
-  contraseña. Después nunca vuelve a pedirla; OmniMac restaura el ajuste al
-  desactivar el café, al salir y al arrancar. Para deshacerlo:
-  `sudo rm /etc/sudoers.d/omnimac-lid`.
+- **Administrador (opcional, solo si activas el modo *tapa cerrada*)**: «Mantener
+  despierto» tiene un modo *tapa cerrada* que usa `pmset -a disablesleep`, el
+  ajuste que evita el reposo al cerrar la tapa y que macOS solo deja cambiar a un
+  administrador. **Viene apagado.** Al activarlo en Ajustes, OmniMac muestra un
+  aviso con exactamente lo que va a hacer y pide permiso. Si continúas, macOS
+  pide tu contraseña (una vez) y se instala `/etc/sudoers.d/omnimac-lid` (se valida
+  con `visudo` antes de colocarla): una regla que permite a **tu usuario**
+  ejecutar solo `pmset -a disablesleep 1` y `… 0` sin contraseña. Mientras exista,
+  cualquier programa que se ejecute con tu usuario puede cambiar ese ajuste sin
+  pedirte la contraseña. OmniMac restaura el ajuste al desactivar el café, al salir
+  y al arrancar. Ni el instalador `.pkg` ni la app la instalan sin tu permiso, y la
+  regla no se quita al apagar el modo ni al arrastrar la app a la Papelera. Para
+  quitarla: `sudo rm /etc/sudoers.d/omnimac-lid` o `scripts/uninstall.sh`.
 
 > ℹ️ La app se firma *ad-hoc* al compilar, pero con un **requisito designado
 > estable** (`identifier "com.seergiii.omnimac"`), así que el permiso de
@@ -291,9 +297,13 @@ Reglas de la casa:
 - **Un módulo = una subclase de `BaseFeature`** con `start()`/`stop()`, registrada en
   `FeatureManager` y con su página en `SettingsView`. Persistencia, menú y tarjeta de
   inicio son automáticos. Un módulo apagado **desaparece** del menú y del notch.
-- **Nada trabaja en reposo**: sin temporizadores mientras el notch está plegado; batería,
-  audio, música y pantallas avisan por notificación. Los gráficos solo muestrean con la
-  pestaña abierta. Por eso el consumo en reposo es de 0,017–0,033 % de CPU (`docs/PERFORMANCE.md`).
+- **Solo se trabaja cuando hace falta**: batería, audio, música y pantallas avisan por
+  notificación, y los gráficos solo muestrean con la pestaña abierta. Lo que sí corre en
+  segundo plano es poco y barato: el portapapeles se mira una vez por segundo (cuatro por
+  segundo durante cuatro segundos tras copiar algo), los avisos de rendimiento toman una
+  muestra por minuto y, si lo activas, el instalador de descargas mira la carpeta
+  Descargas cada 8 segundos. Por eso el consumo en reposo es de 0,017–0,033 % de CPU
+  (`docs/PERFORMANCE.md`).
 - **Sin código repetido entre módulos**: lo común vive en `Support/` (`AX.setFrame`,
   `Notifier.post`, `Toast.show`, `FilePicker.choose`, `HotKeyCenter.register`).
 - **Idioma**: cada texto de la interfaz se escribe una vez en cada idioma, `L("Guardar", "Save")`

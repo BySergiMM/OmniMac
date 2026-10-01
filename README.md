@@ -111,9 +111,15 @@ disappears from the menu.
 **0.017–0.033 % CPU and 86 MB at idle** (33–37 MB of real memory), measured with a published,
 reproducible method — the scripts are in the repo.
 
-The rule the whole app is built on: **nothing polls when nothing is visible.** The
+The rule the whole app is built on: **do work only when something needs it.** The
 performance charts only sample while you're looking at them. The notch stops all work
 when it folds. The audio engine isn't even created unless you've set something to apply.
+
+Some things do run in the background: the clipboard history checks the clipboard once a
+second (four times a second for four seconds after you copy something), the performance
+alerts take one cheap sample a minute, and, only if you turn it on, the Downloads
+installer looks at your Downloads folder every 8 seconds. The clipboard module and the
+alert rules can be switched off in Settings.
 
 | | OmniMac | Amphetamine | AltTab | Rectangle | Maccy | BoringNotch | Ice | FineTune |
 |---|---|---|---|---|---|---|---|---|
@@ -130,6 +136,8 @@ brew install --cask BySergiMM/tap/omnimac
 ```
 
 Or download [`OmniMac.pkg`](https://github.com/BySergiMM/OmniMac/releases/latest/download/OmniMac.pkg) and open it.
+The installer only copies the app to `/Applications` and opens it; it installs no
+administrator rule (see closed-lid mode below).
 
 > **First launch:** OmniMac isn't signed with a paid Apple developer account, so macOS
 > will refuse to open it. Go to System Settings › Privacy & Security and click
@@ -139,7 +147,9 @@ Requirements: macOS 14.2 (Sonoma) or later, Apple silicon or Intel.
 
 ## Permissions
 
-Each one is asked for only when a feature needs it, never at launch.
+Each one is asked for only when a feature needs it. The one you can meet at launch is
+Accessibility: OmniMac asks for it when it starts with ⌘Tab by windows or window
+snapping switched on, because both need it.
 
 | Permission | What needs it |
 |---|---|
@@ -147,9 +157,28 @@ Each one is asked for only when a feature needs it, never at launch.
 | Screen Recording | ⌘Tab thumbnails, OCR, colour picker |
 | Calendar | Only the notch's calendar tab |
 | Audio capture | Only per-app volume and the equaliser |
+| Administrator password | Only closed-lid mode, and only if you turn it on (below) |
 
-Nothing leaves your Mac. No accounts, no analytics, no servers. The only network call
-is the update check against GitHub, and you can turn it off.
+**Closed-lid mode** (Keep awake › "Stay awake with the lid closed") is **off by default**.
+It uses `pmset -a disablesleep`, the setting that keeps a Mac awake when you close the
+lid, and macOS only lets an administrator change it. When you turn the mode on,
+OmniMac first shows what it is about to do and asks you. If you continue, macOS asks for
+your password once and OmniMac installs `/etc/sudoers.d/omnimac-lid` (checked with
+`visudo` before it goes in place): a sudoers rule that lets **your user** run exactly
+`pmset -a disablesleep 1` and `pmset -a disablesleep 0` without a password, and nothing
+else. While the rule exists, any program running as your user can change that one setting
+without asking. OmniMac turns the setting back off when the session ends, when you quit
+and when it launches.
+
+Turning the mode off doesn't remove the rule, and neither does dragging the app to the
+Trash. To remove it: `sudo rm /etc/sudoers.d/omnimac-lid`, or run `scripts/uninstall.sh`.
+
+No accounts, no analytics, no servers of its own. OmniMac makes two kinds of network
+request, and nothing else:
+
+- **The update check** against GitHub, once a day. You can turn it off in Settings.
+- **Spotify cover art.** While Spotify is playing, the notch downloads the cover image
+  from the address Spotify reports for the current track.
 
 ## Known limitations
 
@@ -168,7 +197,7 @@ is the update check against GitHub, and you can turn it off.
 ```bash
 git clone https://github.com/BySergiMM/OmniMac.git && cd OmniMac
 ./build.sh run     # build and launch
-swift test         # 237 tests
+swift test         # the tests
 ```
 
 Requires the Xcode Command Line Tools. [Architecture notes →](docs/ARCHITECTURE.md) ·

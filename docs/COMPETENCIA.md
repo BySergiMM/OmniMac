@@ -53,7 +53,7 @@ Fuente: descripción del App Store + 722 textos de la app.
 | Sesión mientras una app esté abierta (o en primer plano) | ❌ Falta | Más adelante | Disparador sencillo con NSWorkspace |
 | Permitir o impedir que la pantalla se apague | ✅ Ya |  |  |
 | Permitir el salvapantallas tras N minutos | 🟡 Parcial | Más adelante | Nuestra aserción de pantalla también lo bloquea; falta la opción |
-| Modo pantalla cerrada (seguir despierto con la tapa cerrada) | ✅ Ya |  | Nuestro «modo tapa cerrada», sin pedir contraseña tras instalar |
+| Modo pantalla cerrada (seguir despierto con la tapa cerrada) | ✅ Ya |  | Nuestro «modo tapa cerrada»: viene apagado y, al activarlo, explica su regla de administrador y pide la contraseña una sola vez |
 | Mover el cursor automáticamente (simular actividad) | ❌ Falta | Descartar | Truco para apps de presencia; fuera del alcance |
 | Bloquear la pantalla tras N minutos de inactividad | ❌ Falta | Descartar | macOS ya lo hace |
 | Terminar la sesión si la batería baja del X % o sin cargador | ❌ Falta | **Añadir** | Protege la batería; ya tenemos el monitor IOKit |

@@ -1,8 +1,9 @@
 # OmniMac
 
 App de barra de menús para macOS (Swift + SwiftUI, SwiftPM, macOS 14.2+).
-Siete módulos en una sola app: mantener despierto, ⌘Tab por ventanas, notch dinámico,
-atajos y disposiciones de ventanas, portapapeles, utilidades y sonido.
+Once módulos en una sola app: mantener despierto, ⌘Tab por ventanas, notch dinámico,
+atajos y disposiciones de ventanas, portapapeles, utilidades, sonido, rendimiento,
+barra de menús, buscador de comandos y limpiador de apps.
 
 ## Al publicar una versión: lee `docs/RELEASE.md`
 
