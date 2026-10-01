@@ -1,5 +1,18 @@
 # Cambios
 
+## 0.5.5 — sin publicar
+
+**Cambiado**
+- Mantener despierto: el modo «tapa cerrada» viene apagado, y al actualizar se apaga también si lo tenías encendido. Al encenderlo, OmniMac te explica qué regla de administrador necesita (el archivo `/etc/sudoers.d/omnimac-lid`, tu usuario y exactamente dos comandos de `pmset`) y qué cuesta (cualquier programa que corra con tu usuario podría usarlos), y te pide permiso antes de pedirte la contraseña. Si dices que no, no se instala nada. Si ya tienes la regla de una versión anterior, no se vuelve a instalar, pero tampoco se usa hasta que aceptes.
+- Instalador de .dmg: antes de copiar nada te enseña quién firmó la app (su Team ID) y te avisa si no es el mismo que el de la que ya tienes o si no hay una firma de la que fiarse; con un aviso, el botón por defecto es «No instalar». Una firma rota se rechaza y el `.dmg` se queda donde está. Ya no pierde la marca de «descargado de Internet»: la app instalada conserva la del `.dmg` (sin la aprobación que le hubieras dado al disco), así que Gatekeeper la revisa al abrirla. Son dos avisos seguidos: el primero pide permiso para montar el disco y el segundo enseña el Team ID.
+- Instalador .pkg: ya no instala la regla de administrador de «tapa cerrada» (antes la creaba en todos los Mac, usaras el modo o no), y su bienvenida y su final salen en español o en inglés según el idioma del sistema.
+
+**Arreglado**
+- Ajustes › Inicio: la fecha de la última comprobación de actualizaciones salía siempre en español, aunque la app estuviera en inglés. Ahora sigue el idioma de la app.
+- Sonido: el ecualizador podía leer a medias unos coeficientes que el hilo principal estaba cambiando (una carrera de datos entre hilos). Ahora se publican sin cerrojos y el hilo de audio siempre ve un juego completo.
+- Lo que la documentación decía de la red y de las API privadas era incompleto: no es cierto que nada salga del Mac (mientras suena Spotify se descarga la carátula desde la dirección que Spotify da) ni que solo se use una API privada (son cuatro: dos van enlazadas directamente, y si macOS las quitara la app se caería; las otras dos se buscan al vuelo y solo desactivarían la temperatura y el golpe háptico). README, SECURITY, CONTRIBUTING y la web lo dicen ahora tal cual, y también que el permiso de Accesibilidad se pide al arrancar si un módulo activado lo necesita.
+- Si tenías la regla de «tapa cerrada» de un `.pkg` anterior, sigue en tu disco aunque ya no la uses. Para quitarla: `sudo rm /etc/sudoers.d/omnimac-lid`.
+
 ## 0.5.4 — 2026-09-29
 
 **Arreglado**

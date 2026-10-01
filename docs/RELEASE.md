@@ -17,7 +17,10 @@ textos, porque los textos citan las medidas.
 - [ ] `CHANGELOG.md` con la entrada de la versión, en el formato de siempre
       (`## 0.4.3 — 2026-09-10` y viñetas `- Zona: qué cambia`).
       **No es opcional**: es lo que lee la ventana de Novedades que se abre tras
-      actualizar, y de ahí salen sus pantallas.
+      actualizar, y de ahí salen sus pantallas. Una entrada que se escribe antes de
+      publicar lleva «sin publicar» (`unreleased` en el inglés) donde va la fecha: ponla
+      el día de la release, antes de lanzar el script. Si se queda, la ventana de Novedades
+      simplemente no enseña fecha.
 - [ ] `CHANGELOG.en.md` con la misma entrada traducida. Si falta, quien tenga la app
       en inglés verá las novedades en español.
 - [ ] Nada personal en el código (nombres, rutas con tu usuario, capturas de tu Mac).

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.5 — unreleased
+
+**Changed**
+- Keep awake: closed-lid mode now starts off, and updating turns it off even if you had it on. When you turn it on, OmniMac explains which administrator rule it needs (the file `/etc/sudoers.d/omnimac-lid`, your user and exactly two `pmset` commands) and what it costs (any program running as your user could use them), and asks your permission before asking for your password. If you say no, nothing is installed. If you already have the rule from an earlier version it isn't installed again, but it isn't used either until you accept.
+- .dmg installer: before copying anything it shows who signed the app (its Team ID) and warns you if it isn't the same as the one you already have or if there's no signature to rely on; with a warning, the default button is “Don’t install”. A broken signature is refused and the `.dmg` stays where it is. It also no longer loses the “downloaded from the Internet” mark: the installed app keeps the `.dmg`'s (without any approval you gave the disk), so Gatekeeper checks it when you open it. There are two prompts in a row: the first asks permission to mount the disk and the second shows the Team ID.
+- .pkg installer: it no longer installs the closed-lid administrator rule (it used to create it on every Mac, whether you used the mode or not), and its welcome and final screens appear in Spanish or English according to the system language.
+
+**Fixed**
+- Settings › Home: the date of the last update check was always shown in Spanish, even with the app in English. It now follows the app's language.
+- Sound: the equalizer could read a half-updated set of coefficients that the main thread was changing (a data race between threads). They are now published without locks and the audio thread always sees a complete set.
+- What the documentation said about the network and private APIs was incomplete: it isn't true that nothing leaves your Mac (while Spotify plays, the cover art is downloaded from the address Spotify reports) or that only one private API is used (there are four: two are linked directly, and if macOS removed them the app would crash; the other two are looked up at run time and would only switch off temperature and haptic feedback). README, SECURITY, CONTRIBUTING and the website now say so plainly, and also that the Accessibility permission is requested at launch if an enabled module needs it.
+- If you have the closed-lid rule from an earlier `.pkg`, it is still on your disk even if you no longer use it. To remove it: `sudo rm /etc/sudoers.d/omnimac-lid`.
+
 ## 0.5.4 — 2026-09-29
 
 **Fixed**
