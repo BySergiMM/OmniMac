@@ -231,9 +231,11 @@ enum InstallReview {
 ///   en una cabecera privada.) Hay que mirar en un Mac que la app instalada así no
 ///   se translocó; ver docs/RELEASE.md.
 ///
-/// La API pública (`NSURLQuarantinePropertiesKey`) no sirve para esto: no tiene banderas,
-/// solo agente, fecha y origen, y generaría un registro nuevo en vez de conservar el del
-/// navegador (que es el que Gatekeeper enseña en su aviso).
+/// La API pública (`NSURLQuarantinePropertiesKey`) no sirve para esto: su diccionario solo
+/// tiene agente, identificador de la app, fecha, tipo y URL de origen (la documentación de
+/// Apple de `kCFURLQuarantinePropertiesKey` no lista nada más). Las banderas las decidiría
+/// el sistema, sin que se pueda pedir ni que se quite la aprobación ni que se marque como
+/// movida, que es justo lo que hay que garantizar aquí.
 enum QuarantineMark {
     static let attribute = "com.apple.quarantine"
 
