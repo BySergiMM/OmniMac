@@ -7,7 +7,7 @@
 #   scripts/release.sh 0.3.0 --publish  → además la publica, en este orden:
 #                                           1. confirma la subida de versión (un commit),
 #                                           2. crea la etiqueta anotada v0.3.0 sobre ESE commit,
-#                                           3. sube commit y etiqueta (git push --follow-tags),
+#                                           3. sube commit y etiqueta (git push --atomic origin main vX.Y.Z),
 #                                           4. crea la release (gh release create --verify-tag),
 #                                           5. actualiza el cask de Homebrew.
 #
@@ -31,8 +31,10 @@ if [[ -z "$VER" ]]; then
 fi
 abort() { echo "❌ $1" >&2; exit 1; }
 
-# La versión acaba en una etiqueta de git y en una URL: solo números y puntos.
-printf '%s' "$VER" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || abort "La versión tiene que ser X.Y.Z (p. ej. 0.3.0), no «$VER»."
+# La versión acaba en una etiqueta de git y en una URL: solo números y puntos. Se compara la
+# cadena entera: `grep` mira línea a línea y daría por buena «1.2.3» seguida de un salto de
+# línea y cualquier cosa.
+[[ "$VER" != *$'\n'* && "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || abort "La versión tiene que ser X.Y.Z (p. ej. 0.3.0), no «$VER»."
 PUBLISH=0
 if [[ "$MODE" == "--publish" ]]; then
   PUBLISH=1
@@ -81,11 +83,15 @@ fi
 # Hasta que la subida de versión se confirma (solo con --publish), cualquier salida, también
 # un fallo de la compilación, la deshace: el árbol estaba limpio, así que esto no pierde nada
 # de nadie. Después, si algo falla, se avisa de en qué punto se queda.
+#
+# Se restaura desde HEAD y no desde el índice: si `git add` llegó a hacerse y el commit falló,
+# el índice ya tiene la subida de versión, y `git checkout -- archivo` (que lee del índice) la
+# dejaría puesta.
 COMMITTED=0
 RELEASED=0
 cleanup() {
   if [[ "$COMMITTED" != 1 ]]; then
-    git checkout -q -- "$PLIST" 2>/dev/null || true
+    git checkout -q HEAD -- "$PLIST" 2>/dev/null || true
   elif [[ "$RELEASED" != 1 ]]; then
     echo "⚠️  La publicación se quedó a medias. El commit y la etiqueta v$VER ya existen en local:" >&2
     echo "   mira «git status», «git ls-remote --tags origin v$VER» y «gh release view v$VER»" >&2
@@ -133,20 +139,36 @@ git add -- "$PLIST"
 git commit -q -m "$VER (build $BUILD)"
 COMMITTED=1
 git tag -a "v$VER" -m "OmniMac $VER"
-git push --follow-tags origin main
+# Solo main y esta etiqueta, y las dos o ninguna: `--follow-tags` subiría también cualquier
+# otra etiqueta anotada que hubiera en local, y sin `--atomic` podría quedar la etiqueta en
+# GitHub apuntando a un commit que main no tiene (si se rechaza el push de main).
+git push --atomic origin main "refs/tags/v$VER"
 
 gh release create "v$VER" "$OUT/OmniMac-$VER.zip" "$OUT/OmniMac.pkg" "$OUT/appcast.xml" \
   --repo "$REPO" --title "OmniMac $VER" --generate-notes --verify-tag
 RELEASED=1
 echo "🚀 Publicada: https://github.com/$REPO/releases/tag/v$VER"
 
-# Tap de Homebrew: versión y sha256 del zip nuevo.
+# Tap de Homebrew: versión y sha256 del zip nuevo. La release ya está publicada, así que si
+# esto falla no se deshace nada: se dice en voz alta qué falta y con qué valores, y el script
+# termina con error para que no se dé por completa.
 SHA=$(shasum -a 256 "$OUT/OmniMac-$VER.zip" | cut -d' ' -f1)
+tap_failed() {
+  echo "❌ El tap de Homebrew NO está actualizado: $1" >&2
+  echo "   Hay que poner a mano en Casks/omnimac.rb de BySergiMM/homebrew-tap:" >&2
+  echo "     version \"$VER\"   sha256 \"$SHA\"" >&2
+  [[ -n "${TAP:-}" ]] && echo "   (el clon está en $TAP)" >&2
+  exit 1
+}
 TAP=$(mktemp -d)
-if gh repo clone BySergiMM/homebrew-tap "$TAP" -- -q 2>/dev/null; then
-  sed -i '' "s/^  version \".*\"/  version \"$VER\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" "$TAP/Casks/omnimac.rb"
-  git -C "$TAP" commit -qam "OmniMac $VER" && git -C "$TAP" push -q && echo "🍺 Tap de Homebrew actualizado a $VER."
-else
-  echo "⚠️  No se pudo clonar BySergiMM/homebrew-tap: actualiza a mano version \"$VER\" y sha256 \"$SHA\" en Casks/omnimac.rb."
-fi
+gh repo clone BySergiMM/homebrew-tap "$TAP" -- -q 2>/dev/null || tap_failed "no se pudo clonar BySergiMM/homebrew-tap."
+CASK="$TAP/Casks/omnimac.rb"
+[[ -f "$CASK" ]] || tap_failed "no existe Casks/omnimac.rb en el clon."
+sed -i '' "s/^  version \".*\"/  version \"$VER\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" "$CASK"
+# Si los patrones no encontraron las líneas, el `sed` no falla y el cask se queda como estaba.
+grep -q "^  version \"$VER\"" "$CASK" && grep -q "^  sha256 \"$SHA\"" "$CASK" \
+  || tap_failed "no se encontraron las líneas version y sha256 en el cask."
+git -C "$TAP" commit -qam "OmniMac $VER" || tap_failed "no se pudo crear el commit en el tap."
+git -C "$TAP" push -q || tap_failed "no se pudo subir el commit al tap."
+echo "🍺 Tap de Homebrew actualizado a $VER."
 echo "   Las apps instaladas la verán en su próxima comprobación (o con «Buscar actualizaciones…»)."

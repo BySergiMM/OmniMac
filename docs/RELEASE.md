@@ -68,7 +68,8 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
          el `.zip`, el `.pkg` y el appcast;
       2. confirma esa subida en un commit, `X.Y.Z (build N)`;
       3. crea la etiqueta **anotada** `vX.Y.Z` sobre ese commit;
-      4. sube commit y etiqueta (`git push --follow-tags origin main`);
+      4. sube commit y etiqueta, solo esos dos y los dos o ninguno
+         (`git push --atomic origin main refs/tags/vX.Y.Z`);
       5. crea la release con `gh release create --verify-tag` (si tu `gh` no conoce esa
          opción, actualízalo: sin ella `gh` crearía la etiqueta él, sobre otro commit);
       6. actualiza el cask de Homebrew.
@@ -86,8 +87,10 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
 - [ ] Que Sparkle ve la actualización: menú › «Buscar actualizaciones…».
 - [ ] Descargar el `.pkg` desde el enlace de la web y abrirlo, como haría alguien nuevo.
 - [ ] **Homebrew**: el script ya actualiza el cask de `BySergiMM/homebrew-tap` (cambia
-      con `sed` las líneas `version` y `sha256` de `Casks/omnimac.rb`). Comprueba que lo
-      hizo; si algún día esas dos líneas cambian de forma, cambia también el `sed`.
+      con `sed` las líneas `version` y `sha256` de `Casks/omnimac.rb`). Si no lo consigue
+      (no clona, no encuentra las líneas, no puede subir), termina con error y te dice qué
+      poner a mano; si acaba bien, comprueba igualmente que el commit está en el tap. Si
+      algún día esas dos líneas cambian de forma, cambia también el `sed`.
 - [ ] **Instalador de .dmg** (solo si se ha tocado `Features/Tools/`): activarlo en Ajustes,
       bajar con Safari un `.dmg` de una app firmada y comprobar los dos avisos (el segundo
       con el Team ID). Después, y antes de abrir la app, `xattr -p com.apple.quarantine /Applications/<App>.app`
