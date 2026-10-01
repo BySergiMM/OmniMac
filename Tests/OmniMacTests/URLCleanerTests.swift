@@ -81,6 +81,14 @@ final class DiskImageRulesTests: XCTestCase {
         XCTAssertNil(DiskImageRules.appToInstall(in: ["Cosa.app", "Instalar.pkg"]))
     }
 
+    /// Un enlace llamado `Foo.app` apunta a otra parte: lo que se revisara sería su destino.
+    func testOnlyARealFolderCanBeInstalled() {
+        XCTAssertTrue(DiskImageRules.isInstallable(.folder))
+        XCTAssertFalse(DiskImageRules.isInstallable(.symbolicLink))
+        XCTAssertFalse(DiskImageRules.isInstallable(.file))
+        XCTAssertFalse(DiskImageRules.isInstallable(.missing))
+    }
+
     func testFallsBackToTheUserFolderWhenApplicationsIsReadOnly() {
         XCTAssertEqual(DiskImageRules.destination(canWriteToApplications: true, home: "/Users/x"), "/Applications")
         XCTAssertEqual(DiskImageRules.destination(canWriteToApplications: false, home: "/Users/x"), "/Users/x/Applications")

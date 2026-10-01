@@ -20,6 +20,9 @@ import AppKit
 ///   `InstallReview`.
 /// - **Nunca quita la marca de «descargado de Internet»**: la copia queda con la del
 ///   .dmg, para que Gatekeeper la revise al abrirla. Ver `QuarantineMark`.
+/// - **Solo instala lo que le enseñó al usuario**: entre el aviso y la copia el .dmg puede
+///   haber cambiado, así que la copia se compara con lo revisado (firmante y huella del
+///   contenido, ver `AppIdentity`), y una «app» que sea un enlace se rechaza.
 enum DiskImageRules {
 
     /// ¿Merece la pena mirar este archivo?
@@ -42,6 +45,12 @@ enum DiskImageRules {
         return apps.count == 1 ? apps[0] : nil
     }
 
+    /// ¿Se puede instalar lo que hay con ese nombre? Solo una carpeta de verdad: un enlace
+    /// llamado `Foo.app` apunta a otra parte, y lo que se revisara sería su destino.
+    static func isInstallable(_ kind: ItemKind) -> Bool {
+        kind == .folder
+    }
+
     /// Dónde va la app.
     ///
     /// `/Applications` si se puede escribir; si no, la carpeta Aplicaciones del
@@ -56,8 +65,8 @@ enum DiskImageRules {
 struct DiskImageInspection {
     /// «Ice.app»
     let appName: String
-    /// Quién firmó la app que trae el disco.
-    let incoming: AppSigner
+    /// Quién firmó la app que trae el disco y qué lleva dentro.
+    let incoming: AppIdentity
     /// Quién firmó la que ya hay en el destino. `nil` si no hay ninguna.
     let installed: AppSigner?
     /// La carpeta donde se copiaría.
@@ -103,7 +112,21 @@ final class DiskImageInstaller {
 
     private init() {}
 
-    func startIfEnabled() { if enabled { start() } }
+    func startIfEnabled() {
+        sweepLeftovers()
+        if enabled { start() }
+    }
+
+    /// Si una instalación anterior murió a mitad de copia, su carpeta provisional (oculta, con
+    /// media app dentro) sigue en Aplicaciones. Se barre al arrancar, esté o no activado el
+    /// instalador: pudo estarlo cuando pasó.
+    private func sweepLeftovers() {
+        Task.detached(priority: .background) {
+            for folder in Self.knownFolders() {
+                AppInstall.removeLeftovers(in: folder)
+            }
+        }
+    }
 
     private func start() {
         guard timer == nil else { return }
@@ -185,7 +208,7 @@ final class DiskImageInstaller {
     private func review(_ image: URL, _ inspection: DiskImageInspection) {
         let spanish = Localization.isSpanish
         let app = inspection.displayName
-        let verdict = InstallReview.verdict(incoming: inspection.incoming, installed: inspection.installed)
+        let verdict = InstallReview.verdict(incoming: inspection.incoming.signer, installed: inspection.installed)
         let buttons = InstallReview.buttons(for: verdict, spanish: spanish)
 
         let alert = NSAlert()
@@ -245,18 +268,22 @@ final class DiskImageInstaller {
     /// expulsa. No copia nada.
     nonisolated private static func inspectImage(_ image: URL) -> Inspected {
         let inspected = withMountedImage(image) { mount -> Inspected in
-            guard let contents = try? FileManager.default.contentsOfDirectory(atPath: mount.path),
-                  let appName = DiskImageRules.appToInstall(in: contents) else {
+            guard let appName = appInside(mount) else {
                 return .failure(L("Este disco no trae una sola app: lo abro para que lo mires.",
                                   "This image doesn't hold a single app: opening it for you."))
             }
             let folder = destinationFolder()
             let target = URL(fileURLWithPath: folder).appending(path: appName)
             var installed: AppSigner?
-            if FileManager.default.fileExists(atPath: target.path) {
+            if ItemKind.of(target) != .missing {
                 installed = CodeSignature.signer(of: target)
             }
-            let incoming = CodeSignature.signer(of: mount.appending(path: appName))
+            let source = mount.appending(path: appName)
+            guard let digest = AppDigest.of(source) else {
+                return .failure(L("No se pudo leer entera la app del disco: lo abro para que lo mires.",
+                                  "Couldn't read the whole app on the image: opening it for you."))
+            }
+            let incoming = AppIdentity(signer: CodeSignature.signer(of: source), digest: digest)
             return .ready(DiskImageInspection(appName: appName, incoming: incoming,
                                               installed: installed, folder: folder))
         }
@@ -268,8 +295,7 @@ final class DiskImageInstaller {
         let outcome = withMountedImage(image) { mount -> InstallResult in
             // El .dmg está en Descargas y ahí puede escribir cualquiera: pudo cambiar entre
             // que se revisó y ahora. Solo se instala lo que se le enseñó al usuario.
-            guard let contents = try? FileManager.default.contentsOfDirectory(atPath: mount.path),
-                  DiskImageRules.appToInstall(in: contents) == reviewed.appName else {
+            guard appInside(mount) == reviewed.appName else {
                 return .failure(L("El disco ha cambiado desde que se revisó: no se instala nada.",
                                   "The image changed after it was checked: nothing was installed."))
             }
@@ -301,15 +327,34 @@ final class DiskImageInstaller {
         switch failure {
         case .copyFailed(let why):
             return L("No se pudo copiar la app: \(why)", "Couldn't copy the app: \(why)")
-        case .signerChanged:
-            return L("La copia no lleva la firma que se revisó: no se instala nada.",
-                     "The copy doesn't carry the signature that was checked: nothing was installed.")
+        case .notAnApp:
+            return L("Lo que trae el disco no es una app de verdad (es un enlace): no se instala nada.",
+                     "What the image holds isn't a real app (it's a link): nothing was installed.")
+        case .changedSinceReview:
+            return L("La app ya no es la que se revisó: no se instala nada.",
+                     "The app is no longer the one that was checked: nothing was installed.")
         case .quarantineNotApplied:
             return L("No se pudo conservar la marca de «descargado de Internet»: no se instala nada.",
                      "Couldn't keep the “downloaded from the Internet” mark: nothing was installed.")
         case .replaceFailed(let why):
             return L("No se pudo colocar la app: \(why)", "Couldn't put the app in place: \(why)")
         }
+    }
+
+    /// La app de dentro del disco montado: la única que hay, y de verdad (una carpeta, no un
+    /// enlace).
+    nonisolated private static func appInside(_ mount: URL) -> String? {
+        guard let contents = try? FileManager.default.contentsOfDirectory(atPath: mount.path),
+              let name = DiskImageRules.appToInstall(in: contents),
+              DiskImageRules.isInstallable(ItemKind.of(mount.appending(path: name))) else { return nil }
+        return name
+    }
+
+    /// Las carpetas donde este instalador puede haber dejado algo: Aplicaciones, la del sistema
+    /// y la del usuario.
+    nonisolated private static func knownFolders() -> [URL] {
+        [URL(fileURLWithPath: "/Applications"),
+         URL(fileURLWithPath: NSHomeDirectory()).appending(path: "Applications")]
     }
 
     /// `/Applications` si se puede escribir; si no, la del usuario.

@@ -88,6 +88,14 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
 - [ ] **Homebrew**: el script ya actualiza el cask de `BySergiMM/homebrew-tap` (cambia
       con `sed` las líneas `version` y `sha256` de `Casks/omnimac.rb`). Comprueba que lo
       hizo; si algún día esas dos líneas cambian de forma, cambia también el `sed`.
+- [ ] **Instalador de .dmg** (solo si se ha tocado `Features/Tools/`): activarlo en Ajustes,
+      bajar con Safari un `.dmg` de una app firmada y comprobar los dos avisos (el segundo
+      con el Team ID). Después, y antes de abrir la app, `xattr -p com.apple.quarantine /Applications/<App>.app`
+      tiene que dar un valor de la forma `0183;…` (nunca `…c1`/`…c3`, que serían «ya
+      aprobada»), y al abrirla por primera vez Gatekeeper tiene que preguntar y la app no
+      puede ejecutarse desde una ruta `…/AppTranslocation/…` (se ve en Monitor de Actividad
+      › Inspeccionar › Abrir archivos y puertos, o con `ps -o command -p <pid>`). Si se
+      ejecuta translocada, `QuarantineMark.movedFlag` no es lo que se creía: ver su comentario.
 
 ## 4. La web (`docs/site`)
 

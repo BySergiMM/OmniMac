@@ -5,18 +5,45 @@ import Security
 /// sistema para esto; lo que se decide con el resultado está en `InstallReview`.
 enum CodeSignature {
 
-    // Los valores de Security que se usan, escritos aquí en vez de importar sus nombres:
-    // son parte de su interfaz estable y así no depende de cómo se importen a Swift.
+    // `kSecCSSigningInformation` se escribe aquí con su valor en vez de importar el nombre:
+    // es parte de su interfaz estable (SecCode.h) y así no depende de cómo se importe a Swift.
 
     /// `errSecCSUnsigned`: el objeto no lleva firma.
     private static let unsignedStatus: OSStatus = -67062
     /// `kSecCSSigningInformation`: pide los datos de la firma (entre ellos el Team ID).
     private static let signingInformation = SecCSFlags(rawValue: 1 << 1)
 
-    /// Solo se da por bueno un Team ID si la firma está entera **y** cuelga de una
-    /// autoridad de Apple: «anchor apple generic». Sin esa condición, quien quisiera se
-    /// haría pasar por otro desarrollador con una firma autofirmada que repita su Team ID.
-    private static let appleAnchored = "anchor apple generic"
+    /// Cómo se valida una firma para darla por buena, con las tres opciones que
+    /// la documentación de `SecStaticCodeCheckValidity` y de «Static Code Validation Flags»
+    /// pide para un paquete de verdad:
+    /// - `kSecCSCheckAllArchitectures`: en un binario universal, todas las rebanadas. Sin
+    ///   esto se comprueba una sola y las demás pueden venir sin firma o con otra.
+    /// - `kSecCSCheckNestedCode`: el código de dentro (frameworks, ayudantes, extensiones).
+    /// - `kSecCSStrictValidate`: comprobaciones extra de que el paquete no está montado de
+    ///   forma que permita manipularlo.
+    private static let validation = SecCSFlags(
+        rawValue: kSecCSCheckAllArchitectures | kSecCSCheckNestedCode | kSecCSStrictValidate)
+
+    /// El requisito que ata un Team ID a un certificado de Apple de verdad: la cadena
+    /// del certificado llega a una raíz de Apple **y** el certificado de quien firma lleva ese
+    /// Team ID en su campo OU. Sin la segunda mitad, el Team ID sería lo que el código dice
+    /// de sí mismo, y cualquiera con una firma suya de Apple podría escribir el de otro.
+    ///
+    /// Devuelve `nil` si lo que llega no tiene forma de Team ID (10 letras mayúsculas o
+    /// cifras): el texto acaba dentro de un requisito, y no se le cuela nada que no lo sea.
+    ///
+    /// Ojo: «anchor apple generic» también lo cumplen los certificados de desarrollo
+    /// (Apple Development), no solo los de Developer ID o de la App Store, así que esto dice
+    /// *quién* firmó, no que haya pasado por la notarización. De eso se ocupa Gatekeeper al
+    /// abrirla, y por eso se conserva la cuarentena.
+    static func requirementText(forTeam team: String) -> String? {
+        guard isTeamIdentifier(team) else { return nil }
+        return "anchor apple generic and certificate leaf[subject.OU] = \"\(team)\""
+    }
+
+    static func isTeamIdentifier(_ text: String) -> Bool {
+        text.utf8.count == 10 && text.utf8.allSatisfy { ($0 >= 0x30 && $0 <= 0x39) || ($0 >= 0x41 && $0 <= 0x5A) }
+    }
 
     static func signer(of app: URL) -> AppSigner {
         var created: SecStaticCode?
@@ -27,25 +54,28 @@ enum CodeSignature {
         }
 
         // 1. ¿Tiene firma, y casa con el contenido? Sin pedir ningún firmante en concreto.
-        let validity = SecStaticCodeCheckValidity(code, [], nil)
+        let validity = SecStaticCodeCheckValidity(code, validation, nil)
         if validity == unsignedStatus { return .unsigned }
         guard validity == errSecSuccess else { return .broken }
 
-        // 2. ¿La hizo alguien con certificado de Apple?
-        var requirement: SecRequirement?
-        guard SecRequirementCreateWithString(appleAnchored as CFString, [], &requirement) == errSecSuccess,
-              let anchored = requirement,
-              SecStaticCodeCheckValidity(code, [], anchored) == errSecSuccess else {
-            return .unverified
-        }
-
-        // 3. Y su Team ID, que es el que va en el certificado.
+        // 2. El Team ID que dice llevar el código.
         var information: CFDictionary?
         guard SecCodeCopySigningInformation(code, signingInformation, &information) == errSecSuccess,
               let details = information as? [String: Any],
               let team = details[kSecCodeInfoTeamIdentifier as String] as? String,
               !team.isEmpty else {
-            // Firmada por Apple pero sin Team ID (las apps del sistema): no hay con qué comparar.
+            // Firma intacta pero sin Team ID: ad-hoc, autofirmada, o de Apple (las apps del
+            // sistema). No hay con qué comparar.
+            return .unverified
+        }
+
+        // 3. Que ese Team ID sea el del certificado de Apple con el que se firmó, no solo lo
+        //    que el código afirma.
+        var requirement: SecRequirement?
+        guard let text = requirementText(forTeam: team),
+              SecRequirementCreateWithString(text as CFString, [], &requirement) == errSecSuccess,
+              let bound = requirement,
+              SecStaticCodeCheckValidity(code, validation, bound) == errSecSuccess else {
             return .unverified
         }
         return .team(team)
@@ -77,7 +107,11 @@ extension AppInstall.Environment {
     /// Las comprobaciones de verdad, contra el sistema.
     static var live: AppInstall.Environment {
         AppInstall.Environment(
-            signer: { CodeSignature.signer(of: $0) },
+            identity: { app in
+                // Sin huella no hay identidad: no coincidirá con nada.
+                guard let digest = AppDigest.of(app) else { return nil }
+                return AppIdentity(signer: CodeSignature.signer(of: app), digest: digest)
+            },
             trash: { url in
                 var result: NSURL?
                 try FileManager.default.trashItem(at: url, resultingItemURL: &result)
