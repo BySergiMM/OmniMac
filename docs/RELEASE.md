@@ -21,6 +21,9 @@ textos, porque los textos citan las medidas.
 - [ ] `CHANGELOG.en.md` con la misma entrada traducida. Si falta, quien tenga la app
       en inglés verá las novedades en español.
 - [ ] Nada personal en el código (nombres, rutas con tu usuario, capturas de tu Mac).
+- [ ] Todo lo que entra en la versión está **confirmado en `main`** y `git status` sale
+      limpio. El script se niega a seguir si no: lo que se compila tiene que ser lo que
+      queda en la etiqueta.
 
 ## 2. Medir otra vez (antes de escribir nada)
 
@@ -55,12 +58,36 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
 
 ## 3. Publicar la app
 
-- [ ] `scripts/release.sh X.Y.Z --publish` (compila, firma, sube el número de build,
-      genera el appcast y crea la release con `gh`).
-- [ ] Comprobar que la release trae `OmniMac.pkg`, el `.zip` y `appcast.xml`.
+- [ ] `scripts/release.sh X.Y.Z` primero, como ensayo: compila, empaqueta, firma y deja todo
+      en `dist/release`, y **no toca git** (la subida de versión se deshace al terminar).
+- [ ] `scripts/release.sh X.Y.Z --publish`. Se niega si el árbol no está limpio, si no
+      estás en `main` al día con `origin/main`, si la etiqueta `vX.Y.Z` ya existe (aquí o
+      en GitHub) o si falta la entrada de `CHANGELOG.md` / `CHANGELOG.en.md`. Si pasa
+      todo, hace esto, en este orden:
+      1. sube la versión y el número de build en `Resources/Info.plist`, compila y genera
+         el `.zip`, el `.pkg` y el appcast;
+      2. confirma esa subida en un commit, `X.Y.Z (build N)`;
+      3. crea la etiqueta **anotada** `vX.Y.Z` sobre ese commit;
+      4. sube commit y etiqueta (`git push --follow-tags origin main`);
+      5. crea la release con `gh release create --verify-tag` (si tu `gh` no conoce esa
+         opción, actualízalo: sin ella `gh` crearía la etiqueta él, sobre otro commit);
+      6. actualiza el cask de Homebrew.
+
+      Por qué ese orden: antes la etiqueta la creaba `gh` sobre la punta de `main` cuando
+      aún no existía el commit de la subida de versión, y las etiquetas v0.5.2 a v0.5.4
+      apuntan al commit anterior (la de v0.5.4 trae un `Info.plist` que dice 0.5.3). Esas
+      etiquetas no se tocan: reetiquetar una release publicada rompe a quien ya la tiene.
+- [ ] Si el script se queda a medias después del commit (se lo dice), no repitas el
+      comando: mira `git log -1`, `git ls-remote --tags origin vX.Y.Z` y
+      `gh release view vX.Y.Z`, y termina a mano lo que falte.
+- [ ] Comprobar que la release trae `OmniMac.pkg`, el `.zip` y `appcast.xml`, y que la
+      etiqueta es anotada y lleva la versión nueva: `git cat-file -t vX.Y.Z` dice `tag`
+      y `git show vX.Y.Z:Resources/Info.plist` tiene `X.Y.Z`.
 - [ ] Que Sparkle ve la actualización: menú › «Buscar actualizaciones…».
 - [ ] Descargar el `.pkg` desde el enlace de la web y abrirlo, como haría alguien nuevo.
-- [ ] **Homebrew**: actualizar el cask en `BySergiMM/homebrew-tap` (versión y sha256).
+- [ ] **Homebrew**: el script ya actualiza el cask de `BySergiMM/homebrew-tap` (cambia
+      con `sed` las líneas `version` y `sha256` de `Casks/omnimac.rb`). Comprueba que lo
+      hizo; si algún día esas dos líneas cambian de forma, cambia también el `sed`.
 
 ## 4. La web (`docs/site`)
 
