@@ -73,13 +73,25 @@ final class KeepAwakeFeature: BaseFeature {
     /// al cerrar la tapa (la música sigue sonando). Los `IOPMAssertion` solo evitan
     /// el reposo por inactividad; el de tapa requiere `pmset disablesleep`, que es
     /// de administrador. Ver `LidSleepControl`: la contraseña se pide UNA sola vez.
-    @Published var closedLidMode: Bool {
+    ///
+    /// Viene **apagado**: encenderlo usa (y, si falta, instala) una regla de
+    /// administrador, y eso lo decide el usuario con un aviso delante. Por eso el
+    /// valor solo se cambia desde fuera con `setClosedLidMode`, que es quien pregunta.
+    @Published private(set) var closedLidMode: Bool {
         didSet {
-            UserDefaults.standard.set(closedLidMode, forKey: "keepawake.closedLid")
+            UserDefaults.standard.set(closedLidMode, forKey: ClosedLidRule.modeKey)
             guard isActive else { return }
             if closedLidMode { enableClosedLid() } else { disableClosedLid() }
         }
     }
+    /// El usuario ha leído qué permite la regla de administrador y ha dicho que sí.
+    /// Sin esto no se usa ni se instala nada de administrador (ver `ClosedLidRule`).
+    private var closedLidConsent: Bool {
+        get { UserDefaults.standard.bool(forKey: ClosedLidRule.consentKey) }
+        set { UserDefaults.standard.set(newValue, forKey: ClosedLidRule.consentKey) }
+    }
+    /// Hay un aviso de permiso en marcha: un segundo clic en el interruptor no abre otro.
+    private var askingClosedLidConsent = false
     /// true mientras `disablesleep` está puesto por nosotros.
     @Published private(set) var closedLidActive = false
     /// Último problema legible al activar el modo tapa cerrada (cancelación, etc.).
@@ -97,11 +109,8 @@ final class KeepAwakeFeature: BaseFeature {
         } else {
             keepDisplayOn = UserDefaults.standard.bool(forKey: "keepawake.displayOn")
         }
-        if UserDefaults.standard.object(forKey: "keepawake.closedLid") == nil {
-            closedLidMode = true
-        } else {
-            closedLidMode = UserDefaults.standard.bool(forKey: "keepawake.closedLid")
-        }
+        // Apagado de fábrica, y solo encendido si el usuario pasó por el aviso.
+        closedLidMode = ClosedLidRule.isOn(in: .standard)
         let defaults = UserDefaults.standard
         showRemainingInMenuBar = defaults.object(forKey: "keepawake.menuBarTime") == nil ? true : defaults.bool(forKey: "keepawake.menuBarTime")
         notifyOnEnd = defaults.object(forKey: "keepawake.notify") == nil ? true : defaults.bool(forKey: "keepawake.notify")
@@ -117,7 +126,9 @@ final class KeepAwakeFeature: BaseFeature {
                    defaultEnabled: true)
 
         // Si la app murió de golpe con la tapa "bloqueada", al arrancar lo deshacemos.
-        // Solo actúa si la regla ya existe: nunca muestra ningún diálogo.
+        // Solo actúa si la regla ya existe: nunca muestra ningún diálogo, ni instala
+        // nada. Es el único uso de la regla que no pide permiso, porque solo devuelve
+        // el ajuste a su valor normal.
         DispatchQueue.global(qos: .utility).async {
             if LidSleepControl.isAuthorized { LidSleepControl.set(false) }
         }
@@ -358,15 +369,65 @@ final class KeepAwakeFeature: BaseFeature {
 
     // MARK: - Tapa cerrada
 
+    /// Lo que hace el interruptor «tapa cerrada» de Ajustes.
+    ///
+    /// Apagarlo es inmediato. Encenderlo por primera vez pide antes permiso con un
+    /// aviso que explica exactamente qué permite la regla de administrador; si se
+    /// rechaza, el modo sigue apagado y no se toca nada del sistema.
+    func setClosedLidMode(_ on: Bool) {
+        switch ClosedLidRule.switchAction(turningOn: on, consented: closedLidConsent) {
+        case .turnOff:
+            closedLidMode = false
+        case .turnOn:
+            closedLidMode = true
+        case .askFirst:
+            guard !askingClosedLidConsent else { return }
+            askingClosedLidConsent = true
+            // Fuera del evento del interruptor: el aviso es modal y deja el hilo esperando.
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                defer { self.askingClosedLidConsent = false }
+                if self.askClosedLidConsent() {
+                    self.closedLidConsent = true
+                    self.closedLidMode = true
+                } else {
+                    // Sigue apagado, pero el interruptor ya se movió: que vuelva a su sitio.
+                    self.objectWillChange.send()
+                }
+            }
+        }
+    }
+
+    /// El aviso de permiso. Devuelve true si el usuario continúa.
+    private func askClosedLidConsent() -> Bool {
+        let alert = NSAlert()
+        alert.messageText = ClosedLidRule.consentTitle(spanish: Localization.isSpanish)
+        alert.informativeText = ClosedLidRule.consentMessage(user: NSUserName(), spanish: Localization.isSpanish)
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: L("Continuar", "Continue"))
+        alert.addButton(withTitle: L("Cancelar", "Cancel"))
+        // Esc cancela también con la interfaz en español (AppKit solo lo asigna al «Cancel» inglés).
+        alert.buttons[1].keyEquivalent = "\u{1b}"
+        NSApp.activate(ignoringOtherApps: true)
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
     private func enableClosedLid() {
         closedLidError = nil
+        // Se lee aquí, en el hilo principal: el permiso lo da el usuario en Ajustes.
+        let consented = closedLidConsent
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             var error: String?
-            if LidSleepControl.isAuthorized {
+            switch ClosedLidRule.activation(ruleInstalled: LidSleepControl.isAuthorized, consented: consented) {
+            case .useInstalledRule:
                 if !LidSleepControl.set(true) { error = L("No se pudo cambiar el ajuste de energía.", "Couldn't change the power setting.") }
-            } else {
+            case .installRuleWithAdminPrompt:
                 // Primera vez: diálogo de contraseña del sistema (una sola vez).
                 error = LidSleepControl.authorizeAndEnable()
+            case .refuse:
+                // Sin el permiso dado en Ajustes no se usa ni se instala nada de administrador.
+                error = L("Falta tu permiso para el modo tapa cerrada: apágalo y vuelve a encenderlo en Ajustes.",
+                          "Closed-lid mode is missing your permission: turn it off and on again in Settings.")
             }
             DispatchQueue.main.async {
                 guard let self else { return }
@@ -395,16 +456,15 @@ final class KeepAwakeFeature: BaseFeature {
 
 /// Controla el ajuste de energía `disablesleep` (el único que evita el reposo al
 /// cerrar la tapa). Requiere administrador. Para pedir la contraseña UNA sola vez,
-/// la primera activación instala una regla en `/etc/sudoers.d/omnimac-lid` que
-/// permite a este usuario ejecutar sin contraseña exactamente dos comandos:
+/// la primera activación (con el permiso del usuario, ver `ClosedLidRule`) instala
+/// una regla en `/etc/sudoers.d/omnimac-lid` que permite a este usuario ejecutar sin
+/// contraseña exactamente dos comandos:
 ///
 ///     /usr/bin/pmset -a disablesleep 1
 ///     /usr/bin/pmset -a disablesleep 0
 ///
 /// Nada más. Se deshace con `sudo rm /etc/sudoers.d/omnimac-lid`.
 enum LidSleepControl {
-    static let rulePath = "/etc/sudoers.d/omnimac-lid"
-
     /// ¿Ya está instalada la regla? `sudo -n` nunca pide contraseña: si no puede, falla.
     static var isAuthorized: Bool {
         run("/usr/bin/sudo", ["-n", "-l", "/usr/bin/pmset", "-a", "disablesleep", "1"]).status == 0
@@ -421,14 +481,10 @@ enum LidSleepControl {
     /// la app nunca la ve. Devuelve un mensaje de error legible, o nil si fue bien.
     static func authorizeAndEnable() -> String? {
         let user = NSUserName()
-        guard user.range(of: "^[A-Za-z0-9._-]+$", options: .regularExpression) != nil else {
+        guard ClosedLidRule.isValidUserName(user) else {
             return L("El nombre de usuario contiene caracteres no válidos para sudoers.", "The user name contains characters that are not valid for sudoers.")
         }
-        let rule = "\(user) ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1, /usr/bin/pmset -a disablesleep 0"
-        let tmp = rulePath + ".tmp"
-        let shell = "umask 077; echo '\(rule)' > \(tmp) && chmod 0440 \(tmp) && chown root:wheel \(tmp)"
-            + " && /usr/sbin/visudo -c -f \(tmp) && mv \(tmp) \(rulePath) && /usr/bin/pmset -a disablesleep 1"
-        let source = "do shell script \"\(shell)\" with administrator privileges"
+        let source = "do shell script \"\(ClosedLidRule.installScript(user: user))\" with administrator privileges"
 
         guard let script = NSAppleScript(source: source) else { return L("No se pudo preparar la autorización.", "Couldn't prepare the authorization.") }
         var error: NSDictionary?
