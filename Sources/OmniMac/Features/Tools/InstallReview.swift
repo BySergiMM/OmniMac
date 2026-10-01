@@ -17,6 +17,19 @@ enum AppSigner: Equatable {
     case broken
 }
 
+/// Qué es exactamente la app que se le enseñó al usuario: quién la firmó **y** qué hay dentro.
+///
+/// El firmante solo no basta para reconocer «la misma app». Dos apps sin firma (o con firma
+/// ad-hoc) son para `AppSigner` la misma cosa (`.unsigned`, `.unverified`) aunque no tengan
+/// nada que ver, y entre el primer aviso y la copia el `.dmg` puede haber cambiado: está en
+/// Descargas, donde escribe cualquier programa del usuario. La huella del contenido es lo
+/// que ata lo que se revisó con lo que se instala.
+struct AppIdentity: Equatable {
+    let signer: AppSigner
+    /// SHA-256 en hexadecimal de todo el paquete. Lo calcula `AppDigest`.
+    let digest: String
+}
+
 /// Lo que se concluye de comparar la app nueva con la que ya hubiera en su sitio.
 enum InstallVerdict: Equatable {
     /// No había ninguna: solo se enseña de quién es.
@@ -167,8 +180,8 @@ enum InstallReview {
             return why + advice + "\n\n" + ending
         case .brokenSignature:
             return spanish
-                ? "Su firma no coincide con su contenido: la han modificado o el archivo está dañado. OmniMac no la instala y deja el .dmg donde está."
-                : "Its signature doesn’t match its contents: it was modified or the file is damaged. OmniMac won’t install it and leaves the .dmg where it is."
+                ? "Su firma no pasa la comprobación estricta de macOS: no coincide con su contenido o está mal formada (la han modificado, o el archivo está dañado). OmniMac no la instala y deja el .dmg donde está."
+                : "Its signature doesn’t pass macOS’s strict check: it doesn’t match its contents or is malformed (it was modified, or the file is damaged). OmniMac won’t install it and leaves the .dmg where it is."
         }
     }
 
@@ -197,38 +210,84 @@ enum InstallReview {
 /// sacar una app de un `.dmg`.
 ///
 /// Es la marca que hace que Gatekeeper revise la app la primera vez que se abre. Copiar la
-/// app sin ella saltaría esa revisión, así que **nunca se quita**. Si el sistema no la
-/// pasa solo del `.dmg` a la copia (no está comprobado que lo haga), se pone aquí.
+/// app sin ella saltaría esa revisión, así que **nunca se quita**. Si el sistema no la pasa
+/// solo del `.dmg` a la copia (no está comprobado que lo haga), se pone aquí.
+///
+/// **Apple no documenta las banderas** del valor (las cuatro primeras cifras, en hexadecimal).
+/// Lo que sigue es lo que cuentan quienes lo han observado, no una garantía de Apple, y por
+/// eso se toca lo mínimo:
+///
+/// - `0x0040`: el usuario ya aprobó la app en el aviso de la primera vez; macOS se la salta
+///   desde entonces. Es lo único que se **quita**: la aprobación del usuario era para el
+///   `.dmg`, no para lo que lleva dentro.
+/// - `0x0100`: la app ya no está donde llegó (la han movido o copiado). Mientras falta,
+///   macOS ejecuta la app «translocada», desde una copia de solo lectura en una ruta
+///   aleatoria, y una app así no puede actualizarse sola. Es lo que pasa tras arrastrarla a
+///   Aplicaciones con el Finder, así que se **añade** a la que escribe OmniMac, que es
+///   justo una app copiada fuera del disco. No afecta a la revisión de Gatekeeper.
+///   (Fuentes: Howard Oakley en eclecticlight.co, 2022-09-09, que ve `0083` al descargar y
+///   `01c3` tras la primera apertura y el movimiento; y jwwalker.com/pages/quarantine.md.html.
+///   El `SecTranslocate.h` de Apple nombra `QTN_FLAG_DO_NOT_TRANSLOCATE`, pero el número está
+///   en una cabecera privada.) Hay que mirar en un Mac que la app instalada así no
+///   se translocó; ver docs/RELEASE.md.
+///
+/// La API pública (`NSURLQuarantinePropertiesKey`) no sirve para esto: no tiene banderas,
+/// solo agente, fecha y origen, y generaría un registro nuevo en vez de conservar el del
+/// navegador (que es el que Gatekeeper enseña en su aviso).
 enum QuarantineMark {
     static let attribute = "com.apple.quarantine"
 
-    /// El valor es `banderas;fecha;origen;identificador`, y las banderas van en hexadecimal.
-    /// Este bit es el de «el usuario ya lo ha aprobado».
+    /// «El usuario ya lo ha aprobado».
     static let userApprovedFlag: UInt32 = 0x0040
+    /// «Ya no está donde llegó».
+    static let movedFlag: UInt32 = 0x0100
 
-    /// El valor que hay que poner en la app copiada, o `nil` si no hay nada que hacer.
+    /// El valor que hay que escribir en la app copiada, o `nil` si no hay nada que hacer.
     ///
     /// - `image`: lo que tiene el `.dmg` (`nil` si no estaba en cuarentena: no hay nada
     ///   que conservar).
-    /// - `app`: lo que ya tiene la copia. Si el sistema la marcó por su cuenta, no se toca.
+    /// - `app`: lo que ya tiene la copia.
+    ///
+    /// Si la copia ya viene marcada (el sistema se la pasó del `.dmg` al copiar), es la marca
+    /// que puso el sistema y se respeta entera, salvo la aprobación: un `.dmg` aprobado
+    /// por el usuario no aprueba la app de dentro. Si no trae aprobación, no se escribe nada.
     static func valueForCopy(image: String?, app: String?) -> String? {
+        if let app = app, !app.isEmpty {
+            guard let bits = flags(of: app), bits & userApprovedFlag != 0 else { return nil }
+            return withoutApproval(app)
+        }
         guard let image = image, !image.isEmpty else { return nil }
-        if let app = app, !app.isEmpty { return nil }
-        return withoutApproval(image)
+        return markedAsMoved(withoutApproval(image))
     }
 
     /// El mismo valor sin el bit de «aprobado». Si el `.dmg` ya lo llevaba (porque alguien
     /// lo aprobó al abrirlo), copiarlo tal cual dejaría la app aprobada de antemano, sin que
-    /// Gatekeeper la mire; el permiso del usuario es para el `.dmg`, no para lo que lleva.
+    /// Gatekeeper la mire.
     ///
     /// Un valor que no se entiende se deja igual: sigue siendo una marca de cuarentena, que
     /// es lo que importa.
     static func withoutApproval(_ value: String) -> String {
+        rewriting(value) { $0 & ~userApprovedFlag }
+    }
+
+    /// El mismo valor con el bit de «ya no está donde llegó». Igual que arriba, un valor que
+    /// no se entiende se deja como está.
+    static func markedAsMoved(_ value: String) -> String {
+        rewriting(value) { $0 | movedFlag }
+    }
+
+    /// Las banderas de un valor, o `nil` si no se entienden.
+    static func flags(of value: String) -> UInt32? {
+        guard let first = value.split(separator: ";", omittingEmptySubsequences: false).first else { return nil }
+        return UInt32(first, radix: 16)
+    }
+
+    private static func rewriting(_ value: String, _ change: (UInt32) -> UInt32) -> String {
         var parts = value.split(separator: ";", omittingEmptySubsequences: false).map { String($0) }
-        guard let first = parts.first, let flags = UInt32(first, radix: 16) else { return value }
-        let cleared = String(flags & ~userApprovedFlag, radix: 16)
+        guard let bits = flags(of: value) else { return value }
+        let hex = String(change(bits), radix: 16)
         // Cuatro cifras, como las escribe el sistema: «0081», no «81».
-        parts[0] = String(repeating: "0", count: max(0, 4 - cleared.count)) + cleared
+        parts[0] = String(repeating: "0", count: max(0, 4 - hex.count)) + hex
         return parts.joined(separator: ";")
     }
 }

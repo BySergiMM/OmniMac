@@ -246,6 +246,18 @@ final class InstallReviewTests: XCTestCase {
 
     private let safari = "0083;66a1b2c3;Safari;5F2C0C5E-8B6A-4D0B-9E55-0123456789AB"
 
+    /// Las cuatro cifras de banderas de un valor, como número.
+    private func flags(of value: String?) -> UInt32? {
+        value.flatMap { QuarantineMark.flags(of: $0) }
+    }
+
+    /// Un valor con esas banderas y el resto fijo.
+    private func value(_ flags: UInt32) -> String {
+        var digits = String(flags, radix: 16)
+        digits = String(repeating: "0", count: 4 - digits.count) + digits
+        return "\(digits);66a1b2c3;Safari;ID"
+    }
+
     func testTheAttributeIsTheOneGatekeeperReads() {
         XCTAssertEqual(QuarantineMark.attribute, "com.apple.quarantine")
     }
@@ -255,21 +267,23 @@ final class InstallReviewTests: XCTestCase {
         XCTAssertNil(QuarantineMark.valueForCopy(image: "", app: nil))
     }
 
-    func testAnImageThatWasQuarantinedMarksTheCopyWithTheSameValue() {
-        XCTAssertEqual(QuarantineMark.valueForCopy(image: safari, app: nil), safari)
+    func testAnImageThatWasQuarantinedMarksTheCopyWithItsOriginAndAsMoved() {
+        // Mismo agente, fecha e identificador (lo que enseña Gatekeeper); solo cambia la
+        // bandera de «ya no está donde llegó», que es lo que hace el Finder al arrastrarla.
+        XCTAssertEqual(QuarantineMark.valueForCopy(image: safari, app: nil),
+                       "0183;66a1b2c3;Safari;5F2C0C5E-8B6A-4D0B-9E55-0123456789AB")
     }
 
-    func testACopyTheSystemAlreadyMarkedIsNeverTouched() {
-        // Ni se sustituye ni se completa: lo que puso el sistema se queda como está.
-        XCTAssertNil(QuarantineMark.valueForCopy(image: safari, app: "0081;66a1b2c3;Chrome;OTRO"))
-        XCTAssertNil(QuarantineMark.valueForCopy(image: nil, app: "0081;66a1b2c3;Chrome;OTRO"))
+    func testTheMovedFlagIsNotAddedTwice() {
+        XCTAssertEqual(QuarantineMark.valueForCopy(image: "0183;66a1b2c3;Safari;ID", app: nil),
+                       "0183;66a1b2c3;Safari;ID")
     }
 
     func testTheUserApprovalOfTheImageDoesNotPassToTheApp() {
         // 0x00c1 = descargado + aprobado. La app tiene que pasar su propia revisión.
         XCTAssertEqual(QuarantineMark.withoutApproval("00c1;66a1b2c3;Safari;ID"), "0081;66a1b2c3;Safari;ID")
         XCTAssertEqual(QuarantineMark.withoutApproval("01c1;66a1b2c3;Safari;ID"), "0181;66a1b2c3;Safari;ID")
-        XCTAssertEqual(QuarantineMark.valueForCopy(image: "00c1;66a1b2c3;Safari;ID", app: nil), "0081;66a1b2c3;Safari;ID")
+        XCTAssertEqual(QuarantineMark.valueForCopy(image: "00c1;66a1b2c3;Safari;ID", app: nil), "0181;66a1b2c3;Safari;ID")
     }
 
     func testAValueWithoutApprovalIsCopiedUnchanged() {
@@ -277,18 +291,65 @@ final class InstallReviewTests: XCTestCase {
         XCTAssertEqual(QuarantineMark.withoutApproval("0081;66a1b2c3;Chrome;ID"), "0081;66a1b2c3;Chrome;ID")
     }
 
+    // MARK: Una copia que ya viene marcada
+
+    func testACopyTheSystemAlreadyMarkedWithoutApprovalIsNeverTouched() {
+        // Ni se sustituye ni se completa: lo que puso el sistema se queda como está.
+        for app in ["0081;66a1b2c3;Chrome;OTRO", "0181;66a1b2c3;Chrome;OTRO", safari] {
+            XCTAssertNil(QuarantineMark.valueForCopy(image: safari, app: app), app)
+            XCTAssertNil(QuarantineMark.valueForCopy(image: nil, app: app), app)
+        }
+    }
+
+    func testACopyThatCameApprovedLosesTheApprovalAndNothingElse() {
+        // El sistema pasó la marca de un .dmg que el usuario ya había aprobado: con ella la
+        // app se abriría sin que Gatekeeper la mirase.
+        XCTAssertEqual(QuarantineMark.valueForCopy(image: safari, app: "00c1;66a1b2c3;Chrome;OTRO"),
+                       "0081;66a1b2c3;Chrome;OTRO")
+        // Aunque el .dmg no tuviera marca, y conservando lo demás (aquí, «ya no está donde llegó»).
+        XCTAssertEqual(QuarantineMark.valueForCopy(image: nil, app: "01c3;66a1b2c3;Safari;ID"),
+                       "0183;66a1b2c3;Safari;ID")
+    }
+
+    func testACopyMarkedWithAValueThatIsNotUnderstoodIsLeftAsItIs() {
+        for odd in ["basura", ";;;", "zz;1;2;3"] {
+            XCTAssertNil(QuarantineMark.valueForCopy(image: safari, app: odd), odd)
+        }
+    }
+
+    // MARK: Todas las banderas posibles
+
     func testOnlyTheApprovalBitChangesForEveryPossibleFlagValue() {
         // Todas las banderas posibles en las cuatro cifras: se quita el bit de aprobado y
         // ninguno más, y el resto del valor (fecha, origen, identificador) no se toca.
-        for flags in UInt32(0)...0x0fff {
-            var digits = String(flags, radix: 16)
-            digits = String(repeating: "0", count: 4 - digits.count) + digits
-            let result = QuarantineMark.withoutApproval("\(digits);66a1b2c3;Safari;ID")
+        for bits in UInt32(0)...0x0fff {
+            let result = QuarantineMark.withoutApproval(value(bits))
             let parts = result.split(separator: ";", omittingEmptySubsequences: false).map { String($0) }
             XCTAssertEqual(parts.count, 4, result)
             XCTAssertEqual(Array(parts.dropFirst()), ["66a1b2c3", "Safari", "ID"], result)
             XCTAssertEqual(parts[0].count, 4, result)
-            XCTAssertEqual(UInt32(parts[0], radix: 16), flags & ~QuarantineMark.userApprovedFlag, result)
+            XCTAssertEqual(UInt32(parts[0], radix: 16), bits & ~QuarantineMark.userApprovedFlag, result)
+        }
+    }
+
+    func testTheValueWrittenForTheCopyDiffersFromTheImagesOnlyInApprovalAndMoved() {
+        for bits in UInt32(0)...0x0fff {
+            let written = QuarantineMark.valueForCopy(image: value(bits), app: nil)
+            XCTAssertEqual(flags(of: written),
+                           (bits & ~QuarantineMark.userApprovedFlag) | QuarantineMark.movedFlag, "\(bits)")
+            let tail = written?.split(separator: ";", omittingEmptySubsequences: false).dropFirst().joined(separator: ";")
+            XCTAssertEqual(tail, "66a1b2c3;Safari;ID")
+        }
+    }
+
+    func testAPreMarkedCopyIsRewrittenExactlyWhenItCarriesTheApproval() {
+        for bits in UInt32(0)...0x0fff {
+            let result = QuarantineMark.valueForCopy(image: safari, app: value(bits))
+            if bits & QuarantineMark.userApprovedFlag != 0 {
+                XCTAssertEqual(flags(of: result), bits & ~QuarantineMark.userApprovedFlag, "\(bits)")
+            } else {
+                XCTAssertNil(result, "\(bits)")
+            }
         }
     }
 
@@ -296,6 +357,7 @@ final class InstallReviewTests: XCTestCase {
         // Mejor una marca que no se entiende que ninguna: la cuarentena sigue puesta.
         for odd in ["basura", ";;;", "zz;1;2;3"] {
             XCTAssertEqual(QuarantineMark.withoutApproval(odd), odd)
+            XCTAssertEqual(QuarantineMark.markedAsMoved(odd), odd)
             XCTAssertEqual(QuarantineMark.valueForCopy(image: odd, app: nil), odd)
         }
     }
