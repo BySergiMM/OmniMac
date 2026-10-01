@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuBarStats.apply()
         FeatureManager.shared.startEnabled()
         // Los avisos son lo único del monitor que corre sin que nadie mire: una
-        // muestra barata cada 30 s.
+        // muestra barata cada minuto.
         AlertsMonitor.shared.start()
         DiskImageInstaller.shared.startIfEnabled()
         showWhatsNewIfUpdated()
