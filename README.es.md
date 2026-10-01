@@ -196,7 +196,7 @@ La primera vez se abre la ventana de Ajustes y se pide el permiso de Accesibilid
 
 ## El notch, en detalle
 
-- **Pestaña Música**: carátula (Spotify) que se ilumina al reproducir, título,
+- **Pestaña Música**: carátula (de Spotify o de Música) que se ilumina al reproducir, título,
   artista, barra de progreso arrastrable con tiempos y controles ⏮ ⏯ ⏭. Sin APIs
   privadas: AppleScript.
 - **Apertura**: 0,5 s con el ratón encima, una vibración del trackpad (intensidad
@@ -367,7 +367,6 @@ también desde el menú, «Buscar actualizaciones…». El workflow de GitHub Ac
 
 - Las miniaturas en vivo del selector ⌘Tab necesitan el permiso de Grabación de
   pantalla; sin él, el selector muestra icono + título.
-- La carátula solo aparece con Spotify (Música no expone URL de carátula por AppleScript).
 - El historial del portapapeles vive en memoria salvo que actives «Guardar en disco»
   (sin cifrar); los elementos anclados se guardan siempre, que para eso los anclas.
 - El notch solo controla Spotify y Música (AppleScript); no lee el «Ahora suena» de

@@ -186,7 +186,6 @@ request, and nothing else:
 - Not notarized: macOS will warn on first launch (see above).
 - The notch reads Spotify and Music via AppleScript, so it doesn't pick up
   "now playing" from other apps.
-- Album art only shows for Spotify — Music doesn't expose an artwork URL.
 - Clipboard history lives in memory unless you turn on "save to disk" (unencrypted);
   pinned items are always saved to disk, which is the point of pinning.
 - macOS won't let *any* app remove `~/Library/Containers` folders, so the cleaner
