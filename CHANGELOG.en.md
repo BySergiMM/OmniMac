@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.8 — 2026-10-10
+
+**Fixed**
+- What's New: when you open it by hand from the menu, every fix gets its own screen. In 0.5.7 two of them were merged (both talked about windows) and it said “2 fixes” when there were three.
+
 ## 0.5.7 — 2026-10-10
 
 **Fixed**

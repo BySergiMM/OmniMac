@@ -1,5 +1,10 @@
 # Cambios
 
+## 0.5.8 — 2026-10-10
+
+**Arreglado**
+- Novedades: al abrirlas a mano desde el menú, cada arreglo sale en su propia pantalla. En la 0.5.7 se juntaban dos (los dos hablaban de ventanas) y la ventana decía «2 arreglos» con tres.
+
 ## 0.5.7 — 2026-10-10
 
 **Arreglado**
