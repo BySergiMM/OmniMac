@@ -331,6 +331,29 @@ porque `release.sh` sube la versión al publicar. Misma metodología que en la 0
 - **Una muestra descartada**: la primera, justo tras abrir la app recién compilada, dio 0,417 %
   con la app aún asentándose, igual que pasó en la 0.5.2.
 
+## Medición 0.5.6, sin publicar (6 de octubre de 2026, macOS 27.0, Apple M5)
+
+Primera medición con la sección de batería, sus avisos y el aviso del cargador en el notch.
+Compilación de la rama de trabajo con `./build.sh` (binario universal; el `Info.plist` dice 0.5.5
+porque `release.sh` sube la versión al publicar). Misma metodología (`scripts/dev/measure.sh`,
+`scripts/dev/wakeups.sh`, `footprint`), con el cargador puesto, que es cuando los avisos leen la
+temperatura de la batería (una vuelta de cada dos).
+
+| Escenario | CPU media | RSS | Memoria real | Despertares | Hilos |
+|---|---|---|---|---|---|
+| **0.5.6, reposo** (notch plegado, 60 s, tres muestras) | 0,233 / 0,267 / 0,250 % | 85–86 MB | 37–38 MB | 0,3/s (0,0/s tras abrir y cerrar el notch) | 4–6 |
+| **0.5.5 publicada, mismo día y mismas condiciones** (dos muestras) | 0,250 / 0,250 % | 85 MB | 37 MB | — | 4–5 |
+| 0.5.5 publicada, 60 s solo con `ps`, sin consultar la altura del notch | 0,233 / 0,233 % | — | — | — | — |
+
+- **Los cambios de la 0.5.6 no suben el consumo**: medida junto a la 0.5.5 en las mismas
+  condiciones, gasta lo mismo. La memoria real tampoco se mueve (37–38 MB).
+- **Pero ninguna de las dos da hoy el 0,033 % de la medición de la 0.5.5** (1 de octubre), y eso
+  pasa también midiendo sin las consultas de Accesibilidad del script, así que no es el método.
+  `sample` no enseña nada caliente: la app pasa casi todo el tiempo esperando. Ese día Spotify
+  estaba abierto y la presión de memoria del sistema había llegado a «crítica»; la sospecha es la
+  vigilancia de la música del notch, **sin confirmar**. Hasta saber la causa, las cifras públicas
+  (0,017–0,033 %) no se han cambiado ni se han vuelto a confirmar.
+
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
 Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),

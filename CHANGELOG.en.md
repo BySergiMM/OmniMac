@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.6 — unreleased
+
+**New**
+- Performance: the battery, inside out. Maximum capacity (the same figure System Settings shows), today's mAh against the factory figure, cycles against the rated count, whether it's charging and how long it has left, the charger's watts and the temperature. One reading a day builds up the history: how much capacity it has lost and how many cycles it has added since the first one. Everything is read without permissions, and a button takes you to macOS's charge limit (26.4 or later), which is what actually sets it: OmniMac doesn't control charging.
+- Battery alerts: “You can unplug now” at the level you choose, also below 80% (where macOS's limit doesn't reach), once per charge and off by default; “The battery is getting hot” above 40 °C while plugged in; and the low-battery one now lets you pick the level. OmniMac asks for permission to notify you as soon as an alert is on, and if notifications are off, Settings tells you and takes you to turn them on.
+- Notch: plugging in the charger shows a notice with the watts and the charge (“Charging · 30 W · 57%”). You can turn it off in Settings › Notch › Notices.
+
+**Fixed**
+- ⌘Tab by windows: if the mouse sat still where the switcher appears, it picked the window underneath instead of the previous one. Now the mouse only counts when it moves, even by a pixel. And moving it fast no longer misses the cell you point at, which sometimes didn't change before.
+- Performance alerts: if macOS wouldn't show notifications, they were lost without a word. The page now says so.
+
 ## 0.5.5 — 2026-10-01
 
 **Changed**

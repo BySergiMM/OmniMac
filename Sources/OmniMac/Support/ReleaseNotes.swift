@@ -168,6 +168,11 @@ struct ReleaseNotes: Equatable {
             ("caché", "internaldrive"),
             ("cache", "internaldrive"),
             ("almacenamiento", "internaldrive"),
+            // Antes que «rendimiento»: la batería vive en esa página, pero su icono es el suyo.
+            ("avisos de batería", "bell.badge"),
+            ("battery alerts", "bell.badge"),
+            ("batería", "battery.75percent"),
+            ("battery", "battery.75percent"),
             ("rendimiento", "gauge.with.dots.needle.33percent"),
             ("performance", "gauge.with.dots.needle.33percent"),
             ("idioma", "globe"),

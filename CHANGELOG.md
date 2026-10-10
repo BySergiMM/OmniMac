@@ -1,5 +1,16 @@
 # Cambios
 
+## 0.5.6 — sin publicar
+
+**Nuevo**
+- Rendimiento: la batería por dentro. La capacidad máxima (la misma cifra que Ajustes del Sistema), los mAh de hoy frente a los de fábrica, los ciclos frente a los previstos, si está cargando y cuánto le falta, los vatios del cargador y la temperatura. Una lectura al día va formando la evolución: cuánta capacidad ha perdido y cuántos ciclos lleva desde la primera. Todo se lee sin permisos, y un botón lleva al límite de carga de macOS (26.4 o posterior), que es quien lo pone de verdad: OmniMac no controla la carga.
+- Avisos de batería: «Ya puedes desenchufar» al porcentaje que elijas, también por debajo del 80 % (adonde no llega el límite de macOS), una vez por carga y apagado de fábrica; «La batería se está calentando» si pasa de 40 °C con el cargador puesto; y el de batería baja ahora deja elegir el porcentaje. OmniMac pide permiso para avisarte en cuanto hay un aviso encendido, y si las notificaciones están desactivadas, Ajustes te lo dice y te lleva a activarlas.
+- Notch: al enchufar el cargador, un aviso con los vatios y la carga («Cargando · 30 W · 57 %»). Se puede apagar en Ajustes › Notch › Avisos.
+
+**Arreglado**
+- ⌘Tab por ventanas: si el ratón estaba quieto donde aparece el selector, elegía la ventana que había debajo en vez de la anterior. Ahora el ratón solo cuenta cuando se mueve, aunque sea un píxel. Y al moverlo rápido ya no se pierde la celda a la que apuntas, que antes a veces no cambiaba.
+- Avisos de Rendimiento: si macOS no dejaba enseñar notificaciones, se perdían sin decir nada. Ahora la página lo dice.
+
 ## 0.5.5 — 2026-10-01
 
 **Cambiado**

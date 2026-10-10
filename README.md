@@ -90,13 +90,13 @@ more sensors). Both are excellent — go install them if that's what you need.
 
 | Module | What it does |
 |---|---|
-| ▮ **Dynamic notch** | Hover and it expands: music, a file tray with AirDrop, today's calendar, sound, timer and Pomodoro, performance. Sneak peek on track change, an iPhone-style card when AirPods connect. Works without a notch. |
+| ▮ **Dynamic notch** | Hover and it expands: music, a file tray with AirDrop, today's calendar, sound, timer and Pomodoro, performance. Sneak peek on track change, an iPhone-style card when AirPods connect, the charger's watts when you plug it in. Works without a notch. |
 | ☕ **Keep awake** | Indefinitely, on a timer, or until a given time. Stays awake with the lid closed, stops on low battery, turns on with the charger or an external display. |
 | ⌘ **⌘Tab by windows** | All your windows, not just apps, with live thumbnails. Type to search; ⌘W / ⌘M / ⌘H / ⌘Q act on the highlighted one. |
 | ▭ **Window shortcuts** | Halves, thirds, quarters, almost-maximize, next display. Drag to an edge to snap. Layouts saved on ⌃⌥1…9, like radio presets. |
 | 📋 **Clipboard** | Text, images and files. Search, pins, pause, optional persistence. **It never records what you copy in a password manager**, or in any app you add to the list. **⌥⇧⌘V pastes without formatting**, and it can strip tracking from links as you copy them. |
 | 🔊 **Sound** | Per-app volume, a **10-band equaliser** (global or per app) with nine presets, boost past 100 % with a limiter, output priority, and a standalone mixer on ⌃⌥⌘V. |
-| 📈 **Performance** | Per-core CPU (efficiency vs performance), GPU, memory with pressure, disk, network, **temperature**, and **which apps are eating your Mac**. Alerts when something goes wrong. |
+| 📈 **Performance** | Per-core CPU (efficiency vs performance), GPU, memory with pressure, disk, network, **temperature**, and **which apps are eating your Mac**. Alerts when something goes wrong. **Battery health**: capacity against new, cycles, charger watts and a day-by-day history, plus alerts to **unplug at the level you pick** (even below the 80% where macOS's own limit stops) or when it runs hot while charging. |
 | 🛠 **Tools** | OCR (⇧⌘2), colour picker (⇧⌘6), mic mute, keyboard lock for cleaning, hide desktop icons, hold-to-quit guard, and dimming **below macOS's minimum brightness**. |
 | ⌘ **Command bar** | ⌥Space and type: every OmniMac feature and every app. Off by default — ⌥Space belongs to Raycast for a lot of people. |
 | 🫥 **Menu bar** | Hides the icons you don't use every day. |
@@ -117,7 +117,8 @@ when it folds. The audio engine isn't even created unless you've set something t
 
 Some things do run in the background: the clipboard history checks the clipboard once a
 second (four times a second for four seconds after you copy something), the performance
-alerts take one cheap sample a minute, and, only if you turn it on, the Downloads
+alerts take one cheap sample a minute (with the charger plugged in, every other one also
+reads the battery temperature), and, only if you turn it on, the Downloads
 installer looks at your Downloads folder every 8 seconds. The clipboard module and the
 alert rules can be switched off in Settings.
 

@@ -212,4 +212,24 @@ final class ReleaseNotesOnlyFixesTests: XCTestCase {
                            "\(archivo): la versión \(ultima.version) no enseñaría nada")
         }
     }
+
+    /// La 0.5.6: tres novedades en tres áreas distintas, para que ninguna se quede
+    /// fuera del recorrido (sale una pantalla por área).
+    func testLa056EnsenaSusTresNovedades() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let esperado = [
+            "CHANGELOG.md": ["Rendimiento", "Avisos de batería", "Notch"],
+            "CHANGELOG.en.md": ["Performance", "Battery alerts", "Notch"],
+        ]
+        for (archivo, titulos) in esperado {
+            guard let markdown = try? String(contentsOf: raiz.appendingPathComponent(archivo), encoding: .utf8) else {
+                throw XCTSkip("No está \(archivo) junto a las fuentes")
+            }
+            let notas = try XCTUnwrap(ReleaseNotes.notes(for: "0.5.6", in: markdown), archivo)
+            XCTAssertEqual(notas.highlights.map(\.title), titulos, archivo)
+            XCTAssertEqual(notas.highlights.map(\.symbol), ["battery.75percent", "bell.badge", "sparkles.rectangle.stack"], archivo)
+            XCTAssertEqual(notas.highlights(includingFixes: true).count, 4, archivo)   // + ⌘Tab
+        }
+    }
 }
