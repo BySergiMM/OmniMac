@@ -841,6 +841,9 @@ struct NotchPage: View {
                         .labelsHidden()
                         .frame(width: 190)
                     }
+                    SettingToggle(title: L("Aviso al enchufar el cargador", "Notice when you plug in the charger"),
+                                  subtitle: L("Los vatios del cargador y la carga, unos segundos bajo el notch.", "The charger's watts and the charge level, for a few seconds under the notch."),
+                                  isOn: $feature.chargerPeek)
                     SettingRow(title: L("Probar", "Try it")) {
                         Button(L("Enseñar un aviso", "Show a notice")) { Toast.show(L("Así se ven los avisos", "This is what notices look like"), symbol: "hand.wave.fill", duration: 2.5) }
                     }

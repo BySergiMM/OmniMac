@@ -39,6 +39,14 @@ final class NotchFeature: BaseFeature {
     }
     private let headphones = HeadphonesWatcher()
 
+    /// Al enchufar el cargador, el notch dice unos segundos los vatios y la carga.
+    @Published var chargerPeek: Bool {
+        didSet {
+            UserDefaults.standard.set(chargerPeek, forKey: "notch.chargerPeek")
+            controller?.chargerPeekEnabled = chargerPeek
+        }
+    }
+
     @Published var sneakPeek: Bool {
         didSet {
             UserDefaults.standard.set(sneakPeek, forKey: "notch.sneakPeek")
@@ -94,6 +102,7 @@ final class NotchFeature: BaseFeature {
         hideInFullscreen = defaults.object(forKey: "notch.hideFullscreen") == nil ? true : defaults.bool(forKey: "notch.hideFullscreen")
         sneakPeek = defaults.object(forKey: "notch.sneakPeek") == nil ? true : defaults.bool(forKey: "notch.sneakPeek")
         headphonesCard = defaults.object(forKey: "notch.headphonesCard") == nil ? true : defaults.bool(forKey: "notch.headphonesCard")
+        chargerPeek = defaults.object(forKey: "notch.chargerPeek") == nil ? true : defaults.bool(forKey: "notch.chargerPeek")
         hideSystemBanner = defaults.object(forKey: "notch.hideSystemBanner") == nil ? true : defaults.bool(forKey: "notch.hideSystemBanner")
         showCoffeeButton = defaults.object(forKey: "notch.showCoffee") == nil ? true : defaults.bool(forKey: "notch.showCoffee")
         showSettingsButton = defaults.object(forKey: "notch.showSettings") == nil ? true : defaults.bool(forKey: "notch.showSettings")
@@ -243,6 +252,7 @@ final class NotchFeature: BaseFeature {
         controller.showCoffee = showCoffeeButton
         controller.showSettings = showSettingsButton
         controller.showBattery = showBattery
+        controller.chargerPeekEnabled = chargerPeek
         self.controller = controller
     }
 }
@@ -496,6 +506,11 @@ final class NotchWindowController {
     var sneakPeekEnabled = true {
         didSet { updateWatch() }
     }
+    var chargerPeekEnabled = true
+    private var batteryObserver: AnyCancellable?
+    /// `nil` hasta la primera lectura: arrancar con el cargador puesto no es enchufarlo.
+    private var wasPluggedIn: Bool?
+    private var chargerWork: DispatchWorkItem?
     var hideSystemBanner = true
     private var deviceWork: DispatchWorkItem?
     /// Tras un cambio de escritorio, nada se abre solo hasta que el ratón se mueva de verdad.
@@ -590,6 +605,9 @@ final class NotchWindowController {
         model.onExpandRequest = { [weak self] in self?.expandNow() }
         model.onCollapseRequest = { [weak self] in self?.collapseNow() }
         media.onTrackChange = { [weak self] info in self?.showPeek(for: info) }
+        // El monitor de batería ya escucha a macOS para el icono de la cabecera: se
+        // aprovecha el mismo aviso, sin vigilancia nueva.
+        batteryObserver = battery.$state.sink { [weak self] state in self?.batteryChanged(state) }
 
         installMoveMonitors()
 
@@ -1014,6 +1032,32 @@ final class NotchWindowController {
     private func showPeek(for info: NowPlayingInfo) {
         guard sneakPeekEnabled else { return }
         presentPeek(PeekInfo(symbol: "music.note", title: info.title, subtitle: info.artist, tint: nil), duration: 3.2)
+    }
+
+    /// Al enchufar: los vatios y la carga en un aviso.
+    ///
+    /// Se espera un segundo porque, recién enchufado, el cargador aún está negociando
+    /// con el Mac y macOS no sabe todavía los vatios.
+    private func batteryChanged(_ state: BatteryState) {
+        guard state.hasBattery else { return }
+        let plugged = state.isPluggedIn
+        defer { wasPluggedIn = plugged }
+        guard plugged else {
+            chargerWork?.cancel()
+            chargerWork = nil
+            return
+        }
+        guard chargerPeekEnabled, wasPluggedIn == false else { return }
+        chargerWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard self != nil, let report = BatteryReport.read(), report.isPluggedIn else { return }
+            // Por los avisos de siempre: bajo el notch o abajo, según Ajustes, y abajo
+            // si el notch está abierto o escondido por pantalla completa.
+            let text = report.chargerPeek
+            Toast.show("\(text.title) · \(text.subtitle)", symbol: "bolt.fill", duration: 3.2)
+        }
+        chargerWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
     }
 
     /// Un aviso cualquiera bajo el notch (estilo «desplegando el notch»).

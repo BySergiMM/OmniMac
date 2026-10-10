@@ -64,6 +64,15 @@ struct AlertSettings: Equatable {
     var thermalEnabled = true
     var batteryEnabled = true
     var batteryPercent: Double = 15
+    /// «Desenchufa, ya estás al X %». Apagado de fábrica: con el límite de carga de
+    /// macOS al 80 % avisaría en cada carga a quien no lo ha pedido.
+    var unplugEnabled = false
+    var unplugPercent: Double = 80
+    /// La batería caliente mientras carga es lo que más la desgasta.
+    var batteryHeatEnabled = true
+    /// Fijo a propósito: un umbral más que tocar no ayuda a nadie. Cargando, lo normal
+    /// es quedarse por debajo de 35 °C.
+    static let batteryHeatCelsius: Double = 40
 
     static let key = "performance.alerts"
 }
@@ -88,6 +97,8 @@ struct AlertEngine {
     private var disk = AlertState()
     private var thermal = AlertState()
     private var battery = AlertState()
+    private var unplug = AlertState()
+    private var batteryHeat = AlertState()
 
     init(settings: AlertSettings = AlertSettings()) {
         self.settings = settings
@@ -105,6 +116,8 @@ struct AlertEngine {
         var batteryPercent: Double?
         /// Con el cargador puesto no se avisa de batería baja.
         var charging = false
+        /// Grados de la batería; solo se miden con el cargador puesto.
+        var batteryTemperature: Double?
     }
 
     mutating func evaluate(_ sample: Sample) -> [PerformanceAlert] {
@@ -163,6 +176,34 @@ struct AlertEngine {
                                     title: L("Batería baja", "Low battery"),
                                     body: L("Queda un \(Int(level)) %.", "\(Int(level))% left."),
                                     symbol: "battery.25"))
+            }
+        }
+
+        if settings.unplugEnabled, let level = sample.batteryPercent {
+            if sample.charging {
+                // «Al llegar al 80 %» incluye el 80: medio punto por debajo del umbral.
+                let rule = AlertRule(threshold: settings.unplugPercent - 0.5, sustain: 1, hysteresis: 0)
+                if unplug.update(level, rule: rule) {
+                    alerts.append(.init(id: "unplug",
+                                        title: L("Ya puedes desenchufar", "You can unplug now"),
+                                        body: L("La batería está al \(Int(level)) %. Quitar el cargador ahora la ayuda a durar más.",
+                                                "The battery is at \(Int(level))%. Unplugging now helps it last longer."),
+                                        symbol: "powerplug"))
+                }
+            } else {
+                // Al desenchufar se rearma: la próxima carga vuelve a avisar.
+                unplug = AlertState()
+            }
+        }
+
+        if settings.batteryHeatEnabled, sample.charging, let celsius = sample.batteryTemperature {
+            let rule = AlertRule(threshold: AlertSettings.batteryHeatCelsius, sustain: 2, hysteresis: 3)
+            if batteryHeat.update(celsius, rule: rule) {
+                alerts.append(.init(id: "batteryHeat",
+                                    title: L("La batería se está calentando", "The battery is getting hot"),
+                                    body: L("Está a \(Int(celsius)) °C con el cargador puesto. Desenchufar un rato la ayuda a durar más.",
+                                            "It's at \(Int(celsius)) °C while plugged in. Unplugging for a while helps it last longer."),
+                                    symbol: "thermometer.high"))
             }
         }
 

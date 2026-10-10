@@ -9,8 +9,10 @@ import Foundation
 /// - Una muestra cada **minuto**, con tolerancia, para que macOS agrupe los
 ///   despertares.
 /// - Solo lo que cuesta cuatro llamadas al sistema: CPU, presión de memoria, disco
-///   libre, estado térmico y batería. **Nada de GPU, sensores de temperatura ni
-///   recorrer los 445 procesos**: eso solo se hace con la página abierta.
+///   libre, estado térmico y batería. **Nada de GPU ni recorrer los 445
+///   procesos**: eso solo se hace con la página abierta. Los sensores de
+///   temperatura, solo para el aviso de batería caliente: con el cargador puesto y
+///   una vuelta de cada dos.
 /// - Si están todas las reglas apagadas, ni temporizador hay.
 @MainActor
 final class AlertsMonitor: ObservableObject {
@@ -21,8 +23,13 @@ final class AlertsMonitor: ObservableObject {
             save()
             engine.settings = settings
             reschedule()
+            // Encender un aviso es el momento de pedir permiso, no cuando ya ha saltado.
+            if anythingEnabled { askForPermission() }
         }
     }
+
+    /// Si macOS deja que los avisos se vean. Lo enseña la página de Rendimiento.
+    @Published private(set) var permission: Notifier.Permission = .allowed
 
     /// Cada cuánto se mira.
     ///
@@ -53,6 +60,9 @@ final class AlertsMonitor: ObservableObject {
         loaded.cpuThreshold = stored["cpuThreshold"] as? Double ?? 80
         loaded.diskFreeGB = stored["diskFreeGB"] as? Double ?? 10
         loaded.batteryPercent = stored["batteryPercent"] as? Double ?? 15
+        loaded.unplugEnabled = flag("unplug", false)
+        loaded.unplugPercent = stored["unplugPercent"] as? Double ?? 80
+        loaded.batteryHeatEnabled = flag("batteryHeat", true)
         settings = loaded
         engine = AlertEngine(settings: loaded)
     }
@@ -64,18 +74,35 @@ final class AlertsMonitor: ObservableObject {
             "battery": settings.batteryEnabled,
             "cpuThreshold": settings.cpuThreshold, "diskFreeGB": settings.diskFreeGB,
             "batteryPercent": settings.batteryPercent,
+            "unplug": settings.unplugEnabled, "unplugPercent": settings.unplugPercent,
+            "batteryHeat": settings.batteryHeatEnabled,
         ], forKey: AlertSettings.key)
     }
 
     /// ¿Hay algo que vigilar?
     private var anythingEnabled: Bool {
         settings.cpuEnabled || settings.memoryEnabled || settings.diskEnabled
-            || settings.thermalEnabled || settings.batteryEnabled
+            || settings.thermalEnabled || anyBatteryRule
+    }
+
+    private var anyBatteryRule: Bool {
+        settings.batteryEnabled || settings.unplugEnabled || settings.batteryHeatEnabled
     }
 
     func start() {
         running = true
         reschedule()
+        if anythingEnabled { askForPermission() }
+    }
+
+    /// Enseña el cuadro de macOS si aún no se ha preguntado; si ya se decidió, solo lo lee.
+    func askForPermission() {
+        Task { permission = await Notifier.requestIfNeeded() }
+    }
+
+    /// Vuelve a mirar el permiso (al abrir la página o al volver de Ajustes del Sistema).
+    func refreshPermission() {
+        Task { permission = await Notifier.permission() }
     }
 
     func stop() {
@@ -129,9 +156,16 @@ final class AlertsMonitor: ObservableObject {
             @unknown default: 0
             }
         }
-        if settings.batteryEnabled, let battery = SystemProbes.battery() {
+        if anyBatteryRule, let battery = SystemProbes.battery() {
             sample.batteryPercent = battery.percent
             sample.charging = battery.charging
+            // Los sensores de temperatura son lo caro de la vuelta: solo con el
+            // cargador puesto (que es cuando la batería se calienta) y cada dos minutos.
+            if settings.batteryHeatEnabled, battery.charging, ticks % 2 == 0 {
+                sample.batteryTemperature = Temperature.read()?.battery
+            }
+            // Una vez al día se anota la capacidad; el resto de días no hace nada.
+            BatteryHistory.recordToday()
         }
 
         for alert in engine.evaluate(sample) {

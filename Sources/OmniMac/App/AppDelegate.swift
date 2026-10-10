@@ -25,6 +25,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Los avisos son lo único del monitor que corre sin que nadie mire: una
         // muestra barata cada minuto.
         AlertsMonitor.shared.start()
+        // La salud de la batería, una vez al día (con los avisos apagados no habría
+        // otra vuelta que la anotara).
+        BatteryHistory.recordToday()
         DiskImageInstaller.shared.startIfEnabled()
         showWhatsNewIfUpdated()
 

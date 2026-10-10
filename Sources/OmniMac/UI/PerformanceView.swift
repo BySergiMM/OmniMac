@@ -8,6 +8,7 @@ import SwiftUI
 struct PerformancePage: View {
     @StateObject private var stats = SystemStats()
     @ObservedObject private var alerts = AlertsMonitor.shared
+    @StateObject private var battery = BatteryPanel()
     @State private var placement = MenuBarStats.placement
 
     var body: some View {
@@ -186,7 +187,23 @@ struct PerformancePage: View {
                           legend: L("línea continua: bajada · discontinua: subida", "solid line: download · dashed: upload"))
             }
 
+            if let report = battery.report {
+                BatterySection(report: report,
+                               health: battery.health,
+                               trend: battery.trend,
+                               temperature: stats.batteryTemperature)
+            }
+
             Section {
+                if alerts.permission != .allowed {
+                    NotificationPermissionRow(permission: alerts.permission) {
+                        if alerts.permission == .notAsked {
+                            alerts.askForPermission()
+                        } else {
+                            Notifier.openSystemSettings()
+                        }
+                    }
+                }
                 SettingToggle(title: L("La CPU lleva rato al máximo", "The CPU has been maxed out"),
                               subtitle: L("Aviso si pasa del \(Int(alerts.settings.cpuThreshold)) % durante medio minuto seguido.",
                                           "Warn if it goes above \(Int(alerts.settings.cpuThreshold))% for half a minute straight."),
@@ -203,15 +220,29 @@ struct PerformancePage: View {
                               subtitle: L("Cuando macOS empieza a frenar para bajar la temperatura.",
                                           "When macOS starts throttling to cool down."),
                               isOn: $alerts.settings.thermalEnabled)
-                SettingToggle(title: L("Batería baja", "Low battery"),
-                              subtitle: L("Por debajo del \(Int(alerts.settings.batteryPercent)) % y sin cargador.",
-                                          "Below \(Int(alerts.settings.batteryPercent))% and unplugged."),
-                              isOn: $alerts.settings.batteryEnabled)
+                if battery.report != nil {
+                    PercentAlertRow(title: L("Batería baja: enchufa", "Low battery: plug in"),
+                                    subtitle: L("Al bajar del \(Int(alerts.settings.batteryPercent)) % sin cargador.",
+                                                "Below \(Int(alerts.settings.batteryPercent))% and unplugged."),
+                                    percent: $alerts.settings.batteryPercent,
+                                    range: 5...50,
+                                    isOn: $alerts.settings.batteryEnabled)
+                    PercentAlertRow(title: L("Ya puedes desenchufar", "You can unplug now"),
+                                    subtitle: L("Al llegar al \(Int(alerts.settings.unplugPercent)) % enchufado. Para quedarte por debajo del límite de macOS, que empieza en el 80 %.",
+                                                "When it reaches \(Int(alerts.settings.unplugPercent))% while plugged in. To stay below macOS's own limit, which starts at 80%."),
+                                    percent: $alerts.settings.unplugPercent,
+                                    range: 50...100,
+                                    isOn: $alerts.settings.unplugEnabled)
+                    SettingToggle(title: L("La batería se calienta cargando", "The battery gets hot while charging"),
+                                  subtitle: L("Por encima de \(Int(AlertSettings.batteryHeatCelsius)) °C con el cargador puesto, que es cuando más se desgasta.",
+                                              "Above \(Int(AlertSettings.batteryHeatCelsius)) °C while plugged in, which is when it wears the most."),
+                                  isOn: $alerts.settings.batteryHeatEnabled)
+                }
             } header: {
                 Text(L("Avisos", "Alerts"))
             } footer: {
-                Text(L("Se mira cada minuto, y solo lo barato: CPU, memoria, disco, temperatura y batería. Cada aviso sale una vez y no se repite hasta que la cosa vuelve a estar bien. Con todos apagados, ni se mide.",
-                       "Checked every minute, and only the cheap things: CPU, memory, disk, temperature and battery. Each alert fires once and won't repeat until things are back to normal. With all of them off, nothing is measured at all."))
+                Text(L("Se mira cada minuto, y solo lo barato: CPU, memoria, disco, temperatura y batería. Los grados de la batería, solo con el cargador puesto y cada dos minutos. Cada aviso sale una vez y no se repite hasta que la cosa vuelve a estar bien (el de desenchufar, en la siguiente carga). Con todos apagados, ni se mide.",
+                       "Checked every minute, and only the cheap things: CPU, memory, disk, temperature and battery. Battery degrees only while plugged in, every two minutes. Each alert fires once and won't repeat until things are back to normal (the unplug one, on the next charge). With all of them off, nothing is measured at all."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -230,8 +261,12 @@ struct PerformancePage: View {
                 Text(L("Qué ocupa más memoria", "What's using the most memory"))
             }
         }
-        .onAppear { stats.start() }
-        .onDisappear { stats.stop() }
+        .onAppear { stats.start(); battery.start(); alerts.refreshPermission() }
+        // Al volver de Ajustes del Sistema, por si se acaban de activar.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            alerts.refreshPermission()
+        }
+        .onDisappear { stats.stop(); battery.stop() }
     }
 
     private static func thermalColor(_ state: ProcessInfo.ThermalState) -> Color {
@@ -259,6 +294,137 @@ struct PerformancePage: View {
 
     private static func rate(_ kbps: Double) -> String {
         kbps >= 1024 ? String(format: "%.1f MB/s", kbps / 1024) : String(format: "%.0f KB/s", kbps)
+    }
+}
+
+/// Salud y estado de la batería. Solo lectura: el límite de carga lo pone macOS.
+struct BatterySection: View {
+    let report: BatteryReport
+    let health: MacHealth.Info?
+    let trend: BatteryHistory.Trend?
+    let temperature: Double?
+
+    var body: some View {
+        Section {
+            SettingRow(title: L("Capacidad máxima", "Maximum capacity"), subtitle: capacityDetail) {
+                Text(capacityText)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            SettingRow(title: L("Ahora", "Now"), subtitle: nowDetail) {
+                Text("\(report.percent) %")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            SettingRow(title: L("Evolución", "Over time"),
+                       subtitle: trend?.summary()
+                           ?? L("Se anota una lectura al día. En unas semanas verás aquí cuánto ha cambiado.",
+                                "One reading a day is saved. In a few weeks you'll see here how much it has changed.")) {
+                EmptyView()
+            }
+            SettingRow(title: L("Límite de carga", "Charge limit"),
+                       subtitle: L("Lo pone macOS (26.4 o posterior): Batería › Carga › ⓘ, del 80 % al 100 %. Para parar antes, usa el aviso «Ya puedes desenchufar».",
+                                   "macOS sets it (26.4 or later): Battery › Charging › ⓘ, from 80% to 100%. To stop earlier, use the “You can unplug now” alert.")) {
+                Button(L("Abrir Ajustes", "Open Settings")) {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            }
+        } header: {
+            Text(L("Batería", "Battery"))
+        } footer: {
+            Text(L("Todo se lee sin permisos. OmniMac no controla la carga: eso exige un ayudante con privilegios de administrador, y en los Mac recientes no hay forma documentada de hacerlo.",
+                   "Everything is read without permissions. OmniMac doesn't control charging: that takes a helper with administrator privileges, and recent Macs offer no documented way to do it."))
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    /// La cifra de macOS (la misma que en Ajustes); mientras llega, la cuenta en mAh.
+    private var capacityText: String {
+        if let value = health?.maximumCapacity { return "\(value) %" }
+        if let ratio = report.capacityRatio { return String(format: "%.0f %%", min(100, ratio)) }
+        return "—"
+    }
+
+    private var capacityDetail: String {
+        var parts: [String] = []
+        if let condition = health?.condition {
+            parts.append(L("Estado: \(MacHealth.conditionTitle(condition))", "Condition: \(MacHealth.conditionTitle(condition))"))
+        }
+        if let current = report.currentCapacity, let design = report.designCapacity {
+            parts.append(L("\(current) de \(design) mAh de fábrica", "\(current) of \(design) mAh when new"))
+        }
+        if let cycles = report.cycleCount {
+            if let design = report.designCycleCount {
+                parts.append(L("\(cycles) ciclos de \(design) previstos", "\(cycles) of \(design) rated cycles"))
+            } else {
+                parts.append(L("\(cycles) ciclos", "\(cycles) cycles"))
+            }
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private var nowDetail: String {
+        var parts = [report.statusText]
+        if let watts = report.adapterWatts, report.isPluggedIn {
+            parts.append(L("cargador de \(watts) W", "\(watts) W charger"))
+        }
+        if let temperature {
+            parts.append(String(format: "%.0f °C", temperature))
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// Los avisos no se verán: o falta pedir permiso, o se denegó y hay que ir a Ajustes.
+struct NotificationPermissionRow: View {
+    let permission: Notifier.Permission
+    let action: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "bell.slash.fill")
+                .foregroundStyle(.orange)
+                .font(.system(size: 16))
+            SettingLabel(title: permission == .notAsked
+                             ? L("OmniMac necesita permiso para avisarte", "OmniMac needs permission to notify you")
+                             : L("Las notificaciones de OmniMac están desactivadas", "OmniMac's notifications are turned off"),
+                         subtitle: permission == .notAsked
+                             ? L("Sin él, estos avisos no se ven.", "Without it, these alerts won't show.")
+                             : L("macOS no deja volver a preguntarlo: actívalas en Ajustes del Sistema › Notificaciones › OmniMac.",
+                                 "macOS won't ask again: turn them on in System Settings › Notifications › OmniMac."))
+            Spacer(minLength: 16)
+            Button(permission == .notAsked ? L("Permitir", "Allow") : L("Abrir Ajustes", "Open Settings"), action: action)
+        }
+    }
+}
+
+/// Aviso con su porcentaje: interruptor y, al lado, el número que se puede mover.
+struct PercentAlertRow: View {
+    let title: String
+    let subtitle: String
+    @Binding var percent: Double
+    let range: ClosedRange<Double>
+    @Binding var isOn: Bool
+
+    var body: some View {
+        SettingRow(title: title, subtitle: subtitle) {
+            HStack(spacing: 4) {
+                // El número fuera del Stepper: dentro, el Form lo manda a la otra punta.
+                Text("\(Int(percent)) %")
+                    .monospacedDigit()
+                    .foregroundStyle(isOn ? .primary : .secondary)
+                    .frame(width: 44, alignment: .trailing)
+                Stepper("", value: $percent, in: range, step: 5)
+                    .labelsHidden()
+                    .disabled(!isOn)
+                    .padding(.trailing, 6)
+                Toggle("", isOn: $isOn)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
+        }
     }
 }
 
