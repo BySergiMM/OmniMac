@@ -205,11 +205,25 @@ final class WindowSwitcherFeature: BaseFeature {
         let windows = WindowEnumerator.windows(includeMinimized: includeMinimized)
         guard !windows.isEmpty else { return false }
         sessionActive = true
-        let initial = windows.count > 1 ? (backward ? windows.count - 1 : 1) : 0
+        let fromOwnWindow = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            == ProcessInfo.processInfo.processIdentifier
+        let initial = Self.initialSelection(count: windows.count, backward: backward, fromOwnWindow: fromOwnWindow)
         panel.show(windows: windows,
                    initialSelection: initial,
                    thumbnails: showThumbnails && Permissions.hasScreenRecording)
         return true
+    }
+
+    /// La ventana que sale elegida al abrir el selector.
+    ///
+    /// Normalmente la segunda: la primera es la que ya tienes delante. Pero el selector no
+    /// enseña las ventanas de OmniMac, así que si la de delante es una suya (Ajustes,
+    /// Novedades), la primera de la lista ya es la última que usabas y es a la que hay que
+    /// volver; antes se la saltaba y te llevaba a la anterior.
+    static func initialSelection(count: Int, backward: Bool, fromOwnWindow: Bool) -> Int {
+        guard count > 1 else { return 0 }
+        if backward { return count - 1 }
+        return fromOwnWindow ? 0 : 1
     }
 
     private func endSessionIfEmpty() {

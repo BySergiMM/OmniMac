@@ -104,11 +104,18 @@ final class ScreenColorPicker {
 }
 
 /// Velo con cruceta: un clic elige el color.
-final class ColorPickOverlayWindow: NSWindow {
+///
+/// Panel que no activa la app, como el de las capturas: si la activara, una ventana de
+/// OmniMac abierta detrás (Novedades, Ajustes) saltaría delante y el clic cogería su
+/// color en vez del de lo que había debajo.
+final class ColorPickOverlayWindow: NSPanel {
     var onPick: ((CGPoint) -> Void)?
 
     init(screen: NSScreen) {
-        super.init(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        super.init(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        isFloatingPanel = true
+        becomesKeyOnlyIfNeeded = false
+        hidesOnDeactivate = false
         level = .screenSaver
         isOpaque = false
         backgroundColor = NSColor.black.withAlphaComponent(0.001)
@@ -124,8 +131,8 @@ final class ColorPickOverlayWindow: NSWindow {
     override var canBecomeKey: Bool { true }
 
     func present() {
+        level = .screenSaver
         makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
         NSCursor.crosshair.set()
     }
 }

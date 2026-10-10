@@ -66,4 +66,25 @@ final class SwitcherHoverGateTests: XCTestCase {
         XCTAssertEqual(SwitcherHoverGate.cell(at: CGPoint(x: 200, y: 450), panelFrame: panel, gridTop: 30, cellFrames: scrolled), 0)
         XCTAssertEqual(SwitcherHoverGate.cell(at: CGPoint(x: 200, y: 220), panelFrame: panel, gridTop: 30, cellFrames: scrolled), 1)
     }
+
+}
+
+/// Qué ventana sale elegida al abrir ⌘Tab.
+final class SwitcherInitialSelectionTests: XCTestCase {
+    func testNormallyThePreviousWindow() {
+        XCTAssertEqual(WindowSwitcherFeature.initialSelection(count: 5, backward: false, fromOwnWindow: false), 1)
+        XCTAssertEqual(WindowSwitcherFeature.initialSelection(count: 5, backward: true, fromOwnWindow: false), 4)
+    }
+
+    /// Desde Ajustes o las Novedades, la primera de la lista es la última que usabas.
+    func testFromAnOmniMacWindowGoesBackToTheLastOne() {
+        XCTAssertEqual(WindowSwitcherFeature.initialSelection(count: 5, backward: false, fromOwnWindow: true), 0)
+        // ⇧⌘Tab sigue yendo a la última de la lista.
+        XCTAssertEqual(WindowSwitcherFeature.initialSelection(count: 5, backward: true, fromOwnWindow: true), 4)
+    }
+
+    func testOneOrNoWindows() {
+        XCTAssertEqual(WindowSwitcherFeature.initialSelection(count: 1, backward: false, fromOwnWindow: false), 0)
+        XCTAssertEqual(WindowSwitcherFeature.initialSelection(count: 0, backward: true, fromOwnWindow: true), 0)
+    }
 }

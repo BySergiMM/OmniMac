@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.7 — unreleased
+
+**Fixed**
+- Screenshots, OCR and colour picker: if you had an OmniMac window open behind (What's New, Settings), it jumped to the middle of the screen when they started, over whatever you were about to capture: from the menu bar it looked as if “Scrolling capture” opened What's New and wouldn't let you capture, and the colour picker could grab that window's colour. The overlay no longer brings anything of OmniMac to the front.
+- Screenshots and OCR: a single click, without dragging, closed the overlay doing nothing. It now keeps waiting for you to drag; Esc leaves.
+- ⌘Tab by windows: from an OmniMac window (Settings, What's New), the switcher skipped the last window you used and took you to the one before. It now goes back to the last one.
+
 ## 0.5.6 — 2026-10-10
 
 **New**
