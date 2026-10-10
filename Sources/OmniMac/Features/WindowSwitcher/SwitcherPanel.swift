@@ -10,6 +10,10 @@ final class SwitcherModel: ObservableObject {
     /// Texto escrito para filtrar (título de ventana o nombre de app).
     @Published var filter = ""
     var allWindows: [SwitcherWindow] = []
+    /// El ratón solo elige celda cuando se mueve (ver `SwitcherHoverGate`).
+    var hoverGate = SwitcherHoverGate()
+    /// Marcos de las celdas visibles; no es @Published para no redibujar al desplazarse.
+    var cellFrames: [Int: CGRect] = [:]
     var showThumbnails = true
     var itemSize = CGSize(width: 210, height: 168)
     let spacing: CGFloat = 8
@@ -25,6 +29,9 @@ final class SwitcherPanelController {
     private let model = SwitcherModel()
     private var panel: NSPanel?
     private var thumbnailTask: Task<Void, Never>?
+    /// Solo existen con el selector abierto: un monitor de ratón despierta la app en
+    /// cada movimiento (ver `NotchFeature.setHiddenForMenu`).
+    private var mouseMonitors: [Any] = []
 
     /// Captura las miniaturas en segundo plano y las va enseñando según llegan
     /// (el selector aparece al instante con iconos y las miniaturas los sustituyen).
@@ -53,6 +60,7 @@ final class SwitcherPanelController {
         model.selection = max(0, min(initialSelection, windows.count - 1))
         model.showThumbnails = thumbnails
         model.thumbnails = [:]
+        model.hoverGate.reset(at: NSEvent.mouseLocation)
         // Con miniaturas las celdas son más anchas (como AltTab); sin ellas, compactas.
         model.itemSize = thumbnails ? CGSize(width: 210, height: 168) : CGSize(width: 152, height: 132)
 
@@ -70,9 +78,45 @@ final class SwitcherPanelController {
         panel.contentView = FirstClickHostingView(rootView: view)
         relayout()
         panel.orderFrontRegardless()
+        startFollowingMouse()
+    }
+
+    /// El ratón va por fuera del hover de SwiftUI: global cuando el evento va a otra app,
+    /// local cuando va a nuestro panel.
+    private func startFollowingMouse() {
+        stopFollowingMouse()
+        let events: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged]
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: events, handler: { [weak self] _ in
+            self?.mouseMoved()
+        }) {
+            mouseMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: events, handler: { [weak self] event in
+            self?.mouseMoved()
+            return event
+        }) {
+            mouseMonitors.append(local)
+        }
+    }
+
+    private func stopFollowingMouse() {
+        mouseMonitors.forEach(NSEvent.removeMonitor)
+        mouseMonitors.removeAll()
+    }
+
+    private func mouseMoved() {
+        guard let panel, panel.isVisible else { return }
+        let mouse = NSEvent.mouseLocation
+        guard model.hoverGate.shouldFollow(mouseAt: mouse),
+              let index = SwitcherHoverGate.cell(at: mouse, panelFrame: panel.frame,
+                                                     gridTop: SwitcherModel.headerHeight, cellFrames: model.cellFrames),
+              model.windows.indices.contains(index),
+              index != model.selection else { return }
+        model.selection = index
     }
 
     func hide() {
+        stopFollowingMouse()
         thumbnailTask?.cancel()
         thumbnailTask = nil
         panel?.orderOut(nil)
@@ -207,6 +251,7 @@ final class SwitcherPanelController {
 struct SwitcherView: View {
     @ObservedObject var model: SwitcherModel
     let onClick: (Int) -> Void
+    static let space = "switcher"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -237,9 +282,10 @@ struct SwitcherView: View {
                                              size: model.itemSize)
                                     .id(index)
                                     .onTapGesture { onClick(index) }
-                                    .onHover { hovering in
-                                        if hovering { model.selection = index }
-                                    }
+                                    .background(GeometryReader { geometry in
+                                        Color.clear.preference(key: SwitcherCellFrames.self,
+                                                               value: [index: geometry.frame(in: .named(SwitcherView.space))])
+                                    })
                             }
                         }
                         .padding(.horizontal, model.padding)
@@ -252,6 +298,8 @@ struct SwitcherView: View {
                 }
             }
         }
+        .coordinateSpace(name: Self.space)
+        .onPreferenceChange(SwitcherCellFrames.self) { model.cellFrames = $0 }
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 26, style: .continuous)
@@ -276,6 +324,14 @@ struct SwitcherView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 10)
+    }
+}
+
+/// Dónde ha quedado cada celda (en el contenido del panel), para saber cuál hay bajo el ratón.
+private struct SwitcherCellFrames: PreferenceKey {
+    static var defaultValue: [Int: CGRect] = [:]
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue()) { $1 }
     }
 }
 
