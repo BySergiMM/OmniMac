@@ -1,6 +1,6 @@
 # Cambios
 
-## 0.5.7 — sin publicar
+## 0.5.7 — 2026-10-10
 
 **Arreglado**
 - Capturas, OCR y cuentagotas: si tenías una ventana de OmniMac abierta detrás (las Novedades, Ajustes), saltaba al centro de la pantalla al empezar, por encima de lo que ibas a capturar: desde el menú de la barra parecía que «Captura con scroll» abría las Novedades y no dejaba capturar, y el cuentagotas podía coger el color de esa ventana. Ahora el velo no trae delante nada de OmniMac.
