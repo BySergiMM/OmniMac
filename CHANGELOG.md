@@ -1,6 +1,6 @@
 # Cambios
 
-## 0.5.6 — sin publicar
+## 0.5.6 — 2026-10-10
 
 **Nuevo**
 - Rendimiento: la batería por dentro. La capacidad máxima (la misma cifra que Ajustes del Sistema), los mAh de hoy frente a los de fábrica, los ciclos frente a los previstos, si está cargando y cuánto le falta, los vatios del cargador y la temperatura. Una lectura al día va formando la evolución: cuánta capacidad ha perdido y cuántos ciclos lleva desde la primera. Todo se lee sin permisos, y un botón lleva al límite de carga de macOS (26.4 o posterior), que es quien lo pone de verdad: OmniMac no controla la carga.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.6 — unreleased
+## 0.5.6 — 2026-10-10
 
 **New**
 - Performance: the battery, inside out. Maximum capacity (the same figure System Settings shows), today's mAh against the factory figure, cycles against the rated count, whether it's charging and how long it has left, the charger's watts and the temperature. One reading a day builds up the history: how much capacity it has lost and how many cycles it has added since the first one. Everything is read without permissions, and a button takes you to macOS's charge limit (26.4 or later), which is what actually sets it: OmniMac doesn't control charging.

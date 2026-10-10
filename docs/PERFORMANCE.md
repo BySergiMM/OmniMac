@@ -331,7 +331,7 @@ porque `release.sh` sube la versión al publicar. Misma metodología que en la 0
 - **Una muestra descartada**: la primera, justo tras abrir la app recién compilada, dio 0,417 %
   con la app aún asentándose, igual que pasó en la 0.5.2.
 
-## Medición 0.5.6, sin publicar (6 de octubre de 2026, macOS 27.0, Apple M5)
+## Medición 0.5.6 (6 de octubre de 2026, macOS 27.0, Apple M5)
 
 Primera medición con la sección de batería, sus avisos y el aviso del cargador en el notch.
 Compilación de la rama de trabajo con `./build.sh` (binario universal; el `Info.plist` dice 0.5.5
