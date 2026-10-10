@@ -123,10 +123,14 @@ struct ReleaseNotes: Equatable {
     /// pantalla, y «Novedades…» no hacía nada de nada al pulsarlo. Si has pedido ver
     /// las novedades, algo hay que enseñar: lo que trae esa versión, sea lo que sea.
     func highlights(includingFixes: Bool) -> [Highlight] {
-        // Una pantalla por área. Si no, una versión con cuatro mejoras de sonido
-        // seguidas se lleva medio recorrido y el resto de la app no sale.
+        // Una pantalla por área en lo nuevo. Si no, una versión con cuatro mejoras de
+        // sonido seguidas se lleva medio recorrido y el resto de la app no sale.
         var seen = Set<String>()
-        let picked = (includingFixes ? items : newItems).filter { seen.insert(Self.area(for: $0)).inserted }
+        var picked = newItems.filter { seen.insert(Self.area(for: $0)).inserted }
+        // Los arreglos, en cambio, uno por pantalla: solo salen si los has pedido, y
+        // agruparlos escondía alguno. En la 0.5.7 la ventana decía «2 arreglos» con tres
+        // en el CHANGELOG, porque el de las capturas y el de ⌘Tab hablaban de «ventanas».
+        if includingFixes { picked += items.dropFirst(newItems.count) }
         return picked.prefix(Self.maxHighlights).map { item in
             let symbol = Self.symbol(for: item)
             guard let colon = item.firstIndex(of: ":"), colon > item.startIndex else {

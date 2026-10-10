@@ -230,7 +230,24 @@ final class ReleaseNotesOnlyFixesTests: XCTestCase {
             XCTAssertEqual(notas.highlights.map(\.title), titulos, archivo)
             XCTAssertEqual(notas.highlights.map(\.symbol),
                            ["battery.75percent", "bell.badge", "sparkles.rectangle.stack", "camera.viewfinder"], archivo)
-            XCTAssertEqual(notas.highlights(includingFixes: true).count, 5, archivo)   // + ⌘Tab
+            // + los cuatro arreglos, uno por pantalla: ocho, el tope.
+            XCTAssertEqual(notas.highlights(includingFixes: true).count, 8, archivo)
+        }
+    }
+
+    /// La 0.5.7, tal cual: tres arreglos y la ventana decía «2 arreglos», porque el de
+    /// las capturas y el de ⌘Tab caían en la misma área (los dos hablan de «ventanas»).
+    func testCadaArregloTieneSuPantalla() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        for archivo in ["CHANGELOG.md", "CHANGELOG.en.md"] {
+            guard let markdown = try? String(contentsOf: raiz.appendingPathComponent(archivo), encoding: .utf8) else {
+                throw XCTSkip("No está \(archivo) junto a las fuentes")
+            }
+            let notas = try XCTUnwrap(ReleaseNotes.notes(for: "0.5.7", in: markdown), archivo)
+            XCTAssertTrue(notas.isOnlyFixes, archivo)
+            XCTAssertEqual(notas.items.count, 3, archivo)
+            XCTAssertEqual(notas.highlights(includingFixes: true).count, 3, archivo)
         }
     }
 }
