@@ -128,11 +128,19 @@ enum ScreenGrab {
 }
 
 /// Velo con cruceta: arrastra para elegir la zona.
-final class SelectionOverlayWindow: NSWindow {
+///
+/// Es un panel que no activa la app: recibe el ratón y el teclado (Esc) sin traer
+/// delante el resto de ventanas de OmniMac. Antes activaba la app y, si había alguna
+/// abierta detrás (Novedades, Ajustes), saltaba al centro de la pantalla por encima de
+/// lo que ibas a capturar, y parecía que el menú abría las Novedades en vez de la captura.
+final class SelectionOverlayWindow: NSPanel {
     var onSelect: ((CGRect) -> Void)?
 
     init(screen: NSScreen, hint: String = L("Selecciona el texto a copiar · Esc para cancelar", "Select the text to copy · Esc to cancel")) {
-        super.init(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        super.init(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        isFloatingPanel = true
+        becomesKeyOnlyIfNeeded = false
+        hidesOnDeactivate = false
         level = .screenSaver
         isOpaque = false
         backgroundColor = NSColor.black.withAlphaComponent(0.14)
@@ -151,8 +159,9 @@ final class SelectionOverlayWindow: NSWindow {
     override var canBecomeKey: Bool { true }
 
     func present() {
+        // Después de `isFloatingPanel`, que deja el nivel en «flotante».
+        level = .screenSaver
         makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
         NSCursor.crosshair.set()
     }
 }
@@ -191,7 +200,10 @@ final class SelectionView: NSView {
         start = nil
         current = nil
         needsDisplay = true
-        if let rect { onSelect?(rect) }
+        // Un clic suelto no es una zona: antes cerraba el velo sin hacer nada y parecía
+        // que la captura no funcionaba. Se sigue esperando a que arrastres (Esc sale).
+        guard let rect, rect.width > 4, rect.height > 4 else { return }
+        onSelect?(rect)
     }
 
     override func draw(_ dirtyRect: NSRect) {
