@@ -23,6 +23,17 @@ enum ScrollStitcher {
         func row(_ index: Int) -> ArraySlice<UInt8> {
             values[(index * columns)..<((index + 1) * columns)]
         }
+
+        /// La misma firma con solo esas columnas.
+        func keeping(_ kept: [Int]) -> Signature {
+            var result = [UInt8]()
+            result.reserveCapacity(kept.count * rows)
+            for row in 0..<rows {
+                let base = row * columns
+                for column in kept { result.append(values[base + column]) }
+            }
+            return Signature(columns: kept.count, rows: rows, values: result)
+        }
     }
 
     /// Lo que se ha movido de una captura a la siguiente.
@@ -32,6 +43,9 @@ enum ScrollStitcher {
         /// Filas de arriba y de abajo que no se mueven (cabeceras y pies fijos).
         let top: Int
         let bottom: Int
+        /// Columnas de la firma con las que se queda la imagen final, si la zona tenía un
+        /// panel quieto pegado a un borde (ver `step`). `nil` = el ancho entero.
+        var columns: Range<Int>? = nil
     }
 
     /// Dos muestras son distintas si se separan más que esto (de 0 a 255).
@@ -70,10 +84,16 @@ enum ScrollStitcher {
     /// cifra distinta son pocas columnas muy distintas, y en una media se diluye.
     /// Firma de la franja de la derecha, donde vive la barra de desplazamiento flotante.
     static func trailingSignature(of image: CGImage, trailing: Int) -> Signature? {
-        guard trailing > 0, trailing < image.width,
-              let strip = image.cropping(to: CGRect(x: image.width - trailing, y: 0, width: trailing, height: image.height))
+        stripSignature(of: image, columns: (image.width - trailing)..<image.width)
+    }
+
+    /// Firma de una franja vertical cualquiera (en píxeles), a resolución completa.
+    static func stripSignature(of image: CGImage, columns range: Range<Int>) -> Signature? {
+        let range = max(0, range.lowerBound)..<min(image.width, range.upperBound)
+        guard !range.isEmpty, range.count < image.width,
+              let strip = image.cropping(to: CGRect(x: range.lowerBound, y: 0, width: range.count, height: image.height))
         else { return nil }
-        return signature(of: strip, columns: trailing)
+        return signature(of: strip, columns: range.count)
     }
 
     /// ¿La franja de la derecha de `next` es la de `previous` desplazada como el resto?
@@ -119,8 +139,79 @@ enum ScrollStitcher {
     ///   lista de filas iguales) hay varios solapes posibles y se elige el más cercano.
     /// - Devuelve `nil` si no hay forma fiable de coserlas (cambió algo más que el
     ///   desplazamiento, o se desplazó más de lo que se ve): mejor parar que inventar.
-    static func step(from previous: Signature, to next: Signature, expected: Int? = nil) -> Step? {
+    ///
+    /// Los paneles que no se mueven: en una app con varias columnas (Claude, Mail, Slack,
+    /// Ajustes) es fácil que la zona elegida coja también un panel de al lado. Esas
+    /// columnas son iguales en el mismo sitio en las dos capturas; se dejan fuera de la
+    /// búsqueda (si no, ninguna fila encaja y la captura se paraba en la primera) y, si
+    /// son un panel con contenido pegado a un borde, fuera de la imagen final, para que
+    /// no salga repetido en cada tramo. Los márgenes lisos se quedan.
+    ///
+    /// - `edgeColumns`: columnas del borde derecho de lo que se mueve que no cuentan. Ahí
+    ///   está la barra de desplazamiento de esa zona (la de un chat junto a un panel no está
+    ///   en el borde de la zona elegida, sino en el del chat), y si sale en una captura y en
+    ///   la otra no, ninguna fila encaja.
+    static func step(from previous: Signature, to next: Signature, expected: Int? = nil, edgeColumns: Int = 0) -> Step? {
         guard previous.rows == next.rows, previous.columns == next.columns, previous.rows > 8 else { return nil }
+        let still = (0..<previous.columns).map { column in
+            (0..<previous.rows).allSatisfy {
+                abs(Int(previous.values[$0 * previous.columns + column]) - Int(next.values[$0 * next.columns + column])) <= sampleThreshold
+            }
+        }
+        let moving = still.indices.filter { !still[$0] }
+        // Solo vale la pena si hay columnas quietas y quedan bastantes que se mueven.
+        guard !moving.isEmpty, moving.count < previous.columns, moving.count >= 8 else {
+            return movingStep(from: previous, to: next, expected: expected)
+        }
+        let right = moving.last ?? 0
+        let matched = moving.filter { $0 < right - edgeColumns }
+        let used = matched.count >= 8 ? matched : moving
+        guard let step = movingStep(from: previous.keeping(used), to: next.keeping(used), expected: expected) else { return nil }
+        // Quieta no basta para ser un panel: el final repetido de cada línea de un texto,
+        // o las rayas entre filas de una tabla, se ven igual quietos que desplazados justo
+        // un número entero de filas. Un panel de verdad, comparado desplazado, no encaja.
+        // Solo las filas que se mueven: la cabecera y el pie fijos no encajan desplazados.
+        let overlap = previous.rows - step.top - step.bottom - step.shift
+        let panel = still.indices.map { column -> Bool in
+            guard still[column], step.shift > 0, overlap > 0 else { return false }
+            var mismatched = 0
+            for row in step.top..<(step.top + overlap)
+            where abs(Int(previous.values[(row + step.shift) * previous.columns + column])
+                      - Int(next.values[row * next.columns + column])) > sampleThreshold {
+                mismatched += 1
+            }
+            return mismatched > max(2, overlap / 50)
+        }
+        let crop = panelCrop(still: still, panel: panel, in: previous)
+        return Step(shift: step.shift, top: step.top, bottom: step.bottom, columns: crop)
+    }
+
+    /// Qué columnas se quedan en la imagen: fuera los paneles quietos con contenido que
+    /// estén pegados a un borde (los márgenes lisos, aunque estén quietos, se conservan).
+    ///
+    /// Se recorta hasta el último panel del tramo quieto de cada borde: lo que haya entre
+    /// el panel y el contenido (un margen, una raya) se va con él.
+    static func panelCrop(still: [Bool], panel: [Bool], in signature: Signature) -> Range<Int>? {
+        func hasContent(_ column: Int) -> Bool {
+            var low = 255, high = 0
+            for row in 0..<signature.rows {
+                let value = Int(signature.values[row * signature.columns + column])
+                low = min(low, value); high = max(high, value)
+            }
+            return high - low > 24
+        }
+        let count = still.count
+        let leading = still.prefix { $0 }.count
+        let trailing = still.reversed().prefix { $0 }.count
+        let isPanel = { (column: Int) in panel[column] && hasContent(column) }
+        let lower = (0..<leading).last(where: isPanel).map { $0 + 1 } ?? 0
+        let upper = ((count - trailing)..<count).first(where: isPanel) ?? count
+        guard lower > 0 || upper < count, lower < upper else { return nil }
+        return lower..<upper
+    }
+
+    /// El desplazamiento cuando todas las columnas que se miran se mueven a la vez.
+    private static func movingStep(from previous: Signature, to next: Signature, expected: Int?) -> Step? {
         let height = previous.rows
         let same = (0..<height).map { difference(previous.row($0), next.row($0)) <= rowTolerance }
         if !same.contains(false) { return Step(shift: 0, top: 0, bottom: 0) }
@@ -191,6 +282,20 @@ enum ScrollStitcher {
     /// contenido que coincide junto a la barra), y cortar cada tramo con el suyo dejaba
     /// huecos o filas repetidas entre tramos. Pasarse es seguro: lo que haya de
     /// contenido en esa franja sale al final, con el pie de la última captura.
+    /// Las columnas de la imagen final: lo que se queda en algún paso. Una columna solo es
+    /// panel si lo fue en todos; si un paso no recortó nada, no se recorta nada.
+    static func keptColumns(_ steps: [Step]) -> Range<Int>? {
+        let moving = steps.filter { $0.shift > 0 }
+        guard !moving.isEmpty else { return nil }
+        var lower = Int.max, upper = Int.min
+        for step in moving {
+            guard let kept = step.columns else { return nil }
+            lower = min(lower, kept.lowerBound)
+            upper = max(upper, kept.upperBound)
+        }
+        return lower..<upper
+    }
+
     static func pieces(height: Int, steps: [Step]) -> [Piece] {
         let moving = steps.filter { $0.shift > 0 }
         guard let bottom = moving.map(\.bottom).max() else { return [Piece(frame: 0, rows: 0..<height)] }

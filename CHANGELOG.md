@@ -1,5 +1,10 @@
 # Cambios
 
+## 0.5.9 — sin publicar
+
+**Arreglado**
+- Captura con scroll: en las apps con varios paneles (Claude, Mail, Slack, Ajustes) no cosía nada y copiaba solo lo que se veía. Si la zona cogía también un panel de al lado que no se mueve, ninguna fila encajaba; y la barra de desplazamiento de cada zona está en su propio borde, no en el de la zona elegida. Ahora los paneles quietos no cuentan al buscar el encaje y se quitan de la imagen si están pegados a un borde, y la barra se ignora esté donde esté. Si al final no se ha podido coser nada, el aviso lo dice en vez de copiar una captura normal sin más.
+
 ## 0.5.8 — 2026-10-10
 
 **Arreglado**

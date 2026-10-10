@@ -168,4 +168,42 @@ final class ScrollStitcherTests: XCTestCase {
         XCTAssertTrue(ScrollStitcher.trailingMatches(a, clean, step: step))
         XCTAssertFalse(ScrollStitcher.trailingMatches(a, barred, step: step))
     }
+
+    /// Como en Claude o en Mail: la zona coge también un panel de al lado que no se
+    /// mueve. Antes ninguna fila encajaba y la captura se quedaba en la primera.
+    func testAStillPanelBesideTheContent() throws {
+        let panelWidth = 30
+        func panelRow(_ y: Int) -> [UInt8] { (0..<panelWidth).map { x in UInt8((x * 11 + y * 3) % 200 + 20) } }   // con contenido
+        func gapRow() -> [UInt8] { [UInt8](repeating: 250, count: 6) }                                            // margen liso
+        func frameWithPanel(_ offset: Int) -> [[UInt8]] {
+            (0..<200).map { y in panelRow(y) + gapRow() + pageRow(offset + y) }
+        }
+        let total = panelWidth + 6 + width
+        func img(_ rows: [[UInt8]]) -> CGImage {
+            var bytes = rows.flatMap { $0 }
+            return bytes.withUnsafeMutableBytes { buffer in
+                CGContext(data: buffer.baseAddress, width: total, height: rows.count, bitsPerComponent: 8, bytesPerRow: total,
+                          space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)!.makeImage()!
+            }
+        }
+        let frames = [0, 70, 140].map(frameWithPanel)
+        let signatures = try frames.map { try XCTUnwrap(ScrollStitcher.signature(of: img($0), columns: total)) }
+        let steps = try (1..<3).map { try XCTUnwrap(ScrollStitcher.step(from: signatures[$0 - 1], to: signatures[$0], expected: 70)) }
+        XCTAssertEqual(steps.map(\.shift), [70, 70])
+        // Fuera el panel; el margen liso de al lado se queda.
+        XCTAssertEqual(steps.first?.columns, panelWidth..<total)
+
+        let kept = try XCTUnwrap(steps.first?.columns)
+        let rows = ScrollStitcher.pieces(height: 200, steps: steps).flatMap { piece in
+            frames[piece.frame][piece.rows].map { Array($0[kept]) }
+        }
+        XCTAssertEqual(rows, (0..<340).map { gapRow() + pageRow($0) })
+    }
+
+    /// Sin paneles, nada se recorta (los márgenes lisos y quietos no cuentan como panel).
+    func testNoCropWithoutAPanel() throws {
+        let a = try signature(frame(offset: 0, viewport: 200))
+        let b = try signature(frame(offset: 70, viewport: 200))
+        XCTAssertNil(ScrollStitcher.step(from: a, to: b, expected: 70)?.columns)
+    }
 }
