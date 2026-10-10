@@ -1201,6 +1201,15 @@ struct ToolsPage: View {
                 if !screenGranted { Section { PermissionRow(kind: .screenRecording) } }
 
                 Section(L("Herramientas", "What's included")) {
+                    SettingRow(title: L("Capturar una zona", "Capture an area"),
+                               subtitle: L("⇧⌘7: selecciona una zona y la imagen va al portapapeles, lista para pegar.", "⇧⌘7: select an area and the image goes to the clipboard, ready to paste.")) {
+                        Button(L("Probar", "Try it")) { feature.captureArea() }
+                    }
+                    SettingRow(title: L("Captura con scroll", "Scrolling capture"),
+                               subtitle: L("⇧⌘8: selecciona la zona que se desplaza (una web, un chat largo) y OmniMac baja sola hasta el final, cosiéndolo todo en una imagen. Esc o «Listo» para parar antes. Necesita Accesibilidad.", "⇧⌘8: select the area that scrolls (a web page, a long chat) and OmniMac scrolls to the end by itself, stitching it all into one image. Esc or “Done” to stop earlier. Needs Accessibility.")) {
+                        Button(L("Probar", "Try it")) { feature.captureScrolling() }
+                            .disabled(!axGranted)
+                    }
                     SettingRow(title: L("Copiar texto de la pantalla", "Copy text from the screen"),
                                subtitle: L("⇧⌘2: selecciona cualquier zona (una imagen, un vídeo, una app que no deja copiar) y el texto va al portapapeles.", "⇧⌘2: select any area (an image, a video, an app that won't let you copy) and the text goes to the clipboard.")) {
                         Button(L("Probar", "Try it")) { feature.captureText() }

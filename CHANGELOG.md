@@ -6,10 +6,13 @@
 - Rendimiento: la batería por dentro. La capacidad máxima (la misma cifra que Ajustes del Sistema), los mAh de hoy frente a los de fábrica, los ciclos frente a los previstos, si está cargando y cuánto le falta, los vatios del cargador y la temperatura. Una lectura al día va formando la evolución: cuánta capacidad ha perdido y cuántos ciclos lleva desde la primera. Todo se lee sin permisos, y un botón lleva al límite de carga de macOS (26.4 o posterior), que es quien lo pone de verdad: OmniMac no controla la carga.
 - Avisos de batería: «Ya puedes desenchufar» al porcentaje que elijas, también por debajo del 80 % (adonde no llega el límite de macOS), una vez por carga y apagado de fábrica; «La batería se está calentando» si pasa de 40 °C con el cargador puesto; y el de batería baja ahora deja elegir el porcentaje. OmniMac pide permiso para avisarte en cuanto hay un aviso encendido, y si las notificaciones están desactivadas, Ajustes te lo dice y te lleva a activarlas.
 - Notch: al enchufar el cargador, un aviso con los vatios y la carga («Cargando · 30 W · 57 %»). Se puede apagar en Ajustes › Notch › Avisos.
+- Utilidades: capturas de pantalla al portapapeles. ⇧⌘7 captura una zona, y ⇧⌘8 hace una **captura con scroll**: eliges la zona que se desplaza (una web, un chat largo), OmniMac baja sola hasta el final y lo cose todo en una imagen, sin repetir la cabecera ni el pie fijos de las webs. Esc o «Listo» para parar antes. La de scroll necesita Accesibilidad para mover la rueda.
 
 **Arreglado**
 - ⌘Tab por ventanas: si el ratón estaba quieto donde aparece el selector, elegía la ventana que había debajo en vez de la anterior. Ahora el ratón solo cuenta cuando se mueve, aunque sea un píxel. Y al moverlo rápido ya no se pierde la celda a la que apuntas, que antes a veces no cambiaba.
-- Avisos de Rendimiento: si macOS no dejaba enseñar notificaciones, se perdían sin decir nada. Ahora la página lo dice.
+- Avisos de Rendimiento: si macOS no dejaba enseñar notificaciones, se perdían sin decir nada. Ahora la página lo dice, y un botón «Enviar un aviso de prueba» manda uno al momento para ver cómo te llegan (con un modo de concentración activo, macOS lo guarda en el Centro de notificaciones sin enseñarlo).
+- Notificaciones: con una ventana de OmniMac delante (Ajustes, por ejemplo), macOS no enseñaba sus avisos. Ahora salen igual.
+- Si se abría una segunda copia de OmniMac (otra con el mismo identificador, por ejemplo una bajada de nuevo), las dos se quedaban abiertas: dos notch, dos iconos y los atajos repetidos. Ahora la segunda le pide a la primera que enseñe sus Ajustes y se cierra.
 
 ## 0.5.5 — 2026-10-01
 

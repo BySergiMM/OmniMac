@@ -283,6 +283,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private func buildToolsSection(_ menu: NSMenu) {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem.sectionHeader(title: L("Utilidades", "Tools")))
+        let capture = NSMenuItem(title: L("Capturar una zona…", "Capture an area…"), action: #selector(captureArea), keyEquivalent: "")
+        capture.target = self
+        menu.addItem(capture)
+        let scrollCapture = NSMenuItem(title: L("Captura con scroll…", "Scrolling capture…"), action: #selector(captureScrolling), keyEquivalent: "")
+        scrollCapture.target = self
+        menu.addItem(scrollCapture)
         let ocr = NSMenuItem(title: L("Copiar texto de la pantalla…", "Copy text from the screen…"), action: #selector(captureText), keyEquivalent: "")
         ocr.target = self
         menu.addItem(ocr)
@@ -519,6 +525,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func toggleClipboardPause() {
         manager.clipboard.paused.toggle()
+    }
+
+    @objc private func captureArea() {
+        manager.tools.captureArea()
+    }
+
+    @objc private func captureScrolling() {
+        manager.tools.captureScrolling()
     }
 
     @objc private func captureText() {

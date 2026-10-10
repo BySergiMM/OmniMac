@@ -48,6 +48,13 @@ final class ToolsFeature: BaseFeature {
         ShortcutBinding(key: "tools.dimUp", hotKeyID: 621,
                         title: L("Volver al brillo normal", "Back to normal brightness"),
                         fallback: Shortcut(kVK_ANSI_Equal, controlKey | optionKey | cmdKey)),
+        // ⇧⌘3–5 son de macOS y ⇧⌘6 es el cuentagotas: las capturas van justo detrás.
+        ShortcutBinding(key: "tools.capture", hotKeyID: 304,
+                        title: L("Capturar una zona", "Capture an area"),
+                        fallback: Shortcut(kVK_ANSI_7, cmdKey | shiftKey)),
+        ShortcutBinding(key: "tools.scrollCapture", hotKeyID: 305,
+                        title: L("Captura con scroll", "Scrolling capture"),
+                        fallback: Shortcut(kVK_ANSI_8, cmdKey | shiftKey)),
     ]
 
     private static var ocrShortcut: ShortcutBinding { shortcuts[0] }
@@ -56,7 +63,10 @@ final class ToolsFeature: BaseFeature {
     private static var colorShortcut: ShortcutBinding { shortcuts[3] }
     private static var dimDownShortcut: ShortcutBinding { shortcuts[4] }
     private static var dimUpShortcut: ShortcutBinding { shortcuts[5] }
+    private static var captureShortcut: ShortcutBinding { shortcuts[6] }
+    private static var scrollCaptureShortcut: ShortcutBinding { shortcuts[7] }
     private let ocr = ScreenTextCapture()
+    private let screenshots = ScreenshotCapture()
     private let keyboardLock = KeyboardLock()
     private let colorPicker = ScreenColorPicker()
     private let dimmer = ScreenDimmer()
@@ -67,7 +77,7 @@ final class ToolsFeature: BaseFeature {
         super.init(id: "tools",
                    name: L("Utilidades", "Tools"),
                    symbol: "wrench.and.screwdriver.fill",
-                   blurb: L("Copiar texto de la pantalla, silenciar el micrófono, bloquear el teclado para limpiarlo y ocultar los iconos del escritorio.", "Copy text from the screen, mute the microphone, lock the keyboard to clean it and hide desktop icons."),
+                   blurb: L("Capturas de pantalla (también con scroll), copiar texto de la pantalla, silenciar el micrófono, bloquear el teclado para limpiarlo y ocultar los iconos del escritorio.", "Screenshots (scrolling ones too), copy text from the screen, mute the microphone, lock the keyboard to clean it and hide desktop icons."),
                    defaultEnabled: true)
         microphoneMuted = MicrophoneMute.isMuted
     }
@@ -79,6 +89,8 @@ final class ToolsFeature: BaseFeature {
         HotKeyCenter.shared.bind(Self.colorShortcut) { [weak self] in self?.pickColor() }
         HotKeyCenter.shared.bind(Self.dimDownShortcut) { [weak self] in self?.stepDim(+0.1) }
         HotKeyCenter.shared.bind(Self.dimUpShortcut) { [weak self] in self?.stepDim(-0.1) }
+        HotKeyCenter.shared.bind(Self.captureShortcut) { [weak self] in self?.captureArea() }
+        HotKeyCenter.shared.bind(Self.scrollCaptureShortcut) { [weak self] in self?.captureScrolling() }
         if quitGuardEnabled { quitGuard.start() }
     }
 
@@ -105,6 +117,16 @@ final class ToolsFeature: BaseFeature {
 
     func captureText() {
         ocr.begin()
+    }
+
+    /// Una zona de la pantalla, al portapapeles.
+    func captureArea() {
+        screenshots.begin(.area)
+    }
+
+    /// Una zona y todo lo que asoma al desplazarla, cosido en una sola imagen.
+    func captureScrolling() {
+        screenshots.begin(.scrolling)
     }
 
     func toggleMicrophone() {

@@ -213,14 +213,14 @@ final class ReleaseNotesOnlyFixesTests: XCTestCase {
         }
     }
 
-    /// La 0.5.6: tres novedades en tres áreas distintas, para que ninguna se quede
+    /// La 0.5.6: cuatro novedades en cuatro áreas distintas, para que ninguna se quede
     /// fuera del recorrido (sale una pantalla por área).
-    func testLa056EnsenaSusTresNovedades() throws {
+    func testLa056EnsenaSusCuatroNovedades() throws {
         let raiz = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let esperado = [
-            "CHANGELOG.md": ["Rendimiento", "Avisos de batería", "Notch"],
-            "CHANGELOG.en.md": ["Performance", "Battery alerts", "Notch"],
+            "CHANGELOG.md": ["Rendimiento", "Avisos de batería", "Notch", "Utilidades"],
+            "CHANGELOG.en.md": ["Performance", "Battery alerts", "Notch", "Tools"],
         ]
         for (archivo, titulos) in esperado {
             guard let markdown = try? String(contentsOf: raiz.appendingPathComponent(archivo), encoding: .utf8) else {
@@ -228,8 +228,9 @@ final class ReleaseNotesOnlyFixesTests: XCTestCase {
             }
             let notas = try XCTUnwrap(ReleaseNotes.notes(for: "0.5.6", in: markdown), archivo)
             XCTAssertEqual(notas.highlights.map(\.title), titulos, archivo)
-            XCTAssertEqual(notas.highlights.map(\.symbol), ["battery.75percent", "bell.badge", "sparkles.rectangle.stack"], archivo)
-            XCTAssertEqual(notas.highlights(includingFixes: true).count, 4, archivo)   // + ⌘Tab
+            XCTAssertEqual(notas.highlights.map(\.symbol),
+                           ["battery.75percent", "bell.badge", "sparkles.rectangle.stack", "camera.viewfinder"], archivo)
+            XCTAssertEqual(notas.highlights(includingFixes: true).count, 5, archivo)   // + ⌘Tab
         }
     }
 }

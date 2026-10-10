@@ -6,10 +6,13 @@
 - Performance: the battery, inside out. Maximum capacity (the same figure System Settings shows), today's mAh against the factory figure, cycles against the rated count, whether it's charging and how long it has left, the charger's watts and the temperature. One reading a day builds up the history: how much capacity it has lost and how many cycles it has added since the first one. Everything is read without permissions, and a button takes you to macOS's charge limit (26.4 or later), which is what actually sets it: OmniMac doesn't control charging.
 - Battery alerts: “You can unplug now” at the level you choose, also below 80% (where macOS's limit doesn't reach), once per charge and off by default; “The battery is getting hot” above 40 °C while plugged in; and the low-battery one now lets you pick the level. OmniMac asks for permission to notify you as soon as an alert is on, and if notifications are off, Settings tells you and takes you to turn them on.
 - Notch: plugging in the charger shows a notice with the watts and the charge (“Charging · 30 W · 57%”). You can turn it off in Settings › Notch › Notices.
+- Tools: screenshots to the clipboard. ⇧⌘7 captures an area, and ⇧⌘8 takes a **scrolling capture**: pick the area that scrolls (a web page, a long chat), OmniMac scrolls to the end by itself and stitches it all into one image, without repeating a website's fixed header or footer. Esc or “Done” to stop earlier. The scrolling one needs Accessibility to turn the wheel.
 
 **Fixed**
 - ⌘Tab by windows: if the mouse sat still where the switcher appears, it picked the window underneath instead of the previous one. Now the mouse only counts when it moves, even by a pixel. And moving it fast no longer misses the cell you point at, which sometimes didn't change before.
-- Performance alerts: if macOS wouldn't show notifications, they were lost without a word. The page now says so.
+- Performance alerts: if macOS wouldn't show notifications, they were lost without a word. The page now says so, and a “Send a test alert” button sends one right away so you can see how they reach you (with a Focus on, macOS keeps it in Notification Center without showing it).
+- Notifications: with an OmniMac window in front (Settings, for instance), macOS didn't show its alerts. They now show anyway.
+- If a second copy of OmniMac was opened (another one with the same identifier, such as a fresh download), both stayed open: two notches, two icons and the shortcuts registered twice. The second one now asks the first to show its Settings and quits.
 
 ## 0.5.5 — 2026-10-01
 

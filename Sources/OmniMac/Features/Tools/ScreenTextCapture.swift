@@ -58,23 +58,7 @@ final class ScreenTextCapture {
 
     private static func capture(rect: CGRect, screen: NSScreen) async {
         do {
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
-            guard let display = content.displays.first(where: { $0.displayID == displayID }) ?? content.displays.first else { return }
-            let filter = SCContentFilter(display: display, excludingWindows: [])
-            let configuration = SCStreamConfiguration()
-            let scale = screen.backingScaleFactor
-            // De coordenadas de Cocoa (origen abajo-izquierda) a las de la pantalla (arriba-izquierda).
-            let local = CGRect(x: rect.minX - screen.frame.minX,
-                               y: screen.frame.maxY - rect.maxY,
-                               width: rect.width,
-                               height: rect.height)
-            configuration.sourceRect = local
-            configuration.width = Int(local.width * scale)
-            configuration.height = Int(local.height * scale)
-            configuration.showsCursor = false
-            configuration.captureResolution = .best
-            let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+            let image = try await ScreenGrab.image(of: rect, on: screen)
             let text = try recognizeText(in: image)
             await MainActor.run {
                 guard !text.isEmpty else {
@@ -112,11 +96,42 @@ final class ScreenTextCapture {
     }
 }
 
+/// La imagen de una zona de la pantalla, con el permiso de Grabación de pantalla.
+/// La usan el OCR y las capturas.
+enum ScreenGrab {
+    /// `rect` en coordenadas de Cocoa (origen abajo a la izquierda). `excludingOwnWindows`
+    /// deja fuera las ventanas de OmniMac (el marco y el aviso de la captura con scroll).
+    static func image(of rect: CGRect, on screen: NSScreen, excludingOwnWindows: Bool = false) async throws -> CGImage {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+        guard let display = content.displays.first(where: { $0.displayID == displayID }) ?? content.displays.first else {
+            throw CocoaError(.featureUnsupported)
+        }
+        let own = excludingOwnWindows
+            ? content.applications.filter { $0.processID == ProcessInfo.processInfo.processIdentifier }
+            : []
+        let filter = SCContentFilter(display: display, excludingApplications: own, exceptingWindows: [])
+        let configuration = SCStreamConfiguration()
+        let scale = screen.backingScaleFactor
+        // De coordenadas de Cocoa (origen abajo-izquierda) a las de la pantalla (arriba-izquierda).
+        let local = CGRect(x: rect.minX - screen.frame.minX,
+                           y: screen.frame.maxY - rect.maxY,
+                           width: rect.width,
+                           height: rect.height)
+        configuration.sourceRect = local
+        configuration.width = Int(local.width * scale)
+        configuration.height = Int(local.height * scale)
+        configuration.showsCursor = false
+        configuration.captureResolution = .best
+        return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+    }
+}
+
 /// Velo con cruceta: arrastra para elegir la zona.
 final class SelectionOverlayWindow: NSWindow {
     var onSelect: ((CGRect) -> Void)?
 
-    init(screen: NSScreen) {
+    init(screen: NSScreen, hint: String = L("Selecciona el texto a copiar · Esc para cancelar", "Select the text to copy · Esc to cancel")) {
         super.init(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         level = .screenSaver
         isOpaque = false
@@ -125,6 +140,7 @@ final class SelectionOverlayWindow: NSWindow {
         isReleasedWhenClosed = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         let view = SelectionView(frame: NSRect(origin: .zero, size: screen.frame.size))
+        view.hint = hint
         let origin = screen.frame.origin
         view.onSelect = { [weak self] rect in
             self?.onSelect?(rect.offsetBy(dx: origin.x, dy: origin.y))
@@ -143,6 +159,8 @@ final class SelectionOverlayWindow: NSWindow {
 
 final class SelectionView: NSView {
     var onSelect: ((CGRect) -> Void)?
+    var hint = ""
+
     private var start: CGPoint?
     private var current: CGPoint?
 
@@ -177,7 +195,6 @@ final class SelectionView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let hint = L("Selecciona el texto a copiar · Esc para cancelar", "Select the text to copy · Esc to cancel")
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 15, weight: .semibold),
             .foregroundColor: NSColor.white.withAlphaComponent(0.9),

@@ -159,6 +159,12 @@ final class CommandBarFeature: BaseFeature {
         }
 
         if tools.isEnabled {
+            add("tools.capture", L("Capturar una zona", "Capture an area"),
+                toolsArea, "camera.viewfinder",
+                "captura pantallazo screenshot zona area recorte", toolsShortcut("tools.capture")) { tools.captureArea() }
+            add("tools.scrollCapture", L("Captura con scroll", "Scrolling capture"),
+                toolsArea, "scroll",
+                "captura pantallazo screenshot scroll desplazar larga web entera", toolsShortcut("tools.scrollCapture")) { tools.captureScrolling() }
             add("tools.ocr", L("Copiar texto de la pantalla", "Copy text from the screen"),
                 toolsArea, "text.viewfinder",
                 "ocr texto reconocer scan", toolsShortcut("tools.ocr")) { tools.captureText() }

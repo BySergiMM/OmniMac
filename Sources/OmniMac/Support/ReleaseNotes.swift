@@ -155,6 +155,9 @@ struct ReleaseNotes: Equatable {
             ("volumen", "speaker.wave.2.fill"),
             ("barra de menús", "menubar.rectangle"),
             ("menu bar", "menubar.rectangle"),
+            // Antes que «portapapeles»: las capturas van al portapapeles, pero son capturas.
+            ("captura", "camera.viewfinder"),
+            ("screenshot", "camera.viewfinder"),
             ("portapapeles", "doc.on.clipboard"),
             ("clipboard", "doc.on.clipboard"),
             ("ventana", "rectangle.split.2x1"),
@@ -214,6 +217,9 @@ struct ReleaseNotes: Equatable {
         if lower.contains("ventana") || lower.contains("window") { return L("Ventanas", "Windows") }
         if lower.contains("barra de menús") || lower.contains("menu bar") { return L("Barra de menús", "Menu bar") }
         if lower.contains("rendimiento") || lower.contains("performance") { return L("Rendimiento", "Performance") }
+        if lower.contains("captura de pantalla") || lower.contains("capturas de pantalla") || lower.contains("screenshot") {
+            return L("Capturas", "Screenshots")
+        }
         if lower.contains("portapapeles") || lower.contains("clipboard") { return L("Portapapeles", "Clipboard") }
         if lower.contains("limpiador") || lower.contains("cleaner") { return L("Limpiador", "Cleaner") }
         if lower.contains("ecualizador") || lower.contains("equaliser") || lower.contains("equalizer")

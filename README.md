@@ -97,7 +97,7 @@ more sensors). Both are excellent — go install them if that's what you need.
 | 📋 **Clipboard** | Text, images and files. Search, pins, pause, optional persistence. **It never records what you copy in a password manager**, or in any app you add to the list. **⌥⇧⌘V pastes without formatting**, and it can strip tracking from links as you copy them. |
 | 🔊 **Sound** | Per-app volume, a **10-band equaliser** (global or per app) with nine presets, boost past 100 % with a limiter, output priority, and a standalone mixer on ⌃⌥⌘V. |
 | 📈 **Performance** | Per-core CPU (efficiency vs performance), GPU, memory with pressure, disk, network, **temperature**, and **which apps are eating your Mac**. Alerts when something goes wrong. **Battery health**: capacity against new, cycles, charger watts and a day-by-day history, plus alerts to **unplug at the level you pick** (even below the 80% where macOS's own limit stops) or when it runs hot while charging. |
-| 🛠 **Tools** | OCR (⇧⌘2), colour picker (⇧⌘6), mic mute, keyboard lock for cleaning, hide desktop icons, hold-to-quit guard, and dimming **below macOS's minimum brightness**. |
+| 🛠 **Tools** | Screenshots to the clipboard: an area (⇧⌘7) or a **scrolling capture** (⇧⌘8) that scrolls by itself and stitches a whole page into one image. OCR (⇧⌘2), colour picker (⇧⌘6), mic mute, keyboard lock for cleaning, hide desktop icons, hold-to-quit guard, and dimming **below macOS's minimum brightness**. |
 | ⌘ **Command bar** | ⌥Space and type: every OmniMac feature and every app. Off by default — ⌥Space belongs to Raycast for a lot of people. |
 | 🫥 **Menu bar** | Hides the icons you don't use every day. |
 | 🗑️ **App cleaner** | Uninstalls an app with everything it leaves behind, and finds leftovers from apps you already deleted. Everything goes to the Trash. |
@@ -113,7 +113,7 @@ reproducible method — the scripts are in the repo.
 
 The rule the whole app is built on: **do work only when something needs it.** The
 performance charts only sample while you're looking at them. The notch stops all work
-when it folds. The audio engine isn't even created unless you've set something to apply.
+when it folds. The audio engine isn't even created unless you've set something to apply; when it is (an app with its own volume, or the equaliser on), it works while that app is open, at about 0.3 % CPU.
 
 Some things do run in the background: the clipboard history checks the clipboard once a
 second (four times a second for four seconds after you copy something), the performance
