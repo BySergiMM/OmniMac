@@ -347,12 +347,14 @@ temperatura de la batería (una vuelta de cada dos).
 
 - **Los cambios de la 0.5.6 no suben el consumo**: medida junto a la 0.5.5 en las mismas
   condiciones, gasta lo mismo. La memoria real tampoco se mueve (37–38 MB).
-- **Pero ninguna de las dos da hoy el 0,033 % de la medición de la 0.5.5** (1 de octubre), y eso
-  pasa también midiendo sin las consultas de Accesibilidad del script, así que no es el método.
-  `sample` no enseña nada caliente: la app pasa casi todo el tiempo esperando. Ese día Spotify
-  estaba abierto y la presión de memoria del sistema había llegado a «crítica»; la sospecha es la
-  vigilancia de la música del notch, **sin confirmar**. Hasta saber la causa, las cifras públicas
-  (0,017–0,033 %) no se han cambiado ni se han vuelto a confirmar.
+- **Ninguna de las dos dio ese día el 0,033 % de la medición de la 0.5.5** (1 de octubre), ni
+  siquiera midiendo sin las consultas de Accesibilidad del script. **Causa encontrada (10 de
+  octubre): no era reposo.** En ese Mac Spotify tenía un volumen propio (2,5 %) en Sonido, y con eso
+  el mezclador mantiene abierta su toma de audio mientras Spotify esté abierto, suene o esté en
+  pausa: 0,32–0,35 %. Es a propósito: si esperara a que Spotify empezara a sonar para engancharse,
+  los primeros instantes saldrían al 100 % en vez de al 2,5 %. Sin volúmenes por app, la misma
+  compilación da **0,033 % y 0,017 %** en dos muestras de 60 s: las cifras públicas siguen siendo
+  ciertas para el reposo, y el coste del mezclador es el caso aparte que ya pide `RELEASE.md`.
 
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 

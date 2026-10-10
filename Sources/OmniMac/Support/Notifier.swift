@@ -3,6 +3,23 @@ import UserNotifications
 
 /// Notificaciones locales (temporizador, fin del café, avisos de Rendimiento…).
 enum Notifier {
+    /// Con una ventana de OmniMac delante (Ajustes, por ejemplo), macOS no enseña los
+    /// avisos de OmniMac salvo que la app lo pida: el «Enviar un aviso de prueba» de
+    /// Ajustes no se veía nunca. Se pone al arrancar.
+    static func install() {
+        guard Bundle.main.bundleIdentifier != nil else { return }
+        UNUserNotificationCenter.current().delegate = Presenter.shared
+    }
+
+    private final class Presenter: NSObject, UNUserNotificationCenterDelegate {
+        static let shared = Presenter()
+
+        func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+            completionHandler([.banner, .list, .sound])
+        }
+    }
+
     static func post(title: String, body: String, identifier: String = UUID().uuidString) {
         let center = UNUserNotificationCenter.current()
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in

@@ -238,6 +238,16 @@ struct PerformancePage: View {
                                               "Above \(Int(AlertSettings.batteryHeatCelsius)) °C while plugged in, which is when it wears the most."),
                                   isOn: $alerts.settings.batteryHeatEnabled)
                 }
+                SettingRow(title: L("Probar los avisos", "Test the alerts"),
+                           subtitle: L("Manda uno ahora para ver dónde y cómo te llegan. Con un modo de concentración activo (No molestar, Trabajo…), macOS lo guarda en el Centro de notificaciones sin enseñarlo.",
+                                       "Sends one now so you can see where and how they arrive. With a Focus on (Do Not Disturb, Work…), macOS keeps it in Notification Center without showing it.")) {
+                    Button(L("Enviar un aviso de prueba", "Send a test alert")) {
+                        Notifier.post(title: L("Aviso de prueba de OmniMac", "OmniMac test alert"),
+                                      body: L("Así te llegarán los avisos de Rendimiento.", "This is how Performance alerts will reach you."),
+                                      identifier: "alert.test.\(UUID().uuidString)")
+                        alerts.refreshPermission()
+                    }
+                }
             } header: {
                 Text(L("Avisos", "Alerts"))
             } footer: {

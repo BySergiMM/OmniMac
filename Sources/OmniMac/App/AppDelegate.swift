@@ -3,9 +3,20 @@ import AppKit
 /// Arranque de la app: icono de la barra, módulos, permisos, actualizaciones y ventana de Ajustes.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController?
+    /// Esta copia llegó con otra ya abierta y se va sin haber arrancado nada.
+    private var handedOver = false
+
+    /// Aviso entre copias: «enseña tus Ajustes» (ver `handOverToRunningCopy`).
+    static let showSettingsNotification = Notification.Name("com.seergiii.omnimac.showSettings")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if handOverToRunningCopy() { return }
         NSApp.setActivationPolicy(.accessory)
+        Notifier.install()
+        DistributedNotificationCenter.default().addObserver(forName: Self.showSettingsNotification,
+                                                            object: nil, queue: .main) { _ in
+            SettingsWindowController.shared.show()
+        }
 
         // Antes de crear ningún icono: que el escondedor de la barra no acabe
         // tragándose los de OmniMac (AppKit lee la posición al crear cada uno).
@@ -51,6 +62,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // Si el usuario vuelve a abrir la app desde el Finder/Launchpad, mostramos Ajustes.
+    /// Si ya hay otra OmniMac abierta, le pasa el testigo y se cierra.
+    ///
+    /// Dos copias a la vez son dos notch, dos iconos y los mismos atajos registrados dos
+    /// veces. Pasaba al tener la app en `/Applications` y otra copia con el mismo
+    /// identificador (la compilada en `dist/`, o una que alguien se baja otra vez):
+    /// macOS abría las dos. La que llega tarde le pide a la que ya estaba que enseñe sus
+    /// Ajustes, que es lo que uno espera al abrir la app, y se va.
+    private func handOverToRunningCopy() -> Bool {
+        guard let id = Bundle.main.bundleIdentifier,
+              !CommandLine.arguments.contains("--snapshots") else { return false }
+        let me = ProcessInfo.processInfo.processIdentifier
+        guard let other = NSRunningApplication.runningApplications(withBundleIdentifier: id)
+            .first(where: { $0.processIdentifier != me && !$0.isTerminated }) else { return false }
+        DistributedNotificationCenter.default().postNotificationName(Self.showSettingsNotification, object: nil,
+                                                                     userInfo: nil, deliverImmediately: true)
+        other.activate()
+        handedOver = true
+        NSApp.terminate(nil)
+        return true
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         SettingsWindowController.shared.show()
         return true
@@ -100,6 +132,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // La copia que se va no toca nada: el café es de la que sigue abierta.
+        guard !handedOver else { return }
         FeatureManager.shared.keepAwake.deactivate(reason: .appQuit)
     }
 }
