@@ -1206,7 +1206,7 @@ struct ToolsPage: View {
                         Button(L("Probar", "Try it")) { feature.captureArea() }
                     }
                     SettingRow(title: L("Captura con scroll", "Scrolling capture"),
-                               subtitle: L("⇧⌘8: selecciona la zona que se desplaza (una web, un chat largo) y OmniMac baja sola hasta el final, cosiéndolo todo en una imagen. Esc o «Listo» para parar antes. Necesita Accesibilidad.", "⇧⌘8: select the area that scrolls (a web page, a long chat) and OmniMac scrolls to the end by itself, stitching it all into one image. Esc or “Done” to stop earlier. Needs Accessibility.")) {
+                               subtitle: L("⇧⌘8: selecciona la zona que se desplaza (una web, un chat largo) y desplázate tú por ella, hacia abajo o hacia arriba, a tu ritmo: OmniMac lo va cosiendo en una imagen. «Listo» (u otra vez ⇧⌘8) para terminar; Esc cancela. Necesita Accesibilidad.", "⇧⌘8: select the area that scrolls (a web page, a long chat) and scroll through it yourself, down or up, at your own pace: OmniMac stitches it into one image. “Done” (or ⇧⌘8 again) to finish; Esc cancels. Needs Accessibility.")) {
                         Button(L("Probar", "Try it")) { feature.captureScrolling() }
                             .disabled(!axGranted)
                     }

@@ -153,22 +153,6 @@ final class ScrollStitcherTests: XCTestCase {
         XCTAssertEqual(rows, expected)
     }
 
-    /// La barra de desplazamiento flotante: si aparece en la franja de la derecha de la
-    /// captura nueva, esa franja ya no es la anterior desplazada.
-    func testNoticesTheFloatingScrollbar() throws {
-        let previous = frame(offset: 0, viewport: 200)
-        let next = frame(offset: 70, viewport: 200)
-        var withBar = next
-        for y in 60..<120 { for x in (width - 6)..<(width - 2) { withBar[y][x] = 90 } }
-        let step = ScrollStitcher.Step(shift: 70, top: 0, bottom: 0)
-        let a = try XCTUnwrap(ScrollStitcher.trailingSignature(of: image(previous), trailing: 12))
-        let clean = try XCTUnwrap(ScrollStitcher.trailingSignature(of: image(next), trailing: 12))
-        let barred = try XCTUnwrap(ScrollStitcher.trailingSignature(of: image(withBar), trailing: 12))
-        XCTAssertEqual(clean.columns, 12)
-        XCTAssertTrue(ScrollStitcher.trailingMatches(a, clean, step: step))
-        XCTAssertFalse(ScrollStitcher.trailingMatches(a, barred, step: step))
-    }
-
     /// Como en Claude o en Mail: la zona coge también un panel de al lado que no se
     /// mueve. Antes ninguna fila encajaba y la captura se quedaba en la primera.
     func testAStillPanelBesideTheContent() throws {
@@ -205,5 +189,58 @@ final class ScrollStitcherTests: XCTestCase {
         let a = try signature(frame(offset: 0, viewport: 200))
         let b = try signature(frame(offset: 70, viewport: 200))
         XCTAssertNil(ScrollStitcher.step(from: a, to: b, expected: 70)?.columns)
+    }
+
+    // MARK: Te desplazas tú
+
+    private func compose(_ frames: [[[UInt8]]], offsets: [Int], clean: [Bool], top: Int = 0, bottom: Int = 0) -> [[UInt8]] {
+        let plan = ScrollStitcher.layout(offsets: offsets, clean: clean, height: frames[0].count, top: top, bottom: bottom)
+        var canvas = [[UInt8]](repeating: [], count: plan.height)
+        for draw in plan.draws {
+            for (i, row) in draw.rows.enumerated() { canvas[draw.y + i] = frames[draw.frame][row] }
+        }
+        return canvas
+    }
+
+    /// Bajas, subes un poco y vuelves a bajar: sale la página entera, una vez.
+    func testYouScrollDownUpAndDownAgain() {
+        let offsets = [0, 70, 30, 140, 200]
+        let frames = offsets.map { frame(offset: $0, viewport: 200) }
+        let rows = compose(frames, offsets: offsets, clean: [true, false, false, false, true])
+        XCTAssertEqual(rows, (0..<400).map(pageRow))
+    }
+
+    /// Empiezas abajo y subes: las posiciones son negativas y da igual.
+    func testYouScrollUpFromTheBottom() {
+        let offsets = [300, 230, 160]
+        let frames = offsets.map { frame(offset: $0, viewport: 200) }
+        let rows = compose(frames, offsets: offsets.map { $0 - 300 }, clean: [true, false, true])
+        XCTAssertEqual(rows, (160..<500).map(pageRow))
+    }
+
+    /// La barra fija de arriba y la de abajo, una sola vez.
+    func testFixedBarsOnceWhenYouScroll() {
+        let offsets = [0, 70, 140]
+        let frames = offsets.map { frame(offset: $0, viewport: 200, header: 20, footer: 15) }
+        let rows = compose(frames, offsets: offsets, clean: [true, true, true], top: 20, bottom: 15)
+        let expected = Array(frames[0].prefix(20)) + (0..<(165 + 140)).map(pageRow) + Array(frames[0].suffix(15))
+        XCTAssertEqual(rows, expected)
+    }
+
+    /// Una captura con la barra de desplazamiento puesta queda debajo de la limpia.
+    func testCleanFramesGoOnTop() {
+        let plan = ScrollStitcher.layout(offsets: [0, 0, 70], clean: [false, true, false], height: 200, top: 0, bottom: 0)
+        XCTAssertEqual(plan.draws.map(\.frame), [0, 2, 1])
+    }
+
+    /// Al parar, la captura limpia (sin la barra de desplazamiento) es la misma posición.
+    func testTheCleanCaptureIsTheSamePlace() throws {
+        let page = frame(offset: 40, viewport: 200)
+        var withBar = page
+        for y in 60..<120 { for x in (width - 6)..<(width - 2) { withBar[y][x] = 90 } }
+        let a = try signature(withBar), b = try signature(page)
+        XCTAssertTrue(ScrollStitcher.samePlace(a, b, ignoring: 6))
+        // Moverse de verdad no es «el mismo sitio».
+        XCTAssertFalse(ScrollStitcher.samePlace(b, try signature(frame(offset: 41, viewport: 200)), ignoring: 6))
     }
 }

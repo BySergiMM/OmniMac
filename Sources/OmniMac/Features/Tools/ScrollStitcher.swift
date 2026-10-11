@@ -82,35 +82,13 @@ enum ScrollStitcher {
 
     /// Cuántas columnas cambian de verdad entre dos filas. Contar, y no promediar: una
     /// cifra distinta son pocas columnas muy distintas, y en una media se diluye.
-    /// Firma de la franja de la derecha, donde vive la barra de desplazamiento flotante.
-    static func trailingSignature(of image: CGImage, trailing: Int) -> Signature? {
-        stripSignature(of: image, columns: (image.width - trailing)..<image.width)
-    }
-
-    /// Firma de una franja vertical cualquiera (en píxeles), a resolución completa.
-    static func stripSignature(of image: CGImage, columns range: Range<Int>) -> Signature? {
-        let range = max(0, range.lowerBound)..<min(image.width, range.upperBound)
-        guard !range.isEmpty, range.count < image.width,
-              let strip = image.cropping(to: CGRect(x: range.lowerBound, y: 0, width: range.count, height: image.height))
-        else { return nil }
-        return signature(of: strip, columns: range.count)
-    }
-
-    /// ¿La franja de la derecha de `next` es la de `previous` desplazada como el resto?
-    ///
-    /// Mientras se ve la barra de desplazamiento flotante, no: ahí hay algo que antes no
-    /// estaba. Comparar dos capturas seguidas no sirve, porque la barra se queda quieta
-    /// un rato antes de irse y dos capturas con ella son iguales.
-    static func trailingMatches(_ previous: Signature, _ next: Signature, step: Step) -> Bool {
-        guard previous.rows == next.rows, previous.columns == next.columns, step.shift > 0 else { return true }
-        let overlap = previous.rows - step.top - step.bottom - step.shift
-        guard overlap > 0 else { return true }
-        var changed = 0
-        for i in 0..<overlap
-        where difference(previous.row(step.top + step.shift + i), next.row(step.top + i)) > rowTolerance {
-            changed += 1
-            if changed > 2 { return false }
-        }
+    /// ¿Siguen en el mismo sitio? Se deja pasar que cambien unas pocas columnas por fila:
+    /// las de la barra de desplazamiento, que sale mientras te mueves y se va al parar. Si
+    /// no, la captura limpia de cuando paras no se reconocería como la misma posición.
+    static func samePlace(_ a: Signature, _ b: Signature, ignoring edgeColumns: Int) -> Bool {
+        guard a.rows == b.rows, a.columns == b.columns else { return false }
+        let allowed = max(rowTolerance, edgeColumns + 2)
+        for row in 0..<a.rows where difference(a.row(row), b.row(row)) > allowed { return false }
         return true
     }
 
@@ -264,6 +242,42 @@ enum ScrollStitcher {
             row += max(1, band / 2)
         }
         return nil
+    }
+
+    // MARK: - Montaje por posición (te desplazas tú)
+
+    /// Un trozo de una captura que va a la imagen final: sus filas y dónde caen.
+    struct Draw: Equatable {
+        let frame: Int
+        let rows: Range<Int>
+        let y: Int
+    }
+
+    /// Monta capturas de las que se sabe dónde caen (`offsets`, en filas, respecto a la
+    /// primera), en cualquier orden y aunque se repitan zonas: es lo que sale cuando te
+    /// desplazas tú, hacia abajo o hacia arriba, a tu ritmo.
+    ///
+    /// Se pinta por capas: primero las capturas hechas mientras te movías y encima las
+    /// «limpias» (`clean`), hechas con el contenido quieto, que no llevan la barra de
+    /// desplazamiento. La cabecera fija sale una vez arriba (de la captura más alta) y el
+    /// pie una vez abajo (de la más baja).
+    static func layout(offsets: [Int], clean: [Bool], height: Int, top: Int, bottom: Int) -> (height: Int, draws: [Draw]) {
+        guard let lowest = offsets.min(), let highest = offsets.max(),
+              let first = offsets.firstIndex(of: lowest), let last = offsets.lastIndex(of: highest) else { return (0, []) }
+        let body = height - top - bottom
+        guard body > 0 else { return (0, []) }
+        let canvas = top + (highest - lowest) + body + bottom
+        var draws: [Draw] = []
+        if top > 0 { draws.append(Draw(frame: first, rows: 0..<top, y: 0)) }
+        let order = offsets.indices.sorted { a, b in
+            if clean[a] != clean[b] { return !clean[a] }   // las limpias, encima
+            return offsets[a] < offsets[b]
+        }
+        for index in order {
+            draws.append(Draw(frame: index, rows: top..<(height - bottom), y: top + offsets[index] - lowest))
+        }
+        if bottom > 0 { draws.append(Draw(frame: last, rows: (height - bottom)..<height, y: canvas - bottom)) }
+        return (canvas, draws)
     }
 
     // MARK: - Montaje

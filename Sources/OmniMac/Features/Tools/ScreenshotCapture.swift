@@ -18,6 +18,12 @@ final class ScreenshotCapture {
     var isBusy: Bool { overlay != nil || session != nil }
 
     func begin(_ mode: Mode) {
+        // Otra vez ⇧⌘8 (o el menú) con una captura con scroll en marcha: «Listo».
+        if mode == .scrolling, let session {
+            // Los atajos y el menú llegan siempre por el hilo principal.
+            MainActor.assumeIsolated { session.finishNow() }
+            return
+        }
         guard !isBusy else { return }
         guard Permissions.hasScreenRecording else {
             _ = Permissions.requestScreenRecording()
@@ -25,7 +31,7 @@ final class ScreenshotCapture {
             Toast.show(L("Necesita el permiso de Grabación de pantalla", "Needs the Screen Recording permission"), symbol: "rectangle.dashed.badge.record")
             return
         }
-        // Para desplazar el contenido hay que mandar la rueda del ratón a otra app.
+        // Para oír Esc mientras te desplazas por otra app hace falta Accesibilidad.
         if mode == .scrolling, !Permissions.hasAccessibility {
             Permissions.requestAccessibility()
             Toast.show(L("La captura con scroll necesita Accesibilidad", "Scrolling capture needs Accessibility"), symbol: "hand.raised.fill")
@@ -54,7 +60,7 @@ final class ScreenshotCapture {
         keyMonitor = nil
         overlay?.orderOut(nil)
         overlay = nil
-        // De vuelta a la app que estabas usando: es la que va a recibir la rueda.
+        // De vuelta a la app que estabas usando: es la que vas a desplazar.
         previousApp?.activate()
     }
 
@@ -75,8 +81,8 @@ final class ScreenshotCapture {
                 }
             }
         case .scrolling:
-            // Más tiempo: la app de debajo tiene que volver a ser la de delante.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            // Un instante para que el velo desaparezca antes de la primera captura.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 let session = ScrollingSession(rect: rect, screen: screen)
                 self?.session = session
                 session.onFinish = { [weak self] in self?.session = nil }
@@ -109,25 +115,57 @@ final class ScreenshotCapture {
 
 // MARK: - Captura con scroll
 
-/// Una captura con scroll en marcha: desplaza, captura, cose y vuelta a empezar.
+/// Lo que enseña el aviso mientras capturas: cuánto llevas.
 @MainActor
-private final class ScrollingSession {
+private final class ScrollingStatus: ObservableObject {
+    @Published var pixels = 0
+    /// Te has movido tan deprisa que la última captura quieta ya no se solapa con lo
+    /// cosido: hay que volver un poco atrás.
+    @Published var lost = false
+}
+
+/// Una captura con scroll en marcha. **Te desplazas tú**: OmniMac no mueve nada, va
+/// capturando la zona mientras bajas o subes a tu ritmo, cose lo que pasa por ella y para
+/// cuando pulsas «Listo» (o otra vez ⇧⌘8). Esc cancela.
+///
+/// Antes desplazaba OmniMac sola, y en cuanto elegías la zona la pantalla se movía sin
+/// que supieras hacia dónde: funcionaba, pero no se entendía.
+@MainActor
+final class ScrollingSession {
     let rect: CGRect
     let screen: NSScreen
     var onFinish: (() -> Void)?
 
-    /// Topes: una página infinita (un muro de una red social) no tiene final.
-    static let maxFrames = 60
+    /// Tope: una página infinita (un muro de una red social) no tiene final.
     static let maxPixelHeight = 20_000
 
-    private var frames: [CGImage] = []
-    private var signatures: [ScrollStitcher.Signature] = []
-    private var steps: [ScrollStitcher.Step] = []
-    private var stillCount = 0
-    /// Por qué se paró antes de tener nada cosido, para decirlo en vez de copiar sin más.
-    private enum Ending { case normal, didNotMove, didNotMatch }
-    private var ending = Ending.normal
-    private var stopRequested = false
+    private struct Stored {
+        let image: CGImage
+        /// Filas respecto a la primera captura (negativo si subiste).
+        let offset: Int
+        /// Hecha con el contenido quieto: sin la barra de desplazamiento.
+        let clean: Bool
+    }
+
+    private var stored: [Stored] = []
+    /// La más alejada por cada lado que aún no se ha guardado: siempre entra al final.
+    private var topEdge: Stored?
+    private var bottomEdge: Stored?
+    /// La última captura que encajó: con ella se compara la siguiente.
+    private var reference: (signature: ScrollStitcher.Signature, offset: Int)?
+    /// La captura anterior, cosida o no: si la nueva sale igual, el contenido está quieto.
+    private var lastProbe: ScrollStitcher.Signature?
+    /// Desde cuándo no encaja ninguna captura quieta (para no avisar por un instante).
+    private var failingSince: Date?
+    private var moves: [ScrollStitcher.Step] = []
+    private var signatureColumns = 0
+    private var timer: Timer?
+    private var lastScrollAt: Date?
+    private var cleanCapturedFor: Date?
+    private var lastCaptureAt = Date.distantPast
+    private var capturing = false
+    private var done = false
+    private let status = ScrollingStatus()
     private var border: NSWindow?
     private var hud: NSPanel?
     private var monitors: [Any] = []
@@ -137,148 +175,195 @@ private final class ScrollingSession {
         self.screen = screen
     }
 
-    /// Lo que se desplaza en cada paso: algo más de la mitad de la zona, para que el
-    /// solape sea grande y se encuentre seguro.
-    ///
-    /// Cuando ya se sabe cuánto miden la cabecera y el pie fijos, el 70 % de lo que se
-    /// mueve: menos pasos y el solape sigue siendo de sobra.
-    private var stepPoints: CGFloat {
-        guard let last = steps.last(where: { $0.shift > 0 }) else { return max(40, (rect.height * 0.55).rounded()) }
-        let moving = rect.height - CGFloat(last.top + last.bottom) / screen.backingScaleFactor
-        return max(40, (moving * 0.7).rounded())
-    }
-
     func start() {
         showChrome()
-        Task { await run() }
+        capture(clean: true)
+        // Solo existe mientras dura la captura.
+        let t = Timer(timeInterval: 0.08, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.tick() }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
-    func requestStop() { stopRequested = true }
-
-    private func run() async {
-        do {
-            try await capture()
-            while !stopRequested, frames.count < Self.maxFrames, stitchedHeight < Self.maxPixelHeight {
-                scroll()
-                // Un segundo entero: la barra de desplazamiento flotante de macOS sale con
-                // cada scroll y se va a los 0,7–0,9 s (medido en Safari, macOS 27). Con
-                // menos espera dejaba un trozo pegado al borde en cada tramo, y no se puede
-                // detectar siempre: cuando cae en la parte nueva no hay con qué compararla.
-                try await Task.sleep(nanoseconds: 1_000_000_000)
-                guard !stopRequested else { break }
-                try await capture()
-                guard let previous = signatures.dropLast().last else { break }
-                let expected = Int(stepPoints * screen.backingScaleFactor)
-                let edgeColumns = scrollbarColumns(signatureColumns: previous.columns)
-                var found = signatures.last.flatMap { ScrollStitcher.step(from: previous, to: $0, expected: expected, edgeColumns: edgeColumns) }
-                // Por si una app la deja más rato: si en la parte que se solapa aparece algo
-                // en el borde que antes no estaba, se repite la captura (como mucho 1,6 s).
-                var tries = 0
-                // La franja que se mira es el borde derecho de lo que se mueve: el de la zona,
-                // o el del chat si al lado hay un panel quieto (cada zona tiene su barra).
-                while let step = found, frames.count >= 2, tries < 8,
-                      case let strip = scrollbarStrip(for: step, imageWidth: frames[frames.count - 1].width),
-                      let before = ScrollStitcher.stripSignature(of: frames[frames.count - 2], columns: strip),
-                      let after = ScrollStitcher.stripSignature(of: frames[frames.count - 1], columns: strip),
-                      !ScrollStitcher.trailingMatches(before, after, step: step) {
-                    tries += 1
-                    try await Task.sleep(nanoseconds: 200_000_000)
-                    frames.removeLast(); signatures.removeLast()
-                    try await capture()
-                    found = signatures.last.flatMap { ScrollStitcher.step(from: previous, to: $0, expected: expected, edgeColumns: edgeColumns) }
-                }
-                guard let step = found else {
-                    // No encaja: se queda lo que ya estaba cosido y se descarta la última.
-                    frames.removeLast()
-                    if !steps.contains(where: { $0.shift > 0 }) { ending = .didNotMatch }
-                    break
-                }
-                steps.append(step)
-                if step.shift == 0 {
-                    // Dos veces sin moverse: final de la página.
-                    stillCount += 1
-                    if stillCount >= 2 {
-                        if !steps.contains(where: { $0.shift > 0 }) { ending = .didNotMove }
-                        break
-                    }
-                } else {
-                    stillCount = 0
-                }
-            }
+    /// «Listo» u otra vez ⇧⌘8: se monta lo que haya.
+    func finishNow() {
+        guard !done else { return }
+        done = true
+        timer?.invalidate()
+        timer = nil
+        Task { @MainActor in
+            while capturing { try? await Task.sleep(nanoseconds: 40_000_000) }
+            // Si soltaste justo antes de pulsar, la última posición aún no está.
+            if let last = lastScrollAt, lastCaptureAt < last { await grab(clean: false) }
             finish()
-        } catch {
-            hideChrome()
-            Toast.show(L("No se pudo capturar la pantalla", "Couldn't capture the screen"), symbol: "exclamationmark.triangle.fill")
-            onFinish?()
         }
     }
 
-    private var stitchedHeight: Int {
-        guard let height = frames.first?.height else { return 0 }
-        return ScrollStitcher.pieces(height: height, steps: steps).reduce(0) { $0 + $1.rows.count }
+    /// Esc: fuera, sin copiar nada.
+    func cancel() {
+        guard !done else { return }
+        done = true
+        timer?.invalidate()
+        timer = nil
+        hideChrome()
+        Toast.show(L("Captura cancelada", "Capture cancelled"), symbol: "xmark.circle")
+        onFinish?()
     }
 
-    private func capture() async throws {
+    /// Mientras te mueves (y un rato después), una captura cada ~0,1 s para pillar los
+    /// momentos en que el contenido se queda quieto; al parar un segundo, una limpia.
+    private func tick() {
+        guard !capturing, !done, let last = lastScrollAt else { return }
+        let now = Date()
+        let idle = now.timeIntervalSince(last)
+        if idle < 0.9 {
+            if now.timeIntervalSince(lastCaptureAt) >= 0.1 { capture(clean: false) }
+        } else if idle >= 1.0, cleanCapturedFor != last {
+            // La barra de desplazamiento flotante se va a los 0,7–0,9 s de parar.
+            cleanCapturedFor = last
+            capture(clean: true)
+        }
+    }
+
+    private func capture(clean: Bool) {
+        capturing = true
+        lastCaptureAt = Date()
+        Task { @MainActor in
+            await grab(clean: clean)
+            capturing = false
+        }
+    }
+
+    private func grab(clean: Bool) async {
+        lastCaptureAt = Date()
         // Fuera el marco y el aviso: son de OmniMac y se excluyen de la imagen.
-        let image = try await ScreenGrab.image(of: rect, on: screen, excludingOwnWindows: true)
+        guard let image = try? await ScreenGrab.image(of: rect, on: screen, excludingOwnWindows: true) else { return }
+        process(image, clean: clean)
+    }
+
+    private func process(_ image: CGImage, clean: Bool) {
         // Sin el borde derecho, donde sale y se va la barra de desplazamiento flotante.
         let scrollbar = Int(24 * screen.backingScaleFactor)
-        guard let signature = ScrollStitcher.signature(of: image, ignoringTrailing: scrollbar) else { throw CocoaError(.coderInvalidValue) }
-        frames.append(image)
-        signatures.append(signature)
-        // Para coser solo hacen falta las dos últimas; cada firma es un mega.
-        if signatures.count > 2 { signatures.removeFirst(signatures.count - 2) }
+        guard let signature = ScrollStitcher.signature(of: image, ignoringTrailing: scrollbar) else { return }
+        signatureColumns = signature.columns
+        let edge = scrollbarColumns(imageWidth: image.width)
+        // Solo se cose con el contenido quieto: Safari, Chrome o Claude animan el
+        // desplazamiento, y a mitad de la animación el texto cae en medio píxel y se
+        // dibuja distinto, así que ninguna fila encaja. Quieto = igual que la anterior.
+        let settled = clean || lastProbe.map { ScrollStitcher.samePlace($0, signature, ignoring: edge) } ?? true
+        lastProbe = signature
+        guard settled else { return }
+        guard let reference else {
+            self.reference = (signature, 0)
+            stored.append(Stored(image: image, offset: 0, clean: clean))
+            status.pixels = image.height
+            return
+        }
+        var offset: Int?
+        if ScrollStitcher.samePlace(reference.signature, signature, ignoring: edge) {
+            offset = reference.offset
+        } else if let down = ScrollStitcher.step(from: reference.signature, to: signature, edgeColumns: edge) {
+            offset = reference.offset + down.shift
+            if down.shift > 0 { moves.append(down) }
+        } else if let up = ScrollStitcher.step(from: signature, to: reference.signature, edgeColumns: edge), up.shift > 0 {
+            offset = reference.offset - up.shift
+            moves.append(up)
+        }
+        // No encaja (te has movido demasiado rápido entre dos capturas, o algo cambió):
+        // se descarta y la siguiente se compara con la última buena. Volviendo un poco
+        // atrás, sigue cosiendo.
+        guard let offset else {
+            // Con la rueda, dos golpes seguidos sin pararse entre medias fallan un momento
+            // y la siguiente encaja: solo se avisa si dura.
+            let since = failingSince ?? Date()
+            failingSince = since
+            if Date().timeIntervalSince(since) > 0.7 { status.lost = true }
+            return
+        }
+        failingSince = nil
+        status.lost = false
+        self.reference = (signature, offset)
+        keep(Stored(image: image, offset: offset, clean: clean))
+        status.pixels = coveredHeight
+        if coveredHeight >= Self.maxPixelHeight { finishNow() }
     }
 
-    /// Una vuelta de rueda en píxeles, en el centro de la zona. El puntero se lleva
-    /// ahí antes: la rueda va a la ventana que hay bajo él.
-    private func scroll() {
-        // De Cocoa (origen abajo, en la pantalla principal) a Quartz (origen arriba).
-        let primaryTop = NSScreen.screens.first?.frame.maxY ?? screen.frame.maxY
-        let center = CGPoint(x: rect.midX, y: primaryTop - rect.midY)
-        CGWarpMouseCursorPosition(center)
-        let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1,
-                            wheel1: Int32(-stepPoints), wheel2: 0, wheel3: 0)
-        event?.location = center
-        event?.post(tap: .cghidEventTap)
+    /// Cabecera y pie fijos que se han visto, con tope: más de un cuarto ya no es una barra.
+    private func fixedBars(height: Int) -> (top: Int, bottom: Int) {
+        let cap = height / 4
+        return (min(cap, moves.map(\.top).max() ?? 0), min(cap, moves.map(\.bottom).max() ?? 0))
+    }
+
+    /// Se guarda lo que hace falta: lo que amplía lo cubierto (cada tercio de la parte que
+    /// se mueve, y siempre la última por cada lado) y las capturas limpias. Las demás, a
+    /// ocho por segundo, llenarían la memoria sin aportar nada.
+    private func keep(_ new: Stored) {
+        if let index = stored.firstIndex(where: { abs($0.offset - new.offset) <= 2 }) {
+            if new.clean, !stored[index].clean { stored[index] = new }
+            return
+        }
+        let bars = fixedBars(height: new.image.height)
+        let spacing = max(1, (new.image.height - bars.top - bars.bottom) / 3)
+        guard let lowest = stored.map(\.offset).min(), let highest = stored.map(\.offset).max() else {
+            stored.append(new)
+            return
+        }
+        if new.offset > highest {
+            if new.offset - highest >= spacing, let edge = bottomEdge, edge.offset > highest {
+                stored.append(edge)
+                bottomEdge = nil
+            }
+            let top = stored.map(\.offset).max() ?? highest
+            if new.clean || new.offset - top >= spacing { stored.append(new); bottomEdge = nil } else { bottomEdge = new }
+        } else if new.offset < lowest {
+            if lowest - new.offset >= spacing, let edge = topEdge, edge.offset < lowest {
+                stored.append(edge)
+                topEdge = nil
+            }
+            let bottom = stored.map(\.offset).min() ?? lowest
+            if new.clean || bottom - new.offset >= spacing { stored.append(new); topEdge = nil } else { topEdge = new }
+        } else if new.clean {
+            stored.append(new)
+        }
+    }
+
+    private var coveredHeight: Int {
+        let offsets = stored.map(\.offset) + [topEdge, bottomEdge].compactMap { $0?.offset }
+        guard let lowest = offsets.min(), let highest = offsets.max(), let height = stored.first?.image.height else { return 0 }
+        return highest - lowest + height
     }
 
     private func finish() {
         hideChrome()
         defer { onFinish?() }
-        guard let first = frames.first else { return }
-        let used = Array(steps.prefix(frames.count - 1))
-        let pieces = ScrollStitcher.pieces(height: first.height, steps: used)
-        let columns = ScrollStitcher.keptColumns(used)
-        let xRange = columns.map { pixelRange($0, imageWidth: first.width) } ?? 0..<first.width
-        guard let image = Self.compose(frames: frames, pieces: pieces, xRange: xRange) else {
+        for edge in [topEdge, bottomEdge].compactMap({ $0 }) where !stored.contains(where: { $0.offset == edge.offset }) {
+            stored.append(edge)
+        }
+        guard let first = stored.first else { return }
+        let bars = fixedBars(height: first.image.height)
+        let plan = ScrollStitcher.layout(offsets: stored.map(\.offset), clean: stored.map(\.clean),
+                                         height: first.image.height, top: bars.top, bottom: bars.bottom)
+        let columns = ScrollStitcher.keptColumns(moves)
+        let xRange = columns.map { pixelRange($0, imageWidth: first.image.width) } ?? 0..<first.image.width
+        guard let image = Self.compose(images: stored.map(\.image), plan: plan, xRange: xRange) else {
             Toast.show(L("No se pudo montar la captura", "Couldn't put the screenshot together"), symbol: "exclamationmark.triangle.fill")
             return
         }
-        switch ending {
-        case .normal:
-            ScreenshotCapture.copy(image, symbol: "scroll")
-        case .didNotMove:
+        if moves.isEmpty {
             // Se copia lo que se ve, pero se dice: si no, parece que no ha funcionado.
-            ScreenshotCapture.copy(image, symbol: "scroll", note: L("la zona no se movía: si estabas al final, sube antes de empezar",
-                                                                      "the area didn't scroll: if you were at the end, scroll up first"))
-        case .didNotMatch:
-            ScreenshotCapture.copy(image, symbol: "scroll", note: L("solo lo visible: algo de la zona cambiaba además del desplazamiento",
-                                                                      "visible part only: something in the area changed besides scrolling"))
+            ScreenshotCapture.copy(image, symbol: "scroll", note: L("no te has desplazado: solo lo visible",
+                                                                      "you didn't scroll: visible part only"))
+        } else {
+            ScreenshotCapture.copy(image, symbol: "scroll")
         }
     }
 
     /// La barra de desplazamiento ocupa unos 24 puntos; en columnas de la firma.
-    private func scrollbarColumns(signatureColumns: Int) -> Int {
-        let measured = (frames.first?.width ?? 0) - Int(24 * screen.backingScaleFactor)
-        guard measured > 0 else { return 0 }
+    private func scrollbarColumns(imageWidth: Int) -> Int {
+        let measured = imageWidth - Int(24 * screen.backingScaleFactor)
+        guard measured > 0, signatureColumns > 0 else { return 0 }
         return Int((24 * screen.backingScaleFactor * CGFloat(signatureColumns) / CGFloat(measured)).rounded(.up))
-    }
-
-    /// Los 24 puntos del borde derecho de lo que se queda en la imagen, en píxeles.
-    private func scrollbarStrip(for step: ScrollStitcher.Step, imageWidth: Int) -> Range<Int> {
-        let right = step.columns.map { pixelRange($0, imageWidth: imageWidth).upperBound } ?? imageWidth
-        return max(0, right - Int(24 * screen.backingScaleFactor))..<right
     }
 
     /// De columnas de la firma a píxeles de la captura. La firma no mira el borde
@@ -286,30 +371,25 @@ private final class ScrollingSession {
     /// el borde de verdad.
     private func pixelRange(_ kept: Range<Int>, imageWidth: Int) -> Range<Int> {
         let measured = imageWidth - Int(24 * screen.backingScaleFactor)
-        guard let count = signatures.last?.columns, count > 0, measured > 0 else { return 0..<imageWidth }
+        let count = signatureColumns
+        guard count > 0, measured > 0 else { return 0..<imageWidth }
         let lower = kept.lowerBound * measured / count
         let upper = kept.upperBound >= count ? imageWidth : (kept.upperBound * measured + count - 1) / count
         return max(0, lower)..<min(imageWidth, max(lower + 1, upper))
     }
 
-    /// Dibuja los trozos uno debajo de otro.
-    static func compose(frames: [CGImage], pieces: [ScrollStitcher.Piece], xRange: Range<Int>? = nil) -> CGImage? {
-        guard let first = frames.first else { return nil }
-        let columns = xRange ?? 0..<first.width
-        let width = columns.count
-        let height = pieces.reduce(0) { $0 + $1.rows.count }
-        guard height > 0,
-              let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+    /// Pinta los trozos donde dice el plan, por capas.
+    static func compose(images: [CGImage], plan: (height: Int, draws: [ScrollStitcher.Draw]), xRange: Range<Int>) -> CGImage? {
+        guard let first = images.first, plan.height > 0 else { return nil }
+        let width = xRange.count
+        guard let context = CGContext(data: nil, width: width, height: plan.height, bitsPerComponent: 8, bytesPerRow: 0,
                                       space: first.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
-        var top = 0
-        for piece in pieces where frames.indices.contains(piece.frame) {
+        for draw in plan.draws where images.indices.contains(draw.frame) {
             // `cropping` cuenta desde arriba; el contexto, desde abajo.
-            let crop = CGRect(x: columns.lowerBound, y: piece.rows.lowerBound, width: width, height: piece.rows.count)
-            if let strip = frames[piece.frame].cropping(to: crop) {
-                context.draw(strip, in: CGRect(x: 0, y: height - top - piece.rows.count, width: width, height: piece.rows.count))
-            }
-            top += piece.rows.count
+            let crop = CGRect(x: xRange.lowerBound, y: draw.rows.lowerBound, width: width, height: draw.rows.count)
+            guard let strip = images[draw.frame].cropping(to: crop) else { continue }
+            context.draw(strip, in: CGRect(x: 0, y: plan.height - draw.y - draw.rows.count, width: width, height: draw.rows.count))
         }
         return context.makeImage()
     }
@@ -339,9 +419,9 @@ private final class ScrollingSession {
         panel.backgroundColor = .clear
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .transient]
-        let host = NSHostingView(rootView: ScrollingHUD { [weak self] in self?.requestStop() })
+        let host = NSHostingView(rootView: ScrollingHUD(status: status, onDone: { [weak self] in self?.finishNow() }))
         panel.contentView = host
-        let size = host.fittingSize
+        let size = CGSize(width: max(host.fittingSize.width, 420), height: host.fittingSize.height)
         // Debajo de la zona si cabe; si no, encima.
         let below = rect.minY - size.height - 10
         let y = below > screen.visibleFrame.minY ? below : min(rect.maxY + 10, screen.visibleFrame.maxY - size.height)
@@ -349,10 +429,14 @@ private final class ScrollingSession {
         panel.orderFrontRegardless()
         hud = panel
 
-        // Esc para parar. Global: la app de delante es la que se desplaza. Con un clic
-        // no: caería en la página y podría abrir un enlace.
+        // Cuándo te desplazas (para capturar justo entonces) y Esc para cancelar.
+        // Globales: la app de delante es la que se desplaza. Intro no: en un chat
+        // enviaría el mensaje.
+        if let wheel = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel, handler: { [weak self] _ in
+            Task { @MainActor in self?.lastScrollAt = Date() }
+        }) { monitors.append(wheel) }
         if let keys = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
-            if event.keyCode == UInt16(kVK_Escape) { Task { @MainActor in self?.requestStop() } }
+            if event.keyCode == UInt16(kVK_Escape) { Task { @MainActor in self?.cancel() } }
         }) { monitors.append(keys) }
     }
 
@@ -366,18 +450,34 @@ private final class ScrollingSession {
     }
 }
 
-/// «Capturando con scroll · Esc para parar», con un botón «Listo».
+/// «Desplázate por la zona · 3.400 px», con un botón «Listo».
 private struct ScrollingHUD: View {
-    let onStop: () -> Void
+    @ObservedObject var status: ScrollingStatus
+    let onDone: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
-            ProgressView().controlSize(.small)
-            Text(L("Capturando con scroll · Esc para parar", "Scrolling capture · Esc to stop"))
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white)
-            Button(L("Listo", "Done"), action: onStop)
+            Image(systemName: "arrow.up.and.down")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.85))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L("Desplázate por la zona", "Scroll through the area"))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white)
+                if status.lost {
+                    Text(L("Muy rápido: vuelve un poco atrás", "Too fast: scroll back a little"))
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(.orange)
+                } else {
+                    Text(L("\(status.pixels) px · Esc cancela", "\(status.pixels) px · Esc cancels"))
+                        .font(.system(size: 10.5).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            Spacer(minLength: 8)
+            Button(L("Listo", "Done"), action: onDone)
                 .controlSize(.small)
+                .keyboardShortcut(.defaultAction)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
