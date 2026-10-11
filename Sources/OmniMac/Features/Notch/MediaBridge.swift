@@ -9,7 +9,9 @@ struct NowPlayingInfo: Equatable {
     let artist: String
     let isPlaying: Bool
     let artworkURL: String?
-    let position: Int   // segundos
+    /// Segundos, con decimales: con la posición redondeada, la barra del notch retrocedía
+    /// hasta un segundo al pausar y se reajustaba al seguir.
+    let position: Double
     let duration: Int   // segundos
 }
 
@@ -118,7 +120,7 @@ final class MediaBridge: ObservableObject {
                                         artist: info.artist,
                                         isPlaying: info.isPlaying,
                                         artworkURL: info.artworkURL,
-                                        position: seconds,
+                                        position: Double(seconds),
                                         duration: info.duration)
         }
         command("set player position to \(seconds)", on: player)
@@ -184,7 +186,7 @@ final class MediaBridge: ObservableObject {
         }
 
         // Los números se devuelven como enteros (div) para evitar el separador
-        // decimal localizado de AppleScript.
+        // decimal localizado de AppleScript. La posición, en milisegundos.
         let script: String
         if player == .spotify {
             script = """
@@ -194,9 +196,9 @@ final class MediaBridge: ObservableObject {
                 set trackArtist to artist of current track
                 set stateText to (player state as string)
                 set artURL to artwork url of current track
-                set posSec to (player position) div 1
+                set posMs to ((player position) * 1000) div 1
                 set durSec to (duration of current track) div 1000
-                return trackName & "|~|" & trackArtist & "|~|" & stateText & "|~|" & artURL & "|~|" & posSec & "|~|" & durSec
+                return trackName & "|~|" & trackArtist & "|~|" & stateText & "|~|" & artURL & "|~|" & posMs & "|~|" & durSec
             end tell
             """
         } else {
@@ -206,9 +208,9 @@ final class MediaBridge: ObservableObject {
                 set trackName to name of current track
                 set trackArtist to artist of current track
                 set stateText to (player state as string)
-                set posSec to (player position) div 1
+                set posMs to ((player position) * 1000) div 1
                 set durSec to (duration of current track) div 1
-                return trackName & "|~|" & trackArtist & "|~|" & stateText & "|~||~|" & posSec & "|~|" & durSec
+                return trackName & "|~|" & trackArtist & "|~|" & stateText & "|~||~|" & posMs & "|~|" & durSec
             end tell
             """
         }
@@ -241,7 +243,7 @@ final class MediaBridge: ObservableObject {
                                           artist: parts[1],
                                           isPlaying: isPlaying,
                                           artworkURL: parts[3].isEmpty ? nil : parts[3],
-                                          position: Int(parts[4]) ?? 0,
+                                          position: (Double(parts[4]) ?? 0) / 1000,
                                           duration: Int(parts[5]) ?? 0)
                 self.nowPlaying = info
                 self.updateArtwork(info)

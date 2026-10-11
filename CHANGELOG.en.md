@@ -2,6 +2,10 @@
 
 ## 0.5.9 — unreleased
 
+**Changed**
+- Notch: the song's progress bar now slides continuously, and the time ticks every second. It used to jump every 2–3 seconds, which is how often OmniMac asks Spotify again. The sliding is drawn by Core Animation outside the app, so it costs less than before: with the notch open and music playing, from 2.8% to 1.3% CPU. And pausing and resuming no longer makes it readjust: it stays exactly where it was and carries on from there.
+- Scrolling capture: you scroll now. You pick the area and nothing moves by itself: scroll down or up at your own pace, with the wheel or the trackpad, OmniMac stitches what passes through the area, and you finish with “Done” (or ⇧⌘8 again); Esc cancels. OmniMac used to scroll by itself and the screen moved without you knowing which way. It only stitches when the content is still (web pages and chats animate scrolling), and if you go so fast that the overlap is lost, the notice asks you to scroll back a little.
+
 **Fixed**
 - Scrolling capture: in apps with several panes (Claude, Mail, Slack, Settings) it stitched nothing and copied only what was visible. If the area also took in a pane next to it that doesn't move, no row matched; and each scrolling area's scrollbar sits on its own edge, not on the edge of the area you picked. Still panes are now left out of the matching and removed from the image when they sit at an edge, and the scrollbar is ignored wherever it is. If nothing could be stitched in the end, the notice says so instead of quietly copying a normal screenshot.
 

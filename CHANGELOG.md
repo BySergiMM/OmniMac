@@ -2,6 +2,10 @@
 
 ## 0.5.9 — sin publicar
 
+**Cambiado**
+- Notch: la barra de la canción se desliza de forma continua, y el tiempo avanza cada segundo. Antes iba a saltos de 2–3 segundos, los que tarda OmniMac en volver a preguntar a Spotify. El deslizamiento lo pinta Core Animation fuera de la app, así que gasta menos que antes: con el notch abierto y música sonando, del 2,8 % al 1,3 % de CPU. Y al pausar y seguir ya no se reajusta: se queda justo donde iba y sigue desde ahí.
+- Captura con scroll: ahora te desplazas tú. Eliges la zona y no se mueve nada solo: bajas o subes a tu ritmo, con la rueda o el trackpad, OmniMac va cosiendo lo que pasa por la zona y terminas con «Listo» (u otra vez ⇧⌘8); Esc cancela. Antes desplazaba OmniMac sola y la pantalla se movía sin que supieras hacia dónde. Cose solo con el contenido quieto (las webs y los chats animan el desplazamiento), y si vas tan deprisa que se pierde el solape, el aviso te pide volver un poco atrás.
+
 **Arreglado**
 - Captura con scroll: en las apps con varios paneles (Claude, Mail, Slack, Ajustes) no cosía nada y copiaba solo lo que se veía. Si la zona cogía también un panel de al lado que no se mueve, ninguna fila encajaba; y la barra de desplazamiento de cada zona está en su propio borde, no en el de la zona elegida. Ahora los paneles quietos no cuentan al buscar el encaje y se quitan de la imagen si están pegados a un borde, y la barra se ignora esté donde esté. Si al final no se ha podido coser nada, el aviso lo dice en vez de copiar una captura normal sin más.
 

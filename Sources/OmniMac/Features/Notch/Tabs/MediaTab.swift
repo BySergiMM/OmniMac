@@ -43,7 +43,7 @@ struct MediaTab: View {
 
                     Spacer(minLength: 4)
 
-                    TrackProgress(position: info.position, duration: info.duration) { seconds in
+                    TrackProgress(position: info.position, duration: info.duration, isPlaying: info.isPlaying) { seconds in
                         media.seek(to: seconds)
                     }
 
@@ -269,26 +269,60 @@ struct PlayerPicker: View {
     }
 }
 
+/// Dónde va la canción entre una consulta a Spotify y la siguiente.
+///
+/// Spotify solo se consulta cada 2 s; entre medias se cuenta a partir de la última
+/// posición que dio. Va aparte de la vista para poder probarlo.
+struct TrackClock: Equatable {
+    /// Segundos, con decimales.
+    var base: Double
+    var at: Date
+
+    func exactPosition(now: Date, playing: Bool, duration: Int) -> Double {
+        guard playing else { return base }
+        let value = base + max(0, now.timeIntervalSince(at))
+        return duration > 0 ? min(Double(duration), value) : value
+    }
+
+    /// Los segundos que se enseñan en texto.
+    func position(now: Date, playing: Bool, duration: Int) -> Int {
+        Int(exactPosition(now: now, playing: playing, duration: duration))
+    }
+
+    /// Lo que tarda Spotify en contestar o en aplicar una pausa: diferencias menores no se
+    /// corrigen, porque corregirlas es justo el reajuste que se ve al pausar y seguir.
+    static let tolerance: TimeInterval = 0.6
+
+    /// Llega una posición nueva de Spotify. Si cuadra con lo que ya se enseña (menos de
+    /// `tolerance`), se sigue igual; un salto de verdad (otro punto de la canción, otra
+    /// canción, un parón de la red) sí se aplica.
+    func rebased(reported: Double, now: Date, playing: Bool, duration: Int) -> TrackClock {
+        let shown = exactPosition(now: now, playing: playing, duration: duration)
+        if abs(reported - shown) < Self.tolerance { return self }
+        return TrackClock(base: reported, at: now)
+    }
+}
+
 /// Barra de progreso de la canción con tiempos. Arrastra para saltar a cualquier
 /// punto, como en el reproductor real; un clic suelto no salta (distancia mínima).
 struct TrackProgress: View {
-    let position: Int
+    let position: Double
     let duration: Int
+    var isPlaying = false
     let onSeek: (Int) -> Void
 
     @State private var dragFraction: Double?
+    @State private var clock: TrackClock
+
+    init(position: Double, duration: Int, isPlaying: Bool = false, onSeek: @escaping (Int) -> Void) {
+        self.position = position
+        self.duration = duration
+        self.isPlaying = isPlaying
+        self.onSeek = onSeek
+        _clock = State(initialValue: TrackClock(base: position, at: Date()))
+    }
 
     private var isDragging: Bool { dragFraction != nil }
-
-    private var displayedFraction: Double {
-        if let dragFraction { return dragFraction }
-        return duration > 0 ? min(1, Double(position) / Double(duration)) : 0
-    }
-
-    private var displayedPosition: Int {
-        if let dragFraction { return Int(dragFraction * Double(duration)) }
-        return position
-    }
 
     var body: some View {
         VStack(spacing: 2) {
@@ -298,15 +332,19 @@ struct TrackProgress: View {
                     Capsule()
                         .fill(.white.opacity(0.15))
                         .frame(height: barHeight)
-                    Capsule()
-                        .fill(.white.opacity(isDragging ? 1 : 0.9))
-                        .frame(width: max(3, geo.size.width * displayedFraction), height: barHeight)
-                    if isDragging {
+                    if let dragFraction {
+                        Capsule()
+                            .fill(.white)
+                            .frame(width: max(3, geo.size.width * dragFraction), height: barHeight)
                         Circle()
                             .fill(.white)
                             .frame(width: 11, height: 11)
-                            .offset(x: geo.size.width * displayedFraction - 5.5)
+                            .offset(x: geo.size.width * dragFraction - 5.5)
                             .shadow(color: .black.opacity(0.5), radius: 2)
+                    } else {
+                        // Desliza sola hasta el final de la canción (ver `SmoothProgressFill`).
+                        SmoothProgressFill(clock: clock, duration: duration, playing: isPlaying)
+                            .frame(height: barHeight)
                     }
                 }
                 .frame(maxHeight: .infinity)
@@ -332,22 +370,138 @@ struct TrackProgress: View {
                 )
             }
             .frame(height: 14)
-            // Transición corta: suaviza el salto del poll sin mantener vivo el
-            // bucle de fotogramas (una animación larga tendría el CADisplayLink
-            // renderizando casi todo el tiempo).
-            .animation(isDragging ? nil : .easeOut(duration: 0.35), value: displayedFraction)
 
-            HStack {
-                Text(Self.time(displayedPosition))
-                Spacer()
-                Text(Self.time(duration))
+            // El tiempo en texto, cada segundo mientras suena; en pausa, quieto.
+            Group {
+                if isPlaying && !isDragging {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        times(clock.position(now: context.date, playing: true, duration: duration))
+                    }
+                } else {
+                    times(dragFraction.map { Int($0 * Double(duration)) }
+                          ?? clock.position(now: .now, playing: isPlaying, duration: duration))
+                }
             }
-            .font(.system(size: 11, weight: .medium, design: .rounded).monospacedDigit())
-            .foregroundStyle(.white.opacity(isDragging ? 0.85 : 0.5))
         }
+        .onChange(of: position) { _, reported in
+            clock = clock.rebased(reported: reported, now: .now, playing: isPlaying, duration: duration)
+        }
+        .onChange(of: duration) { _, _ in
+            clock = TrackClock(base: position, at: .now)
+        }
+        .onChange(of: isPlaying) { wasPlaying, _ in
+            // Al pausar se queda justo donde iba (con decimales; redondear a segundos la
+            // hacía retroceder) y al seguir cuenta desde ahí.
+            clock = TrackClock(base: clock.exactPosition(now: .now, playing: wasPlaying, duration: duration), at: .now)
+        }
+    }
+
+    private func times(_ shown: Int) -> some View {
+        HStack {
+            Text(Self.time(shown))
+            Spacer()
+            Text(Self.time(duration))
+        }
+        .font(.system(size: 11, weight: .medium, design: .rounded).monospacedDigit())
+        .foregroundStyle(.white.opacity(isDragging ? 0.85 : 0.5))
     }
 
     private static func time(_ seconds: Int) -> String {
         String(format: "%d:%02d", max(0, seconds) / 60, max(0, seconds) % 60)
+    }
+}
+
+/// El relleno de la barra de la canción, deslizándose de forma continua.
+///
+/// Con SwiftUI, una animación así se calcula fotograma a fotograma en el propio
+/// OmniMac (era lo que se comía el 9 % de CPU del principio). Aquí se le encarga a Core
+/// Animation una sola vez, «de aquí al final de la canción, a velocidad constante», y
+/// los fotogramas los pinta el servidor de ventanas. La app solo vuelve a intervenir
+/// cuando hay algo nuevo: Spotify corrige la posición, pausas, saltas o cambia la canción.
+struct SmoothProgressFill: NSViewRepresentable {
+    let clock: TrackClock
+    let duration: Int
+    let playing: Bool
+
+    func makeNSView(context: Context) -> FillView { FillView() }
+
+    func updateNSView(_ view: FillView, context: Context) {
+        view.configure(.init(clock: clock, duration: duration, playing: playing))
+    }
+
+    final class FillView: NSView {
+        struct Configuration: Equatable {
+            let clock: TrackClock
+            let duration: Int
+            let playing: Bool
+        }
+
+        private let fill = CALayer()
+        private var configuration: Configuration?
+        private var appliedSize: CGSize = .zero
+
+        override init(frame: NSRect) {
+            super.init(frame: frame)
+            wantsLayer = true
+            layer?.masksToBounds = true
+            fill.backgroundColor = NSColor.white.withAlphaComponent(0.9).cgColor
+            layer?.addSublayer(fill)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { fatalError("init(coder:) no soportado") }
+
+        func configure(_ new: Configuration) {
+            // SwiftUI vuelve a llamar con lo mismo a menudo: rehacer la animación en cada
+            // llamada la haría dar tirones.
+            guard new != configuration else { return }
+            configuration = new
+            apply()
+        }
+
+        override func layout() {
+            super.layout()
+            if bounds.size != appliedSize { apply() }
+        }
+
+        private func apply() {
+            guard let configuration, let layer, bounds.width > 0 else { return }
+            appliedSize = bounds.size
+            let width = bounds.width
+            // El relleno mide lo que la pista y se desplaza a la izquierda lo que falta: así
+            // su punta queda redondeada y la máscara de la pista recorta el resto.
+            func offset(_ seconds: Double) -> CGFloat {
+                guard configuration.duration > 0 else { return -width }
+                let fraction = min(1, max(0, seconds / Double(configuration.duration)))
+                return -width * CGFloat(1 - fraction)
+            }
+            let now = Date()
+            let current = configuration.clock.exactPosition(now: now, playing: configuration.playing,
+                                                             duration: configuration.duration)
+
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            layer.cornerRadius = bounds.height / 2
+            fill.removeAllAnimations()
+            // Tamaño y posición, no `frame`: con el desplazamiento anterior aún puesto,
+            // asignar el marco hace que Core Animation compense moviendo la posición, y al
+            // volver a configurarla (cada corrección de Spotify) la barra salía casi llena.
+            fill.bounds = CGRect(origin: .zero, size: bounds.size)
+            fill.position = CGPoint(x: bounds.midX, y: bounds.midY)
+            fill.cornerRadius = bounds.height / 2
+            fill.transform = CATransform3DMakeTranslation(offset(current), 0, 0)
+            CATransaction.commit()
+
+            let remaining = Double(configuration.duration) - current
+            guard configuration.playing, remaining > 0 else { return }
+            let slide = CABasicAnimation(keyPath: "transform.translation.x")
+            slide.fromValue = offset(current)
+            slide.toValue = 0
+            slide.duration = remaining
+            slide.timingFunction = CAMediaTimingFunction(name: .linear)
+            slide.fillMode = .forwards
+            slide.isRemovedOnCompletion = false
+            fill.add(slide, forKey: "progress")
+        }
     }
 }

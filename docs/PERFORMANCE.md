@@ -356,6 +356,27 @@ temperatura de la batería (una vuelta de cada dos).
   compilación da **0,033 % y 0,017 %** en dos muestras de 60 s: las cifras públicas siguen siendo
   ciertas para el reposo, y el coste del mezclador es el caso aparte que ya pide `RELEASE.md`.
 
+## Medición de la barra de la música (11 de octubre de 2026, 0.5.9 sin publicar, Apple M5)
+
+La barra de progreso del notch se actualizaba con cada consulta a Spotify (cada 2 s, con una
+transición de SwiftUI de 0,35 s) e iba a saltos. Se probaron dos cambios. Notch abierto en la
+pestaña de música, Spotify sonando (con un volumen propio, así que el mezclador también trabaja),
+dos muestras de 30 s con `ps -o cputime`:
+
+| | CPU |
+|---|---|
+| Antes: salto con cada consulta + transición de 0,35 s | 2,83 / 2,83 % |
+| Paso seco cada segundo (`TimelineView` de 1 s) | 1,63 / 1,80 % |
+| **Deslizamiento continuo con Core Animation + tiempo cada segundo** (el que se queda) | **1,33 / 1,30 %** |
+| Notch plegado con música | 0,37 % (el mezclador; la barra solo trabaja con el notch abierto) |
+
+El deslizamiento es un `CABasicAnimation` lineal de la posición actual al final de la canción: lo
+interpola el servidor de ventanas, y la app solo lo rehace cuando Spotify corrige la posición, se
+pausa, se salta o cambia la canción. Por eso gasta menos que el paso por segundo, que repintaba
+SwiftUI dentro de la app. Comprobado en el Mac: el relleno crece unos 0,2 pt cada 80 ms sin saltos
+(tampoco con las correcciones cada 2 s), cuadra con el punto de la canción (92 % a 3:19 de 3:36),
+vuelve al principio al cambiar de canción y en pausa no se mueve.
+
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
 Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),
