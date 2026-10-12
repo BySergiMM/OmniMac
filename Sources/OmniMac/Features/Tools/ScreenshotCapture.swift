@@ -94,17 +94,27 @@ final class ScreenshotCapture {
         }
     }
 
+    /// El TIFF de la última captura, que se hace solo si alguna app lo pide.
+    private static var tiffProvider: LazyTIFF?
+
     /// Al portapapeles, como PNG y como imagen normal (TIFF) para las apps antiguas.
+    ///
+    /// El TIFF va sin comprimir: de una captura larga son 60 MB o más, y la app los
+    /// retenía mientras la captura siguiera en el portapapeles. Ahora se guarda solo el
+    /// PNG y el TIFF se saca de él cuando alguna app lo pide, que casi nunca pasa. El PNG
+    /// se hace con ImageIO directamente desde la imagen, sin la copia intermedia de
+    /// `NSBitmapImageRep`.
     @MainActor
     static func copy(_ image: CGImage, symbol: String, note: String? = nil) {
-        let bitmap = NSBitmapImageRep(cgImage: image)
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        if let png = bitmap.representation(using: .png, properties: [:]) {
-            pasteboard.setData(png, forType: .png)
-        }
-        if let tiff = bitmap.tiffRepresentation {
-            pasteboard.setData(tiff, forType: .tiff)
+        if let png = pngData(image) {
+            let provider = LazyTIFF(png: png)
+            tiffProvider = provider
+            let item = NSPasteboardItem()
+            item.setData(png, forType: .png)
+            item.setDataProvider(provider, forTypes: [.tiff])
+            pasteboard.writeObjects([item])
         }
         if let note {
             Toast.show(L("Captura copiada, \(note)", "Screenshot copied, \(note)"), symbol: symbol, duration: 4)
@@ -113,6 +123,25 @@ final class ScreenshotCapture {
                          "Screenshot copied · \(image.width)×\(image.height) px"),
                        symbol: symbol)
         }
+    }
+}
+
+/// PNG de una imagen, con ImageIO.
+private func pngData(_ image: CGImage) -> Data? {
+    let data = NSMutableData()
+    guard let destination = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else { return nil }
+    CGImageDestinationAddImage(destination, image, nil)
+    return CGImageDestinationFinalize(destination) ? data as Data : nil
+}
+
+/// Da el TIFF de la captura solo si una app lo pide (ver `ScreenshotCapture.copy`).
+private final class LazyTIFF: NSObject, NSPasteboardItemDataProvider {
+    let png: Data
+    init(png: Data) { self.png = png }
+
+    func pasteboard(_ pasteboard: NSPasteboard?, item: NSPasteboardItem, provideDataForType type: NSPasteboard.PasteboardType) {
+        guard type == .tiff, let tiff = NSBitmapImageRep(data: png)?.tiffRepresentation else { return }
+        item.setData(tiff, forType: .tiff)
     }
 }
 
@@ -163,6 +192,10 @@ final class ScrollTracker: @unchecked Sendable {
     private var failingSince: Date?
     /// Cuándo te desplazaste por última vez (lo apunta el hilo principal, vía `queue`).
     var lastScrollAt: Date?
+    /// Cuándo se movió el contenido por última vez. La rueda no es la única forma de
+    /// desplazarse (teclado, arrastrar la barra, un chat que se escribe solo): sin esto,
+    /// todo eso contaba como «quieto».
+    private var lastMoveAt: Date?
     private var cleanFor: Date?
     private var frames = 0
 
@@ -170,14 +203,20 @@ final class ScrollTracker: @unchecked Sendable {
         self.scrollbarPixels = scrollbarPixels
     }
 
+    /// Lo último que se movió: la rueda o el contenido.
+    private var lastActivity: Date? {
+        [lastScrollAt, lastMoveAt].compactMap { $0 }.max()
+    }
+
     /// Un segundo después de tu último movimiento, la barra de desplazamiento ya se ha
     /// ido: esas imágenes son las «limpias».
     private var isQuiet: Bool {
-        guard let lastScrollAt else { return true }
-        return Date().timeIntervalSince(lastScrollAt) >= 1.0
+        guard let lastActivity else { return true }
+        return Date().timeIntervalSince(lastActivity) >= 1.0
     }
 
     func ingest(_ image: CGImage) {
+        guard !isDiscarded else { return }
         frames += 1
         guard let signature = ScrollStitcher.signature(of: image, ignoringTrailing: scrollbarPixels) else { return }
         signatureColumns = signature.columns
@@ -194,8 +233,8 @@ final class ScrollTracker: @unchecked Sendable {
         // tuviera la barra en esa posición.
         if ScrollStitcher.samePlace(previous.signature, signature, ignoring: edge) {
             self.previous = (signature, previous.offset)
-            if clean, cleanFor != lastScrollAt {
-                cleanFor = lastScrollAt
+            if clean, cleanFor != lastActivity {
+                cleanFor = lastActivity
                 keep(Stored(image: image.copied(), offset: previous.offset, clean: true))
                 report()
             }
@@ -214,7 +253,11 @@ final class ScrollTracker: @unchecked Sendable {
         failingSince = nil
         self.previous = (signature, offset)
         lastGood = (signature, offset)
-        keep(Stored(image: image, offset: offset, clean: clean))
+        lastMoveAt = Date()
+        // Si el contenido se ha movido, la barra de desplazamiento está a la vista: nunca
+        // es «limpia». Y las limpias se guardan todas (no respetan el espaciado), así que
+        // contar como limpias las de un desplazamiento sin rueda llenaba la memoria.
+        keep(Stored(image: image, offset: offset, clean: false))
         report()
     }
 
@@ -305,6 +348,19 @@ final class ScrollTracker: @unchecked Sendable {
     }
 
     /// La imagen final: todo lo guardado, montado por capas.
+    /// Suelta las imágenes guardadas. Son decenas de MB, y basta con que algo retenga
+    /// el rastreador (ScreenCaptureKit se queda el receptor del flujo después de pararlo)
+    /// para que se acumulen captura tras captura: tres capturas, 250 MB que no volvían.
+    func discard() {
+        stored.removeAll()
+        topEdge = nil
+        bottomEdge = nil
+        isDiscarded = true
+    }
+
+    /// Ya terminada: lo que aún llegue del flujo no se guarda.
+    private var isDiscarded = false
+
     func compose() -> CGImage? {
         for edge in [topEdge, bottomEdge].compactMap({ $0 }) where !stored.contains(where: { $0.offset == edge.offset }) {
             stored.append(edge)
@@ -344,8 +400,13 @@ final class ScrollTracker: @unchecked Sendable {
 }
 
 /// El flujo de imágenes de la zona (ScreenCaptureKit), solo mientras dura la captura.
-final class ZoneStream: NSObject, SCStreamOutput {
+final class ZoneStream: NSObject, SCStreamOutput, @unchecked Sendable {
+    /// `start` y `stop` pueden cruzarse: Esc o «Listo» antes de que acabe de arrancar
+    /// (arrancar tarda unos cientos de ms). Sin esto, el stream nacía cuando ya nadie
+    /// iba a pararlo y seguía grabando.
+    private let lock = NSLock()
     private var stream: SCStream?
+    private var stopped = false
     private let onFrame: (CGImage) -> Void
 
     init(onFrame: @escaping (CGImage) -> Void) {
@@ -375,12 +436,24 @@ final class ZoneStream: NSObject, SCStreamOutput {
         let stream = SCStream(filter: filter, configuration: configuration, delegate: nil)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
         try await stream.startCapture()
-        self.stream = stream
+        let keep = lock.withLock {
+            if !stopped { self.stream = stream }
+            return !stopped
+        }
+        if !keep {
+            try? await stream.stopCapture()
+            try? stream.removeStreamOutput(self, type: .screen)
+        }
     }
 
     func stop() async {
-        try? await stream?.stopCapture()
-        stream = nil
+        let current = lock.withLock {
+            stopped = true
+            defer { stream = nil }
+            return stream
+        }
+        try? await current?.stopCapture()
+        try? current?.removeStreamOutput(self, type: .screen)
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
@@ -397,12 +470,14 @@ final class ZoneStream: NSObject, SCStreamOutput {
 extension CGImage {
     /// Una copia en memoria propia (las del flujo son búferes que hay que devolver).
     func copied() -> CGImage {
-        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                                      space: colorSpace ?? CGColorSpaceCreateDeviceRGB(),
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
-        else { return self }
-        context.draw(self, in: CGRect(x: 0, y: 0, width: width, height: height))
-        return context.makeImage() ?? self
+        let space = colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        let info = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        return MappedImage.make(width: width, height: height, space: space, bitmapInfo: info) { buffer, bytesPerRow in
+            guard let context = CGContext(data: buffer, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: bytesPerRow, space: space, bitmapInfo: info) else { return false }
+            context.draw(self, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        } ?? self
     }
 }
 
@@ -443,12 +518,14 @@ final class ScrollingSession {
             }
         }
         let tracker = self.tracker
-        let zone = ZoneStream { image in tracker.ingest(image) }
+        let zone = ZoneStream { [weak tracker] image in tracker?.ingest(image) }
         self.zone = zone
         Task { @MainActor in
             do {
                 try await zone.start(rect: rect, screen: screen, queue: tracker.queue)
             } catch {
+                // Ya cancelada o terminada: eso ya cerró y avisó.
+                guard !done else { return }
                 hideChrome()
                 done = true
                 Toast.show(L("No se pudo capturar la pantalla", "Couldn't capture the screen"), symbol: "exclamationmark.triangle.fill")
@@ -467,7 +544,11 @@ final class ScrollingSession {
             await zone?.stop()
             // Lo que quede en la cola del rastreador, y después el montaje, ahí mismo.
             let result: (CGImage?, Bool) = await withCheckedContinuation { continuation in
-                tracker.queue.async { continuation.resume(returning: (tracker.compose(), tracker.moves.isEmpty)) }
+                tracker.queue.async {
+                    let result = (tracker.compose(), tracker.moves.isEmpty)
+                    tracker.discard()
+                    continuation.resume(returning: result)
+                }
             }
             hideChrome()
             defer { onFinish?() }
@@ -490,7 +571,9 @@ final class ScrollingSession {
         guard !done else { return }
         done = true
         let zone = self.zone
+        let tracker = self.tracker
         Task { @MainActor in await zone?.stop() }
+        tracker.queue.async { tracker.discard() }
         hideChrome()
         Toast.show(L("Captura cancelada", "Capture cancelled"), symbol: "xmark.circle")
         onFinish?()

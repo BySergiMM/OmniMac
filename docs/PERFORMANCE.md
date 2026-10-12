@@ -377,6 +377,32 @@ SwiftUI dentro de la app. Comprobado en el Mac: el relleno crece unos 0,2 pt cad
 (tampoco con las correcciones cada 2 s), cuadra con el punto de la canción (92 % a 3:19 de 3:36),
 vuelve al principio al cambiar de canción y en pausa no se mueve.
 
+## Memoria tras las capturas (12 de octubre de 2026, 0.5.9 sin publicar, macOS 27, Apple M5)
+
+Al preparar la 0.5.9, la medición en reposo dio **117 MB** de memoria real en vez de los 37 de
+siempre: la app venía de hacer capturas con scroll. `vmmap` lo situaba en «Malloc Large (empty)»,
+memoria ya liberada que no volvía al sistema. Reproducido fuera de la app: en macOS 27, 30 bloques
+de 6,8 MB (lo que ocupa una imagen de la zona) siguen contando entero al liberarlos (197 MB), y
+`malloc_zone_pressure_relief` no los devuelve. Con `MallocStackLogging` salieron tres fuentes:
+las copias de las imágenes de la zona, el montaje de la imagen final y el historial del
+portapapeles, que sacaba un TIFF sin comprimir de cada imagen copiada solo para medirla.
+
+Arreglo: las imágenes grandes de la captura se piden con `mmap` y se devuelven al soltarlas
+(`MappedImage`), la imagen final se monta copiando filas, el PNG del portapapeles se hace con
+ImageIO y el TIFF solo si una app lo pide, y el historial mide por los píxeles.
+
+| Memoria real (`footprint`), Safari, captura de 6440 px | Antes | Después |
+|---|---|---|
+| Recién abierta | 32 MB | 32 MB |
+| Tras 1 captura con scroll | 154 MB | 49 MB |
+| Tras 3 | 255 MB | 52 MB |
+| Tras 4, y 30 s después | 271 MB | 54 → 51 MB |
+
+Lo que queda tras las capturas es el historial del portapapeles, que guarda esas imágenes a
+propósito. **Reposo** con la app recién abierta (`scripts/dev/measure.sh`, 60 s, notch plegado):
+**0,200 % de CPU, 86 MB de RSS, 37 MB de memoria real, 5 hilos**, lo mismo que la 0.5.6 en las
+mismas condiciones (el volumen propio de Spotify mantiene el mezclador despierto, ver la 0.5.6).
+
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
 Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),

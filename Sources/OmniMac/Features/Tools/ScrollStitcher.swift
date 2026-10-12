@@ -1,4 +1,5 @@
 import CoreGraphics
+import Darwin
 
 /// Cose las capturas de una captura con scroll: dice cuánto se ha desplazado el
 /// contenido entre dos capturas y qué filas son nuevas.
@@ -343,6 +344,7 @@ enum ScrollStitcher {
     /// Pinta los trozos donde dice el plan, por capas, con las columnas `xRange`.
     static func render(images: [CGImage], plan: (height: Int, draws: [Draw]), xRange: Range<Int>) -> CGImage? {
         guard let first = images.first, plan.height > 0, !xRange.isEmpty else { return nil }
+        if let copied = copyRows(images: images, plan: plan, xRange: xRange) { return copied }
         let width = xRange.count
         guard let context = CGContext(data: nil, width: width, height: plan.height, bitsPerComponent: 8, bytesPerRow: 0,
                                       space: first.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
@@ -354,5 +356,64 @@ enum ScrollStitcher {
             context.draw(strip, in: CGRect(x: 0, y: plan.height - draw.y - draw.rows.count, width: width, height: draw.rows.count))
         }
         return context.makeImage()
+    }
+
+    /// Monta la imagen copiando las filas tal cual, sin dibujar.
+    ///
+    /// Dibujar cada tramo con `CGContext.draw` hace que CoreGraphics se saque su propia
+    /// copia de los píxeles de cada imagen, y el resultado sale de un contexto con memoria
+    /// del asignador normal (ver `MappedImage`). Las imágenes del flujo comparten formato,
+    /// así que basta con copiar filas. Si no lo comparten (las de algunas pruebas), `nil`
+    /// y se dibuja.
+    static func copyRows(images: [CGImage], plan: (height: Int, draws: [Draw]), xRange: Range<Int>) -> CGImage? {
+        guard let first = images.first, first.bitsPerPixel == 32, first.bitsPerComponent == 8,
+              images.allSatisfy({ $0.bitsPerPixel == 32 && $0.bitsPerComponent == 8 && $0.bitmapInfo == first.bitmapInfo
+                                  && $0.width >= xRange.upperBound && xRange.lowerBound >= 0 }) else { return nil }
+        let width = xRange.count
+        return MappedImage.make(width: width, height: plan.height, space: first.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: first.bitmapInfo.rawValue) { out, outRow in
+            // De arriba abajo: la fila 0 es la de arriba.
+            for draw in plan.draws where images.indices.contains(draw.frame) {
+                let image = images[draw.frame]
+                guard let data = image.dataProvider?.data, let source = CFDataGetBytePtr(data) else { return false }
+                let length = CFDataGetLength(data)
+                for (index, row) in draw.rows.enumerated() {
+                    let target = draw.y + index
+                    let from = row * image.bytesPerRow + xRange.lowerBound * 4
+                    guard row >= 0, row < image.height, target >= 0, target < plan.height,
+                          from + width * 4 <= length else { continue }
+                    memcpy(out + target * outRow, source + from, width * 4)
+                }
+            }
+            return true
+        }
+    }
+}
+
+/// Imágenes grandes con la memoria pedida directamente al sistema (`mmap`).
+///
+/// En macOS 27 el asignador normal se queda los bloques grandes ya liberados (los de
+/// unos pocos MB, justo lo que ocupa cada imagen de la zona) y no los devuelve ni
+/// pidiéndoselo: tras unas capturas con scroll la app pasaba de 32 MB a más de 250 y
+/// ahí se quedaba. Con `mmap`, al soltar la imagen se devuelve todo al momento.
+enum MappedImage {
+    /// `fill` recibe el búfer (filas de arriba abajo) y sus bytes por fila.
+    static func make(width: Int, height: Int, space: CGColorSpace, bitmapInfo: UInt32,
+                     fill: (UnsafeMutableRawPointer, Int) -> Bool) -> CGImage? {
+        guard width > 0, height > 0 else { return nil }
+        let bytesPerRow = (width * 4 + 63) & ~63
+        let size = bytesPerRow * height
+        guard let buffer = mmap(nil, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0),
+              buffer != MAP_FAILED else { return nil }
+        guard fill(buffer, bytesPerRow),
+              let provider = CGDataProvider(dataInfo: nil, data: buffer, size: size, releaseData: { _, data, size in
+                  munmap(UnsafeMutableRawPointer(mutating: data), size)
+              }) else {
+            munmap(buffer, size)
+            return nil
+        }
+        return CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: bytesPerRow,
+                       space: space, bitmapInfo: CGBitmapInfo(rawValue: bitmapInfo), provider: provider,
+                       decode: nil, shouldInterpolate: true, intent: .defaultIntent)
     }
 }

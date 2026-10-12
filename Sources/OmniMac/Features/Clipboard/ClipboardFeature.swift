@@ -461,8 +461,11 @@ final class ClipboardFeature: BaseFeature {
         }
 
         if let image = NSImage(pasteboard: pasteboard), image.size.width > 0 {
-            // Imágenes enormes (capturas 5K…) sí; más de ~50 MB no.
-            if let tiff = image.tiffRepresentation, tiff.count > 50_000_000 { return }
+            // Imágenes enormes (capturas 5K…) sí; más de ~50 MB sin comprimir no. Se
+            // calcula por los píxeles: sacar el TIFF solo para medirlo eran 14 MB o más en
+            // cada imagen copiada, y en macOS 27 esa memoria ya no volvía al sistema.
+            let pixels = image.representations.map { $0.pixelsWide * $0.pixelsHigh }.max() ?? 0
+            if pixels * 4 > 50_000_000 { return }
             insert(ClipItem(content: .image(image)))
         }
     }

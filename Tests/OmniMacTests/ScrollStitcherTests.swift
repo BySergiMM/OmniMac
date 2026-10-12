@@ -251,4 +251,34 @@ final class ScrollStitcherTests: XCTestCase {
         let gap = ScrollStitcher.layout(offsets: [0, 190], clean: [true, true], height: 200, top: 40, bottom: 40)
         XCTAssertFalse(ScrollStitcher.coversEverything(gap))
     }
+
+    /// El montaje copia filas tal cual (sin dibujar, que llenaba la caché de CoreGraphics)
+    /// y tiene que dar lo mismo que dibujando: cada fila en su sitio y recortada.
+    func testCopyingRowsGivesTheSameAsDrawing() throws {
+        func bgra(_ rows: Int, base: UInt8) -> CGImage {
+            let context = CGContext(data: nil, width: 8, height: rows, bitsPerComponent: 8, bytesPerRow: 0,
+                                    space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)!
+            let pixels = context.data!.assumingMemoryBound(to: UInt8.self)
+            for y in 0..<rows { for x in 0..<8 { for c in 0..<3 { pixels[y * context.bytesPerRow + x * 4 + c] = base &+ UInt8(y * 8 + x) }
+                                                  pixels[y * context.bytesPerRow + x * 4 + 3] = 255 } }
+            return context.makeImage()!
+        }
+        let images = [bgra(10, base: 0), bgra(10, base: 100)]
+        let plan = (height: 14, draws: [ScrollStitcher.Draw(frame: 0, rows: 0..<10, y: 0),
+                                        ScrollStitcher.Draw(frame: 1, rows: 6..<10, y: 10)])
+        let copied = try XCTUnwrap(ScrollStitcher.copyRows(images: images, plan: plan, xRange: 2..<6))
+        XCTAssertEqual(copied.width, 4)
+        XCTAssertEqual(copied.height, 14)
+        let data = try XCTUnwrap(copied.dataProvider?.data)
+        let bytes = CFDataGetBytePtr(data)!
+        func blue(x: Int, y: Int) -> UInt8 { bytes[y * copied.bytesPerRow + x * 4] }
+        XCTAssertEqual(blue(x: 0, y: 0), 2)                    // fila 0, columna 2 de la primera
+        XCTAssertEqual(blue(x: 3, y: 9), UInt8(9 * 8 + 5))     // última fila de la primera
+        XCTAssertEqual(blue(x: 0, y: 10), 100 + UInt8(6 * 8 + 2)) // fila 6 de la segunda, debajo
+        // Formatos distintos: no copia (se dibuja).
+        let rgba = CGContext(data: nil, width: 8, height: 10, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!.makeImage()!
+        XCTAssertNil(ScrollStitcher.copyRows(images: [images[0], rgba], plan: plan, xRange: 2..<6))
+    }
 }

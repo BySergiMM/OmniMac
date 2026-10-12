@@ -8,6 +8,8 @@
 
 **Fixed**
 - Scrolling capture: in apps with several panes (Claude, Mail, Slack, Settings) it stitched nothing and copied only what was visible. If the area also took in a pane next to it that doesn't move, no row matched; and each scrolling area's scrollbar sits on its own edge, not on the edge of the area you picked. Still panes are now left out of the matching and removed from the image when they sit at an edge, and the scrollbar is ignored wherever it is. If nothing could be stitched in the end, the notice says so instead of quietly copying a normal screenshot.
+- Screenshots: the app held on to the memory of every capture. After a few scrolling captures it went from 32 MB to over 250 and stayed there, because macOS 27 doesn't hand freed large blocks back to the system. Capture images are now allocated and returned separately: after four long captures it stays at about 50 MB.
+- Clipboard: when you copied an image, the history made an uncompressed TIFF just to check whether it was too big, 14 MB or more per image that never came back either. It now works it out from the pixels.
 
 ## 0.5.8 — 2026-10-10
 
