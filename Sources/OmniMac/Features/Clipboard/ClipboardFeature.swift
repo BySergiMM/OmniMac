@@ -461,11 +461,14 @@ final class ClipboardFeature: BaseFeature {
         }
 
         if let image = NSImage(pasteboard: pasteboard), image.size.width > 0 {
-            // Imágenes enormes (capturas 5K…) sí; más de ~50 MB sin comprimir no. Se
-            // calcula por los píxeles: sacar el TIFF solo para medirlo eran 14 MB o más en
-            // cada imagen copiada, y en macOS 27 esa memoria ya no volvía al sistema.
-            let pixels = image.representations.map { $0.pixelsWide * $0.pixelsHigh }.max() ?? 0
-            if pixels * 4 > 50_000_000 { return }
+            // Imágenes enormes sí; más de ~50 MB sin comprimir (lo que ocupaba su TIFF) no.
+            // Se calcula por los píxeles y los bytes de cada uno: sacar el TIFF solo para
+            // medirlo eran 14 MB o más en cada imagen copiada, y en macOS 27 esa memoria ya
+            // no volvía al sistema.
+            let bytes = image.representations.map { rep in
+                rep.pixelsWide * rep.pixelsHigh * max(1, ((rep as? NSBitmapImageRep)?.bitsPerPixel ?? 32) / 8)
+            }.max() ?? 0
+            if bytes > 50_000_000 { return }
             insert(ClipItem(content: .image(image)))
         }
     }
@@ -590,10 +593,11 @@ final class ClipboardFeature: BaseFeature {
                     let name = "\(item.id.uuidString).png"
                     keep.insert(name)
                     let file = imagesDirectory.appendingPathComponent(name)
+                    // Directamente de su mapa de bits si lo tiene: pasar por el TIFF eran
+                    // 60 MB o más con una captura larga (ver el tope de `poll`).
                     if !FileManager.default.fileExists(atPath: file.path),
-                       let tiff = image.tiffRepresentation,
-                       let bitmap = NSBitmapImageRep(data: tiff),
-                       let png = bitmap.representation(using: .png, properties: [:]) {
+                       let png = (image.representations.first as? NSBitmapImageRep)?.representation(using: .png, properties: [:])
+                        ?? image.tiffRepresentation.flatMap({ NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) }) {
                         try? png.write(to: file)
                     }
                     stored.append(StoredItem(id: item.id, date: item.date, kind: "image", text: nil, files: nil, image: name, pinned: item.pinned))

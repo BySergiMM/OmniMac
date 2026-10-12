@@ -115,6 +115,12 @@ final class ScreenshotCapture {
             item.setData(png, forType: .png)
             item.setDataProvider(provider, forTypes: [.tiff])
             pasteboard.writeObjects([item])
+        } else if let tiff = NSBitmapImageRep(cgImage: image).tiffRepresentation {
+            // Sin PNG (algún formato raro), al menos el TIFF, como antes.
+            pasteboard.setData(tiff, forType: .tiff)
+        } else {
+            Toast.show(L("No se pudo copiar la captura", "Couldn't copy the screenshot"), symbol: "exclamationmark.triangle.fill")
+            return
         }
         if let note {
             Toast.show(L("Captura copiada, \(note)", "Screenshot copied, \(note)"), symbol: symbol, duration: 4)
@@ -400,7 +406,7 @@ final class ScrollTracker: @unchecked Sendable {
 }
 
 /// El flujo de imágenes de la zona (ScreenCaptureKit), solo mientras dura la captura.
-final class ZoneStream: NSObject, SCStreamOutput, @unchecked Sendable {
+final class ZoneStream: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
     /// `start` y `stop` pueden cruzarse: Esc o «Listo» antes de que acabe de arrancar
     /// (arrancar tarda unos cientos de ms). Sin esto, el stream nacía cuando ya nadie
     /// iba a pararlo y seguía grabando.
@@ -408,6 +414,9 @@ final class ZoneStream: NSObject, SCStreamOutput, @unchecked Sendable {
     private var stream: SCStream?
     private var stopped = false
     private let onFrame: (CGImage) -> Void
+    /// El sistema lo ha parado por su cuenta (un monitor desconectado, el permiso
+    /// retirado). Se fija antes de `start`.
+    var onSystemStop: (() -> Void)?
 
     init(onFrame: @escaping (CGImage) -> Void) {
         self.onFrame = onFrame
@@ -433,7 +442,7 @@ final class ZoneStream: NSObject, SCStreamOutput, @unchecked Sendable {
         configuration.pixelFormat = kCVPixelFormatType_32BGRA
         configuration.showsCursor = false
         configuration.queueDepth = 6
-        let stream = SCStream(filter: filter, configuration: configuration, delegate: nil)
+        let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
         try await stream.startCapture()
         let keep = lock.withLock {
@@ -454,6 +463,12 @@ final class ZoneStream: NSObject, SCStreamOutput, @unchecked Sendable {
         }
         try? await current?.stopCapture()
         try? current?.removeStreamOutput(self, type: .screen)
+    }
+
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        // Si lo paramos nosotros, ya está todo hecho.
+        guard !lock.withLock({ stopped }) else { return }
+        onSystemStop?()
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
@@ -519,6 +534,11 @@ final class ScrollingSession {
         }
         let tracker = self.tracker
         let zone = ZoneStream { [weak tracker] image in tracker?.ingest(image) }
+        // Si el sistema corta la grabación, se monta lo que haya en vez de dejar el
+        // aviso esperando un «Listo» que ya no puede añadir nada.
+        zone.onSystemStop = { [weak self] in
+            DispatchQueue.main.async { self?.finishNow() }
+        }
         self.zone = zone
         Task { @MainActor in
             do {
