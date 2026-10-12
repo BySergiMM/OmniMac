@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.9 — unreleased
+## 0.5.9 — 2026-10-12
 
 **Changed**
 - Notch: the song's progress bar now slides continuously, and the time ticks every second. It used to jump every 2–3 seconds, which is how often OmniMac asks Spotify again. The sliding is drawn by Core Animation outside the app, so it costs less than before: with the notch open and music playing, from 2.8% to 1.3% CPU. And pausing and resuming no longer makes it readjust: it stays exactly where it was and carries on from there.

@@ -1,6 +1,6 @@
 # Cambios
 
-## 0.5.9 — sin publicar
+## 0.5.9 — 2026-10-12
 
 **Cambiado**
 - Notch: la barra de la canción se desliza de forma continua, y el tiempo avanza cada segundo. Antes iba a saltos de 2–3 segundos, los que tarda OmniMac en volver a preguntar a Spotify. El deslizamiento lo pinta Core Animation fuera de la app, así que gasta menos que antes: con el notch abierto y música sonando, del 2,8 % al 1,3 % de CPU. Y al pausar y seguir ya no se reajusta: se queda justo donde iba y sigue desde ahí.
