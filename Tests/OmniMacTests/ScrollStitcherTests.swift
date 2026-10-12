@@ -243,4 +243,12 @@ final class ScrollStitcherTests: XCTestCase {
         // Moverse de verdad no es «el mismo sitio».
         XCTAssertFalse(ScrollStitcher.samePlace(b, try signature(frame(offset: 41, viewport: 200)), ignoring: 6))
     }
+
+    /// Si dos capturas quedan más lejos que lo que se pega de cada una, hay un hueco.
+    func testDetectsGapsInThePlan() {
+        let tight = ScrollStitcher.layout(offsets: [0, 100], clean: [true, true], height: 200, top: 20, bottom: 20)
+        XCTAssertTrue(ScrollStitcher.coversEverything(tight))
+        let gap = ScrollStitcher.layout(offsets: [0, 190], clean: [true, true], height: 200, top: 40, bottom: 40)
+        XCTAssertFalse(ScrollStitcher.coversEverything(gap))
+    }
 }

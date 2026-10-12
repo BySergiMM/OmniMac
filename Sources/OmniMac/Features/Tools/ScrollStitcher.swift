@@ -328,4 +328,31 @@ enum ScrollStitcher {
         if footer > 0 { result.append(Piece(frame: frame, rows: (height - footer)..<height)) }
         return result
     }
+
+    /// ¿Algún tramo de la imagen se queda sin pintar?
+    static func coversEverything(_ plan: (height: Int, draws: [Draw])) -> Bool {
+        let spans = plan.draws.map { $0.y..<($0.y + $0.rows.count) }.sorted { $0.lowerBound < $1.lowerBound }
+        var reached = 0
+        for span in spans {
+            if span.lowerBound > reached { return false }
+            reached = max(reached, span.upperBound)
+        }
+        return reached >= plan.height
+    }
+
+    /// Pinta los trozos donde dice el plan, por capas, con las columnas `xRange`.
+    static func render(images: [CGImage], plan: (height: Int, draws: [Draw]), xRange: Range<Int>) -> CGImage? {
+        guard let first = images.first, plan.height > 0, !xRange.isEmpty else { return nil }
+        let width = xRange.count
+        guard let context = CGContext(data: nil, width: width, height: plan.height, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: first.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        for draw in plan.draws where images.indices.contains(draw.frame) {
+            // `cropping` cuenta desde arriba; el contexto, desde abajo.
+            let crop = CGRect(x: xRange.lowerBound, y: draw.rows.lowerBound, width: width, height: draw.rows.count)
+            guard let strip = images[draw.frame].cropping(to: crop) else { continue }
+            context.draw(strip, in: CGRect(x: 0, y: plan.height - draw.y - draw.rows.count, width: width, height: draw.rows.count))
+        }
+        return context.makeImage()
+    }
 }
