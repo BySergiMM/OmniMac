@@ -51,11 +51,7 @@ enum Localization {
     static var code: String { isSpanish ? "es" : "en" }
 
     static func relaunch() {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/bin/sh")
-        task.arguments = ["-c", "sleep 0.6; open \"\(Bundle.main.bundlePath)\""]
-        try? task.run()
-        NSApp.terminate(nil)
+        AppRelauncher.relaunch()
     }
 }
 

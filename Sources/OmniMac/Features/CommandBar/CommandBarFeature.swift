@@ -221,6 +221,11 @@ final class CommandBarFeature: BaseFeature {
             "preferencias preferences opciones modulos", nil) {
             SettingsWindowController.shared.show()
         }
+        add("app.relaunch", L("Reiniciar OmniMac", "Relaunch OmniMac"),
+            "OmniMac", "arrow.clockwise",
+            "reiniciar restart relaunch reset arreglar fix falla bloqueado colgado", nil) {
+            AppRelauncher.relaunch()
+        }
         return list
     }
 
