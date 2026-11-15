@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+**New**
+- Notch: while music plays, the artwork sits left of the notch and a little waveform moves on the right, without covering anything on screen. It goes away when you pause. The waveform is animated by Core Animation, so with music on OmniMac stays at 0% CPU. Notices (new song, charger, "Text copied"…) can also show up beside the notch instead of below it: pick it in Settings › Notch › Notices. Requested by teddy-k9 in issue #4.
+- Volume and brightness: the keys show their own bar up top, by the camera, instead of the macOS overlay. The mute key works, and ⌥⇧ gives fine steps. It's off by default (Settings › Notch › Volume and brightness) and needs the Accessibility permission. With the notch open, in full screen, on an external display or with an audio output that has no volume of its own, macOS still shows its own.
+- Relaunch OmniMac: if something gets stuck, it closes OmniMac and opens it again in a second, leaving your settings alone. It's in the menu bar menu (⌘R), the command bar and Settings › General. It waits until the old copy has really quit and, if it's frozen, forces it out after 5 seconds. Changing the language uses the same thing, so it can no longer get stuck halfway.
+
 ## 0.5.9 — 2026-10-12
 
 **Changed**

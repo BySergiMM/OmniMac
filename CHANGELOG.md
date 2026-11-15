@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.6.0
+
+**Nuevo**
+- Notch: mientras suena música, la carátula se queda a la izquierda del notch y unas ondas se mueven a la derecha, sin tapar nada de la pantalla. En pausa desaparece. Las ondas las mueve Core Animation, así que con la música puesta OmniMac sigue en 0 % de CPU. Y los avisos (canción nueva, cargador, «Texto copiado»…) también pueden salir a los lados en vez de debajo: se elige en Ajustes › Notch › Avisos. Lo pidió teddy-k9 en el issue #4.
+- Volumen y brillo: las teclas enseñan su propia barra arriba, junto a la cámara, en lugar del aviso de macOS. Funciona la tecla de silencio y ⌥⇧ para pasos finos. Va apagado de serie (Ajustes › Notch › Volumen y brillo) y necesita el permiso de Accesibilidad. Si el notch está abierto, a pantalla completa, en un monitor externo o con una salida de audio sin volumen propio, macOS sigue enseñando el suyo.
+- Reiniciar OmniMac: si algo se queda raro, la cierra y la vuelve a abrir en un segundo, sin tocar tus ajustes. Está en el menú de la barra (⌘R), en el buscador de comandos y en Ajustes › General. Espera a que la anterior se cierre de verdad y, si se ha quedado colgada, la fuerza a salir a los 5 segundos. El cambio de idioma usa lo mismo, así que ya no puede quedarse a medias.
+
 ## 0.5.9 — 2026-10-12
 
 **Cambiado**
