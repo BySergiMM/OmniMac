@@ -457,6 +457,11 @@ struct HomePage: View {
                     Button(L("Buscar ahora", "Check now")) { updater.checkForUpdates() }
                         .disabled(!updater.canCheck)
                 }
+                SettingRow(title: L("Reiniciar OmniMac", "Relaunch OmniMac"),
+                           subtitle: L("Si algo se ha quedado raro, la cierra y la vuelve a abrir en un par de segundos. Tus ajustes no cambian. También está en el menú de la barra (⌘R) y en el buscador de comandos.",
+                                       "If something got stuck, it closes OmniMac and opens it again in a couple of seconds. Your settings stay as they are. It's also in the menu bar menu (⌘R) and the command bar.")) {
+                    Button(L("Reiniciar", "Relaunch")) { AppRelauncher.relaunch() }
+                }
             }
 
             Section {

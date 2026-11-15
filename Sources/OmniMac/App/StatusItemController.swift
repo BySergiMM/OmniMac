@@ -183,6 +183,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         settings.target = self
         menu.addItem(settings)
 
+        // Para cuando algo se queda raro: más rápido que salir y buscar la app.
+        let restart = NSMenuItem(title: L("Reiniciar OmniMac", "Relaunch OmniMac"), action: #selector(restart), keyEquivalent: "r")
+        restart.target = self
+        menu.addItem(restart)
+
         let quit = NSMenuItem(title: L("Salir de OmniMac", "Quit OmniMac"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
@@ -580,6 +585,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    @objc private func restart() {
+        AppRelauncher.relaunch()
     }
 
     private func updateIcon() {
