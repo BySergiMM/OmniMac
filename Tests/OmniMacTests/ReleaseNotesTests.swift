@@ -235,6 +235,25 @@ final class ReleaseNotesOnlyFixesTests: XCTestCase {
         }
     }
 
+    /// La 0.6.0: tres novedades con su titular, aunque las tres hablen del notch.
+    func testLa060EnsenaSusTresNovedades() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let esperado = [
+            "CHANGELOG.md": ["Notch", "Volumen y brillo", "Reiniciar OmniMac"],
+            "CHANGELOG.en.md": ["Notch", "Volume and brightness", "Relaunch OmniMac"],
+        ]
+        for (archivo, titulos) in esperado {
+            guard let markdown = try? String(contentsOf: raiz.appendingPathComponent(archivo), encoding: .utf8) else {
+                throw XCTSkip("No está \(archivo) junto a las fuentes")
+            }
+            let notas = try XCTUnwrap(ReleaseNotes.notes(for: "0.6.0", in: markdown), archivo)
+            XCTAssertEqual(notas.highlights.map(\.title), titulos, archivo)
+            XCTAssertEqual(notas.highlights.map(\.symbol),
+                           ["sparkles.rectangle.stack", "speaker.wave.2.fill", "arrow.clockwise"], archivo)
+        }
+    }
+
     /// La 0.5.7, tal cual: tres arreglos y la ventana decía «2 arreglos», porque el de
     /// las capturas y el de ⌘Tab caían en la misma área (los dos hablan de «ventanas»).
     func testCadaArregloTieneSuPantalla() throws {

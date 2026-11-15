@@ -126,7 +126,7 @@ struct ReleaseNotes: Equatable {
         // Una pantalla por área en lo nuevo. Si no, una versión con cuatro mejoras de
         // sonido seguidas se lleva medio recorrido y el resto de la app no sale.
         var seen = Set<String>()
-        var picked = newItems.filter { seen.insert(Self.area(for: $0)).inserted }
+        var picked = newItems.filter { seen.insert(Self.groupKey(for: $0)).inserted }
         // Los arreglos, en cambio, uno por pantalla: solo salen si los has pedido, y
         // agruparlos escondía alguno. En la 0.5.7 la ventana decía «2 arreglos» con tres
         // en el CHANGELOG, porque el de las capturas y el de ⌘Tab hablaban de «ventanas».
@@ -150,6 +150,12 @@ struct ReleaseNotes: Equatable {
     static func symbol(for text: String) -> String {
         let lower = text.lowercased()
         let table: [(String, String)] = [
+            // Antes que «barra de menús»: reiniciar se hace desde ahí, pero es otra cosa.
+            ("reiniciar", "arrow.clockwise"),
+            ("relaunch", "arrow.clockwise"),
+            // El HUD vive en el notch, pero su icono es el del volumen.
+            ("volumen y brillo", "speaker.wave.2.fill"),
+            ("volume and brightness", "speaker.wave.2.fill"),
             ("notch", "sparkles.rectangle.stack"),
             ("ecualizador", "slider.vertical.3"),
             ("equalizer", "slider.vertical.3"),
@@ -211,6 +217,19 @@ struct ReleaseNotes: Equatable {
             if NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil { return symbol }
         }
         return "sparkles"
+    }
+
+    /// Con qué se agrupa una novedad para no repetir pantalla: el titular que trae
+    /// («Sonido: …»), y si no lo trae, el asunto que se adivine por el texto.
+    ///
+    /// Por el texto entero no basta: en la 0.6.0, «Volumen y brillo» y «Reiniciar
+    /// OmniMac» nombran el notch de pasada y se fundían con la novedad del notch.
+    private static func groupKey(for item: String) -> String {
+        if let colon = item.firstIndex(of: ":"), colon > item.startIndex {
+            let title = item[item.startIndex..<colon].trimmingCharacters(in: .whitespaces)
+            if title.count <= 42 { return title.lowercased() }
+        }
+        return area(for: item)
     }
 
     /// Nombre corto del asunto, para cuando la línea no trae «Zona: …».
