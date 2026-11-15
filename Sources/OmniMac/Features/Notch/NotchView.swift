@@ -79,32 +79,52 @@ struct NotchView: View {
                 .fill(Color.black.opacity(model.blackVisible || !model.hasNotch ? 1 : 0))
                 .overlay(NotchExpandedShape().stroke(.white.opacity(model.expanded ? 0.08 : 0), lineWidth: 1))
 
+            if !model.expanded, model.peek == nil, model.activityVisible {
+                // Música sonando: carátula a la izquierda del notch y ondas a la derecha.
+                HStack(spacing: 0) {
+                    // Centradas en la parte visible del ala: la curva de arriba se
+                    // come `flare` puntos por fuera.
+                    activityArtwork
+                        .frame(width: PeekLayout.activityWing - NotchExpandedShape.flare)
+                        .padding(.leading, NotchExpandedShape.flare)
+                    Color.clear.frame(width: model.notchSize.width)
+                    AudioBars()
+                        .frame(width: 20, height: 15)
+                        .frame(width: PeekLayout.activityWing - NotchExpandedShape.flare)
+                        .padding(.trailing, NotchExpandedShape.flare)
+                }
+                .frame(height: model.notchSize.height)
+                .transition(.opacity)
+            }
+
             if !model.expanded, let peek = model.peek {
-                // Vistazo rápido: una línea bajo el notch, dentro del negro.
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: model.notchSize.height + 4)
-                    HStack(spacing: 6) {
-                        if let tint = peek.tint {
-                            Circle()
-                                .fill(Color(nsColor: tint))
-                                .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 1))
-                                .frame(width: 14, height: 14)
+                Group {
+                    if model.peekPlacement == .sides && model.peekLayout.wing > 0 {
+                        // A los lados: icono en el ala izquierda y texto (o barra) en
+                        // la derecha, a la altura del notch; el hueco del medio es el
+                        // notch físico, donde no se ve nada.
+                        HStack(spacing: 0) {
+                            peekLeading(peek)
+                                .padding(.leading, NotchExpandedShape.flare + 10)
+                                .frame(width: model.peekLayout.wing, alignment: .leading)
+                            Color.clear.frame(width: model.notchSize.width)
+                            peekContent(peek, showPercent: false)
+                                .padding(.leading, 8)
+                                .padding(.trailing, NotchExpandedShape.flare + 10)
+                                .frame(width: model.peekLayout.wing, alignment: .leading)
                         }
-                        Image(systemName: peek.symbol)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.7))
-                        Text(peek.title)
-                            .font(.system(size: 11.5, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        if !peek.subtitle.isEmpty {
-                            Text("· \(peek.subtitle)")
-                                .font(.system(size: 11.5))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .lineLimit(1)
+                        .frame(height: model.notchSize.height)
+                    } else {
+                        // Debajo: una línea bajo el notch, dentro del negro.
+                        VStack(spacing: 0) {
+                            Color.clear.frame(height: model.notchSize.height + 4)
+                            HStack(spacing: 6) {
+                                peekLeading(peek)
+                                peekContent(peek, showPercent: true)
+                            }
+                            .padding(.horizontal, NotchExpandedShape.flare + 12)
                         }
                     }
-                    .padding(.horizontal, NotchExpandedShape.flare + 12)
                 }
                 .transition(.opacity)
             }
@@ -156,6 +176,73 @@ struct NotchView: View {
     }
 
 
+    /// Carátula de lo que suena (o una nota si aún no ha llegado).
+    @ViewBuilder
+    private var activityArtwork: some View {
+        if let image = media.artwork {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 22, height: 22)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        } else {
+            Image(systemName: "music.note")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+
+    /// Lo de la izquierda del vistazo: el color (si lo hay) y el icono.
+    @ViewBuilder
+    private func peekLeading(_ peek: PeekInfo) -> some View {
+        HStack(spacing: 6) {
+            if let tint = peek.tint {
+                Circle()
+                    .fill(Color(nsColor: tint))
+                    .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 1))
+                    .frame(width: 14, height: 14)
+            }
+            Image(systemName: peek.symbol)
+                .font(.system(size: peek.level == nil ? 10 : 12, weight: .bold))
+                .foregroundStyle(.white.opacity(peek.level == nil ? 0.7 : 0.9))
+                .frame(minWidth: 16)
+        }
+    }
+
+    /// El texto del aviso o, en el HUD, la barra del nivel.
+    @ViewBuilder
+    private func peekContent(_ peek: PeekInfo, showPercent: Bool) -> some View {
+        if let level = peek.level {
+            HStack(spacing: 8) {
+                LevelBar(value: level)
+                    .frame(width: PeekLayout.levelBarWidth, height: 5)
+                if showPercent {
+                    Text("\(Int((level * 100).rounded())) %")
+                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.75))
+                        .frame(width: 34, alignment: .trailing)
+                }
+            }
+            .accessibilityElement()
+            .accessibilityLabel(peek.title)
+            .accessibilityValue("\(Int((level * 100).rounded())) %")
+        } else {
+            HStack(spacing: 6) {
+                Text(peek.title)
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+                if !peek.subtitle.isEmpty {
+                    Text("· \(peek.subtitle)")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
+                }
+            }
+        }
+    }
+
     /// Plegado = el notch exacto; con vistazo rápido crece un poco; expandido, todo.
     private var shapeSize: CGSize {
         if model.expanded {
@@ -165,6 +252,9 @@ struct NotchView: View {
         }
         if model.peek != nil {
             return model.peekSize
+        }
+        if model.activityVisible {
+            return model.activitySize
         }
         return model.notchSize
     }
@@ -319,5 +409,83 @@ struct NotchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 18)
         .padding(.bottom, 14)
+    }
+}
+
+/// Barra del HUD de volumen y brillo: una cápsula que se llena de blanco.
+private struct LevelBar: View {
+    let value: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(.white.opacity(0.22))
+                Capsule().fill(.white)
+                    .frame(width: proxy.size.width * min(1, max(0, value)))
+            }
+        }
+        // El salto entre pulsaciones se anima, como en la barra de macOS.
+        .animation(.easeOut(duration: 0.12), value: value)
+    }
+}
+
+/// Ondas de «música sonando»: cuatro barras que suben y bajan.
+///
+/// Con Core Animation y no con SwiftUI: una animación de SwiftUI (o un efecto de
+/// símbolo) repinta la app en cada fotograma, y con la música puesta eso eran un
+/// 15 % de CPU todo el rato. Una `CABasicAnimation` la mueve el servidor de ventanas
+/// por su cuenta y la app no se despierta.
+private struct AudioBars: NSViewRepresentable {
+    func makeNSView(context: Context) -> AudioBarsView { AudioBarsView() }
+    func updateNSView(_ nsView: AudioBarsView, context: Context) {}
+}
+
+private final class AudioBarsView: NSView {
+    private var bars: [CALayer] = []
+    /// Cada barra con su ritmo, para que no suban todas a la vez.
+    private let durations: [CFTimeInterval] = [0.45, 0.62, 0.38, 0.54]
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        for _ in durations {
+            let bar = CALayer()
+            bar.backgroundColor = NSColor.white.withAlphaComponent(0.85).cgColor
+            bar.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            layer?.addSublayer(bar)
+            bars.append(bar)
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) no soportado") }
+
+    override func layout() {
+        super.layout()
+        let gap: CGFloat = 2
+        let width = (bounds.width - gap * CGFloat(bars.count - 1)) / CGFloat(bars.count)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for (index, bar) in bars.enumerated() {
+            bar.bounds = CGRect(x: 0, y: 0, width: width, height: bounds.height)
+            bar.position = CGPoint(x: CGFloat(index) * (width + gap) + width / 2, y: bounds.midY)
+            bar.cornerRadius = width / 2
+        }
+        CATransaction.commit()
+        startAnimating()
+    }
+
+    private func startAnimating() {
+        for (index, bar) in bars.enumerated() where bar.animation(forKey: "pulse") == nil {
+            let pulse = CABasicAnimation(keyPath: "transform.scale.y")
+            pulse.fromValue = 0.3
+            pulse.toValue = 1
+            pulse.duration = durations[index]
+            pulse.autoreverses = true
+            pulse.repeatCount = .infinity
+            pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            pulse.timeOffset = Double(index) * 0.17
+            bar.add(pulse, forKey: "pulse")
+        }
     }
 }
