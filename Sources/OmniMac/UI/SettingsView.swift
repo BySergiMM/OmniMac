@@ -825,8 +825,12 @@ struct NotchPage: View {
                         .labelsHidden()
                         .frame(width: 150)
                     }
+                    SettingToggle(title: L("Música sonando a los lados del notch", "Now playing beside the notch"),
+                                  subtitle: L("Mientras suena, la carátula a la izquierda del notch y unas ondas a la derecha. En pausa desaparece.",
+                                              "While music plays, the artwork left of the notch and a waveform to its right. It goes away when paused."),
+                                  isOn: $feature.nowPlayingActivity)
                     SettingToggle(title: L("Vistazo rápido al cambiar de canción", "Sneak peek on track change"),
-                                  subtitle: L("Título y artista bajo el notch durante unos segundos.", "Title and artist under the notch for a few seconds."),
+                                  subtitle: L("Título y artista junto al notch durante unos segundos.", "Title and artist by the notch for a few seconds."),
                                   isOn: $feature.sneakPeek)
                 }
 
@@ -841,8 +845,19 @@ struct NotchPage: View {
                         .labelsHidden()
                         .frame(width: 190)
                     }
+                    SettingRow(title: L("Colocación en el notch", "Placement in the notch"),
+                               subtitle: L("A los lados no baja nada: el icono va a la izquierda del notch y el texto a la derecha, a la altura de la barra de menús.",
+                                           "Beside it nothing drops down: the icon sits left of the notch and the text to its right, level with the menu bar.")) {
+                        Picker("", selection: $feature.peekPlacement) {
+                            ForEach(PeekPlacement.allCases, id: \.self) { placement in
+                                Text(placement.title).tag(placement)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 190)
+                    }
                     SettingToggle(title: L("Aviso al enchufar el cargador", "Notice when you plug in the charger"),
-                                  subtitle: L("Los vatios del cargador y la carga, unos segundos bajo el notch.", "The charger's watts and the charge level, for a few seconds under the notch."),
+                                  subtitle: L("Los vatios del cargador y la carga, unos segundos en el notch.", "The charger's watts and the charge level, for a few seconds in the notch."),
                                   isOn: $feature.chargerPeek)
                     SettingRow(title: L("Probar", "Try it")) {
                         Button(L("Enseñar un aviso", "Show a notice")) { Toast.show(L("Así se ven los avisos", "This is what notices look like"), symbol: "hand.wave.fill", duration: 2.5) }
@@ -851,6 +866,18 @@ struct NotchPage: View {
                     Text(L("Avisos", "Notices"))
                 } footer: {
                     Text(L("Con el notch abierto u oculto (pantalla completa), el aviso sale abajo.", "With the notch open or hidden (full screen), the notice appears at the bottom."))
+                }
+
+                Section {
+                    SettingToggle(title: L("Volumen y brillo en el notch", "Volume and brightness in the notch"),
+                                  subtitle: L("Las teclas de volumen y brillo enseñan su barra en el notch en lugar del aviso de macOS. Respeta la colocación de arriba y ⌥⇧ para pasos finos.",
+                                              "The volume and brightness keys show their bar in the notch instead of the macOS overlay. Follows the placement above, and ⌥⇧ for fine steps."),
+                                  isOn: $feature.replaceSystemHUD)
+                } header: {
+                    Text(L("Volumen y brillo", "Volume and brightness"))
+                } footer: {
+                    Text(L("Necesita el permiso de Accesibilidad. Con el notch abierto, a pantalla completa, en un monitor externo o con una salida de audio sin volumen propio, macOS sigue enseñando el suyo. La retroiluminación del teclado no cambia.",
+                           "Needs the Accessibility permission. With the notch open, in full screen, on an external display or with an audio output that has no volume of its own, macOS still shows its own. Keyboard backlight is unchanged."))
                 }
 
                 Section {

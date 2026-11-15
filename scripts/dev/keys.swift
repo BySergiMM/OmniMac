@@ -4,6 +4,8 @@ import AppKit
 //   swift scripts/dev/keys.swift cmdtab <n> [segundosEntreTabs]   mantiene ⌘, pulsa Tab n veces y suelta
 //   swift scripts/dev/keys.swift combo ctrl+alt+right               una combinación (ctrl, alt, shift, cmd + tecla)
 //   swift scripts/dev/keys.swift type hola                          escribe texto
+//   swift scripts/dev/keys.swift media volup [n] [fine]            teclas de volumen y brillo (volup, voldown,
+//                                                                  mute, brightup, brightdown); fine = con ⌥⇧
 let keyCodes: [String: CGKeyCode] = ["tab": 48, "right": 124, "left": 123, "up": 126, "down": 125, "return": 36, "escape": 53, "space": 49,
                                      "a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5, "z": 6, "x": 7, "c": 8, "v": 9, "b": 11, "q": 12, "w": 13, "e": 14, "r": 15, "y": 16, "t": 17,
                                      "1": 18, "2": 19, "3": 20, "4": 21, "6": 22, "5": 23, "9": 25, "7": 26, "8": 28, "0": 29, "o": 31, "u": 32, "i": 34, "p": 35, "l": 37, "j": 38, "k": 40, "n": 45, "m": 46]
@@ -17,8 +19,26 @@ func post(_ code: CGKeyCode, down: Bool, flags: CGEventFlags = []) {
     e.flags = all
     e.post(tap: .cghidEventTap)
 }
+// Volumen y brillo no son teclas normales: van como NSSystemDefined (subtipo 8) con el
+// código NX_KEYTYPE_* en data1, y hay que mandarlas por el nivel HID para que pasen por
+// donde las ve macOS (y el HUD del notch).
+func postMedia(_ key: Int, down: Bool, fine: Bool) {
+    let flags: NSEvent.ModifierFlags = fine ? [.option, .shift] : []
+    let data1 = (key << 16) | ((down ? 0xA : 0xB) << 8)
+    let e = NSEvent.otherEvent(with: .systemDefined, location: .zero,
+                               modifierFlags: NSEvent.ModifierFlags(rawValue: (down ? 0xA00 : 0xB00) | flags.rawValue),
+                               timestamp: 0, windowNumber: 0, context: nil,
+                               subtype: 8, data1: data1, data2: -1)!
+    e.cgEvent!.post(tap: .cghidEventTap)
+}
+let mediaKeys = ["volup": 0, "voldown": 1, "brightup": 2, "brightdown": 3, "mute": 7]
 let a = CommandLine.arguments
 switch a.count > 1 ? a[1] : "" {
+case "media":
+    guard a.count > 2, let key = mediaKeys[a[2]] else { print("teclas: \(mediaKeys.keys.sorted())"); exit(1) }
+    let n = a.count > 3 ? Int(a[3]) ?? 1 : 1
+    let fine = a.count > 4 && a[4] == "fine"
+    for _ in 0..<n { postMedia(key, down: true, fine: fine); usleep(40_000); postMedia(key, down: false, fine: fine); usleep(120_000) }
 case "cmdtab":
     let n = a.count > 2 ? Int(a[2]) ?? 1 : 1
     let gap = a.count > 3 ? Double(a[3]) ?? 0.7 : 0.7

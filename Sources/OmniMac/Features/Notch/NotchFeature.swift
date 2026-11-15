@@ -47,6 +47,36 @@ final class NotchFeature: BaseFeature {
         }
     }
 
+    /// Dónde salen el vistazo y los avisos: debajo del notch o a sus lados.
+    @Published var peekPlacement: PeekPlacement {
+        didSet {
+            UserDefaults.standard.set(peekPlacement.rawValue, forKey: PeekPlacement.defaultsKey)
+            controller?.peekPlacement = peekPlacement
+        }
+    }
+
+    /// Volumen y brillo en el notch en vez del HUD de macOS. Apagado de serie: hace
+    /// falta Accesibilidad y cambia algo tan de sistema como esas teclas.
+    @Published var replaceSystemHUD: Bool {
+        didSet {
+            UserDefaults.standard.set(replaceSystemHUD, forKey: "notch.replaceHUD")
+            if replaceSystemHUD && !Permissions.hasAccessibility { Permissions.requestAccessibility() }
+            updateMediaKeyTap()
+        }
+    }
+    private let mediaKeys = MediaKeyTap()
+    /// Teclas cuya pulsación se ha tragado: su «soltar» también, para que macOS no
+    /// reciba media tecla.
+    private var swallowedKeys: Set<MediaKey> = []
+
+    /// Mientras suena música, la carátula y unas ondas fijas a los lados del notch.
+    @Published var nowPlayingActivity: Bool {
+        didSet {
+            UserDefaults.standard.set(nowPlayingActivity, forKey: "notch.nowPlayingActivity")
+            controller?.nowPlayingActivityEnabled = nowPlayingActivity
+        }
+    }
+
     @Published var sneakPeek: Bool {
         didSet {
             UserDefaults.standard.set(sneakPeek, forKey: "notch.sneakPeek")
@@ -101,6 +131,9 @@ final class NotchFeature: BaseFeature {
         showWithoutNotch = defaults.object(forKey: "notch.showWithoutNotch") == nil ? true : defaults.bool(forKey: "notch.showWithoutNotch")
         hideInFullscreen = defaults.object(forKey: "notch.hideFullscreen") == nil ? true : defaults.bool(forKey: "notch.hideFullscreen")
         sneakPeek = defaults.object(forKey: "notch.sneakPeek") == nil ? true : defaults.bool(forKey: "notch.sneakPeek")
+        nowPlayingActivity = defaults.object(forKey: "notch.nowPlayingActivity") == nil ? true : defaults.bool(forKey: "notch.nowPlayingActivity")
+        peekPlacement = PeekPlacement(rawValue: defaults.string(forKey: PeekPlacement.defaultsKey) ?? "") ?? .below
+        replaceSystemHUD = defaults.bool(forKey: "notch.replaceHUD")
         headphonesCard = defaults.object(forKey: "notch.headphonesCard") == nil ? true : defaults.bool(forKey: "notch.headphonesCard")
         chargerPeek = defaults.object(forKey: "notch.chargerPeek") == nil ? true : defaults.bool(forKey: "notch.chargerPeek")
         hideSystemBanner = defaults.object(forKey: "notch.hideSystemBanner") == nil ? true : defaults.bool(forKey: "notch.hideSystemBanner")
@@ -150,8 +183,33 @@ final class NotchFeature: BaseFeature {
         }
     }
 
+    /// Pone o quita el tap de las teclas. Sin permiso de Accesibilidad no se puede;
+    /// se reintenta al cambiar de app, que es cuando se vuelve de Ajustes del Sistema.
+    private func updateMediaKeyTap() {
+        guard isEnabled, replaceSystemHUD else {
+            mediaKeys.stop()
+            swallowedKeys = []
+            return
+        }
+        mediaKeys.handler = { [weak self] press in self?.handleMediaKey(press) ?? false }
+        mediaKeys.start()
+    }
+
+    private func handleMediaKey(_ press: MediaKeyPress) -> Bool {
+        guard press.isDown else { return swallowedKeys.remove(press.key) != nil }
+        guard let controller, controller.canShowHUD,
+              let reading = SystemLevels.apply(press) else {
+            swallowedKeys.remove(press.key)
+            return false
+        }
+        swallowedKeys.insert(press.key)
+        controller.showLevel(reading)
+        return true
+    }
+
     override func start() {
         updateHeadphonesWatcher()
+        updateMediaKeyTap()
         rebuild()
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -173,6 +231,9 @@ final class NotchFeature: BaseFeature {
             queue: .main
         ) { [weak self] _ in
             self?.ensureController()
+            if self?.replaceSystemHUD == true, self?.mediaKeys.isRunning == false {
+                self?.updateMediaKeyTap()
+            }
         }
     }
 
@@ -187,6 +248,8 @@ final class NotchFeature: BaseFeature {
 
     override func stop() {
         headphones.stop()
+        mediaKeys.stop()
+        swallowedKeys = []
         pendingRebuild?.cancel()
         pendingRebuild = nil
         if let screenObserver {
@@ -245,6 +308,8 @@ final class NotchFeature: BaseFeature {
         let controller = NotchWindowController(screen: screen, keepAwake: keepAwake, sound: sound)
         controller.hideInFullscreen = hideInFullscreen
         controller.sneakPeekEnabled = sneakPeek
+        controller.peekPlacement = peekPlacement
+        controller.nowPlayingActivityEnabled = nowPlayingActivity
         controller.enabledTabs = enabledTabs
         controller.tabOrder = tabOrder
         controller.onReorder = { [weak self] order in self?.tabOrder = order }
@@ -312,12 +377,15 @@ enum NotchDropZone {
     case airdrop
 }
 
-/// Lo que enseña el vistazo rápido bajo el notch: una canción nueva o un aviso.
+/// Lo que enseña el vistazo rápido junto al notch: una canción nueva, un aviso o,
+/// con `level`, el volumen o el brillo (entonces se dibuja una barra en vez del texto).
 struct PeekInfo: Equatable {
     let symbol: String
     let title: String
     let subtitle: String
     let tint: NSColor?
+    /// 0–1. Solo el HUD de volumen y brillo.
+    var level: Double? = nil
 }
 
 /// Posición del ratón dentro del panel (coordenadas del hosting view, origen
@@ -364,14 +432,18 @@ final class NotchModel: ObservableObject {
     let notchSize: CGSize
     let expandedSize: CGSize
 
-    static let peekExtraHeight: CGFloat = 30
     /// Espacio mínimo libre a cada lado del notch físico dentro del panel expandido.
     static let sideClearance: CGFloat = 212
-    /// Ancho del vistazo actual (depende del texto).
-    @Published var peekWidth: CGFloat = 0
-    var peekSize: CGSize {
-        CGSize(width: peekWidth, height: notchSize.height + Self.peekExtraHeight)
+    /// Música sonando: carátula y ondas a los lados del notch plegado.
+    @Published var activityVisible = false
+    var activitySize: CGSize {
+        CGSize(width: notchSize.width + PeekLayout.activityWing * 2, height: notchSize.height)
     }
+    /// Dónde sale el vistazo (Ajustes › Notch › Avisos).
+    @Published var peekPlacement: PeekPlacement = .below
+    /// Medidas del vistazo actual (dependen del texto y de dónde va).
+    @Published var peekLayout = PeekLayout(size: .zero, wing: 0)
+    var peekSize: CGSize { peekLayout.size }
     /// Tarjeta «AirPods conectados»: un panel más recogido y centrado que el de pestañas.
     var cardSize: CGSize {
         CGSize(width: max(440, notchSize.width + 250), height: 172)
@@ -387,7 +459,9 @@ final class NotchModel: ObservableObject {
         self.hasNotch = hasNotch
         self.notchSize = notchSize
         self.expandedSize = expandedSize
-        peekWidth = notchSize.width + 220
+        peekLayout = PeekLayout(size: CGSize(width: notchSize.width + 220,
+                                             height: notchSize.height + PeekLayout.belowExtraHeight),
+                                wing: 0)
     }
 
     func addToShelf(_ urls: [URL]) {
@@ -507,6 +581,16 @@ final class NotchWindowController {
         didSet { updateWatch() }
     }
     var chargerPeekEnabled = true
+    var peekPlacement: PeekPlacement = .below {
+        didSet { model.peekPlacement = peekPlacement }
+    }
+    var nowPlayingActivityEnabled = true {
+        didSet {
+            updateWatch()
+            refreshActivity()
+        }
+    }
+    private var nowPlayingObserver: AnyCancellable?
     private var batteryObserver: AnyCancellable?
     /// `nil` hasta la primera lectura: arrancar con el cargador puesto no es enchufarlo.
     private var wasPluggedIn: Bool?
@@ -608,6 +692,13 @@ final class NotchWindowController {
         // El monitor de batería ya escucha a macOS para el icono de la cabecera: se
         // aprovecha el mismo aviso, sin vigilancia nueva.
         batteryObserver = battery.$state.sink { [weak self] state in self?.batteryChanged(state) }
+        // Lo que suena ya lo publica el puente de música (por avisos de Spotify y
+        // Música, sin sondear): de ahí sale si se enseña la actividad.
+        nowPlayingObserver = media.$nowPlaying
+            .map { $0?.isPlaying == true }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshActivity() }
 
         installMoveMonitors()
 
@@ -739,10 +830,55 @@ final class NotchWindowController {
     /// Estado de reposo (plegado): el notch exacto e invisible.
     private func applyRestingState() {
         guard !model.expanded, model.peek == nil else { return }
+        if model.activityVisible {
+            // Con música sonando, el reposo es la actividad: el negro sigue a los lados.
+            setBlack(true)
+            panel.setFrame(activityFrame, display: true)
+            releaseKey()
+            return
+        }
         panel.setFrame(collapsedFrame, display: true)
         setBlack(false)
         releaseKey()
         lowerWhenIdle()
+    }
+
+    // MARK: - Música sonando
+
+    /// Marco de la actividad: el notch con un ala estrecha a cada lado.
+    private var activityFrame: CGRect {
+        let size = model.activitySize
+        return CGRect(x: screenFrame.midX - size.width / 2, y: screenFrame.maxY - size.height,
+                      width: size.width, height: size.height)
+    }
+
+    /// Enseña o quita la actividad según suene algo. Solo mientras suena, no en pausa:
+    /// una carátula fija en una canción parada sería ruido en la barra de menús.
+    private func refreshActivity() {
+        let show = nowPlayingActivityEnabled && media.nowPlaying?.isPlaying == true
+        guard show != model.activityVisible else { return }
+        // Abierto o con un vistazo delante, solo se apunta: al volver al reposo,
+        // `applyRestingState` pone el marco que toca.
+        guard !model.expanded, model.peek == nil, model.deviceCard == nil else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { model.activityVisible = show }
+            return
+        }
+        if show {
+            setBlack(true)
+            panel.setFrame(activityFrame, display: true)
+            panel.layoutIfNeeded()
+            if !hiddenForFullscreen, !hiddenForMenu { panel.orderFrontRegardless() }
+            DispatchQueue.main.async { [weak self] in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { self?.model.activityVisible = true }
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 0.25)) { model.activityVisible = false }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.applyRestingState()
+            }
+        }
     }
 
     /// Plegado, el panel deja de poder ser clave; y si lo era (un clic en el notch
@@ -1020,9 +1156,9 @@ final class NotchWindowController {
     // MARK: - Vistazo rápido
 
     /// Vigilancia de la música solo cuando hace falta: plegado, visible y con el
-    /// vistazo rápido activado.
+    /// vistazo rápido o la actividad de música activados.
     private func updateWatch() {
-        if sneakPeekEnabled && !model.expanded && !hiddenForFullscreen {
+        if (sneakPeekEnabled || nowPlayingActivityEnabled) && !model.expanded && !hiddenForFullscreen {
             media.startWatching()
         } else {
             media.stopWatching()
@@ -1067,7 +1203,7 @@ final class NotchWindowController {
         return true
     }
 
-    /// Marco del vistazo, centrado bajo el notch y tan ancho como pida el texto.
+    /// Marco del vistazo, centrado en el notch y tan ancho como pida el texto.
     private var peekFrame: CGRect {
         let size = model.peekSize
         return CGRect(x: screenFrame.midX - size.width / 2,
@@ -1079,18 +1215,29 @@ final class NotchWindowController {
     private func presentPeek(_ info: PeekInfo, duration: TimeInterval) {
         guard !model.expanded, !hiddenForFullscreen else { return }
         peekWork?.cancel()
-        // Ancho según el texto (con un mínimo y sin salirse de la pantalla).
-        let titleFont = NSFont.systemFont(ofSize: 11.5, weight: .semibold)
-        let subtitleFont = NSFont.systemFont(ofSize: 11.5)
-        var textWidth = (info.title as NSString).size(withAttributes: [.font: titleFont]).width
-        if !info.subtitle.isEmpty {
-            textWidth += ("· " + info.subtitle as NSString).size(withAttributes: [.font: subtitleFont]).width + 6
+        // Tamaño según el texto (con un mínimo y sin salirse de la pantalla).
+        let contentWidth: CGFloat
+        if info.level != nil {
+            // Barra y, debajo del notch, también el porcentaje.
+            contentWidth = PeekLayout.levelBarWidth + (peekPlacement == .below ? 40 : 0)
+        } else {
+            let titleFont = NSFont.systemFont(ofSize: 11.5, weight: .semibold)
+            let subtitleFont = NSFont.systemFont(ofSize: 11.5)
+            var textWidth = (info.title as NSString).size(withAttributes: [.font: titleFont]).width
+            if !info.subtitle.isEmpty {
+                textWidth += ("· " + info.subtitle as NSString).size(withAttributes: [.font: subtitleFont]).width + 6
+            }
+            contentWidth = ceil(textWidth)
         }
-        let extras: CGFloat = 20 + 12 + (info.tint == nil ? 0 : 22) + (NotchExpandedShape.flare + 12) * 2 + 16
-        let width = min(max(model.notchSize.width + 110, textWidth + extras), screenFrame.width - 80)
+        let layout = PeekLayout.make(placement: peekPlacement,
+                                     notchSize: model.notchSize,
+                                     leadingWidth: 20 + (info.tint == nil ? 0 : 22),
+                                     contentWidth: contentWidth,
+                                     screenWidth: screenFrame.width,
+                                     flare: NotchExpandedShape.flare)
         var transaction = Transaction()
         transaction.disablesAnimations = true
-        withTransaction(transaction) { model.peekWidth = width }
+        withTransaction(transaction) { model.peekLayout = layout }
         setBlack(true)
         panel.setFrame(peekFrame, display: true)
         panel.layoutIfNeeded()
@@ -1104,6 +1251,20 @@ final class NotchWindowController {
         let work = DispatchWorkItem { [weak self] in self?.hidePeek() }
         peekWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
+    }
+
+    /// El HUD de volumen y brillo solo sale si el notch puede enseñarlo ya; si no
+    /// (abierto, escondido por pantalla completa o con un menú abierto) la tecla se
+    /// deja pasar y macOS pinta el suyo, para que nunca se quede sin respuesta.
+    var canShowHUD: Bool {
+        !model.expanded && !hiddenForFullscreen && !hiddenForMenu && model.deviceCard == nil
+    }
+
+    func showLevel(_ reading: HUDReading) {
+        presentPeek(PeekInfo(symbol: reading.symbol, title: reading.title, subtitle: "",
+                             // Silenciado, la barra vacía, como la de macOS.
+                             tint: nil, level: reading.muted ? 0 : reading.level),
+                    duration: 1.6)
     }
 
     private func hidePeek() {
