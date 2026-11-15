@@ -90,7 +90,7 @@ more sensors). Both are excellent — go install them if that's what you need.
 
 | Module | What it does |
 |---|---|
-| ▮ **Dynamic notch** | Hover and it expands: music, a file tray with AirDrop, today's calendar, sound, timer and Pomodoro, performance. Sneak peek on track change, an iPhone-style card when AirPods connect, the charger's watts when you plug it in. Works without a notch. |
+| ▮ **Dynamic notch** | Hover and it expands: music, a file tray with AirDrop, today's calendar, sound, timer and Pomodoro, performance. Sneak peek on track change, an iPhone-style card when AirPods connect, the charger's watts when you plug it in. Music playing shows beside the notch, and it can replace the volume and brightness HUD. Works without a notch. |
 | ☕ **Keep awake** | Indefinitely, on a timer, or until a given time. Stays awake with the lid closed, stops on low battery, turns on with the charger or an external display. |
 | ⌘ **⌘Tab by windows** | All your windows, not just apps, with live thumbnails. Type to search; ⌘W / ⌘M / ⌘H / ⌘Q act on the highlighted one. |
 | ▭ **Window shortcuts** | Halves, thirds, quarters, almost-maximize, next display. Drag to an edge to snap. Layouts saved on ⌃⌥1…9, like radio presets. |

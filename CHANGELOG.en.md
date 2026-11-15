@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0
+## 0.6.0 — 2026-11-15
 
 **New**
 - Notch: while music plays, the artwork sits left of the notch and a little waveform moves on the right, without covering anything on screen. It goes away when you pause. The waveform is animated by Core Animation, so with music on OmniMac stays at 0% CPU. Notices (new song, charger, "Text copied"…) can also show up beside the notch instead of below it: pick it in Settings › Notch › Notices. Requested by teddy-k9 in issue #4.

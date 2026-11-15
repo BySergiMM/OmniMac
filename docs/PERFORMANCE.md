@@ -403,6 +403,33 @@ propósito. **Reposo** con la app recién abierta (`scripts/dev/measure.sh`, 60 
 **0,200 % de CPU, 86 MB de RSS, 37 MB de memoria real, 5 hilos**, lo mismo que la 0.5.6 en las
 mismas condiciones (el volumen propio de Spotify mantiene el mezclador despierto, ver la 0.5.6).
 
+## Medición 0.6.0 (15 de noviembre de 2026, macOS 27, Apple M5)
+
+Primera medición con la música sonando a los lados del notch, el aviso de volumen y brillo
+(que escucha las teclas con un `CGEventTap` a nivel HID, solo para los eventos de teclas
+multimedia) y los avisos a los lados. Compilación de la rama de trabajo (el mismo código que quedó en `main`), con el aviso de
+volumen y brillo **encendido** y los avisos a los lados, Spotify abierto y con volumen propio en
+Sonido (el mezclador despierto, como en la 0.5.6). Mismo método: `scripts/dev/measure.sh`,
+`scripts/dev/wakeups.sh`, `footprint` y `ps -o cputime`.
+
+| Escenario | CPU media | RSS | Memoria real | Despertares | Hilos |
+|---|---|---|---|---|---|
+| **Reposo**, recién abierta y tras 90 s (60 s) | **0,017 %** | 87 MB | **38 MB** | 0,7/s (1,0/s tras abrir y cerrar el notch) | 5 |
+| Reposo tras un rato de uso (60 s, solo `ps`) | 0,017 % | 78 MB | 40 MB | — | 5 |
+| Notch plegado, Spotify sonando (la música a los lados, dos de 30 s) | 0,000 / 0,067 % | — | — | — | — |
+| **Notch abierto en la pestaña de música, Spotify sonando** (30 s) | **1,03 %** | — | 46 MB | — | — |
+
+- **Las ondas de la música sonando no gastan en reposo**: son capas de Core Animation que mueve el
+  servidor de ventanas. Con `symbolEffect` de SwiftUI, la primera versión, gastaban un 15–17 %
+  todo el rato; no llegó a publicarse.
+- **El aviso de volumen y brillo no cuesta nada mientras no pulsas teclas**: el tap solo recibe
+  los eventos de teclas multimedia.
+- **Dos muestras descartadas**: 1,83 % en la primera pasada de `measure.sh` (la app venía de
+  horas de pruebas y la siguiente pasada dio 0,117 %, y 0,017 % midiendo solo con `ps`) y 2,83 %
+  en los primeros 30 s con música justo después de que `wakeups.sh` reabriera la app.
+- Las cifras públicas (0,017–0,033 % de CPU, 86 MB de RSS, 33–37 MB de memoria real) se mantienen:
+  38 MB está en el mismo margen que la 0.5.6 (37–38 MB).
+
 ## Comparativa con las apps a las que sustituye (8 de septiembre de 2026)
 
 Misma metodología para todas: **cada app medida en aislamiento** (solo ella y el sistema),

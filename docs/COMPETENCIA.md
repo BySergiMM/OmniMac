@@ -25,7 +25,7 @@ Fuentes: README o web oficial de cada app, la descripción del App Store (Amphet
 | # | Módulo | Función | Valor | Esfuerzo | Viene de |
 |---|---|---|---|---|---|
 | 1 | Notch | «Ahora suena» universal: cualquier app de audio, no solo Spotify y Música | alto | alto | BoringNotch |
-| 2 | Notch | HUD de volumen y brillo dentro del notch | alto | medio | BoringNotch |
+| 2 | Notch | ~~HUD de volumen y brillo dentro del notch~~ (hecho en 0.6.0) | alto | medio | BoringNotch |
 | 3 | Notch | Ocultarse en apps a pantalla completa | alto | bajo | BoringNotch |
 | 4 | Notch | Sneak peek al cambiar de canción y volumen en el reproductor | medio | bajo | BoringNotch |
 | 5 | Notch | Pestaña de calendario con el siguiente evento | medio | medio | BoringNotch |
@@ -178,7 +178,7 @@ Fuente: README + 235 textos de ajustes (en español).
 | AirDrop / Quick Share (elegir servicio) | ✅ Ya |  | Zona AirDrop |
 | Batería: indicador, %, avisos de cargador, tiempo hasta carga completa, capacidad, bajo consumo | 🟡 Parcial | Más adelante | % e indicador; un aviso al conectar el cargador sería fácil |
 | Espejo con la cámara (círculo o cuadrado) | ❌ Falta | Más adelante | Gimmick popular, AVFoundation |
-| Sustituir el HUD del sistema (volumen, brillo, teclado) | ❌ Falta | **Añadir** | Función distintiva; escuchar teclas multimedia y dibujar en el notch |
+| Sustituir el HUD del sistema (volumen, brillo, teclado) | 🟡 Parcial |  | Volumen y brillo desde la 0.6.0 (opcional, Ajustes › Notch); falta el del teclado |
 | Mostrar el HUD dentro del notch abierto | ❌ Falta | Más adelante |  |
 | Gestos de dos dedos para abrir y cerrar, sensibilidad | ❌ Falta | Más adelante |  |
 | Abrir al pasar el cursor con retardo y zona ampliada | ✅ Ya |  | 0,5 s |

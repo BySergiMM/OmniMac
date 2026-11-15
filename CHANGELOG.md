@@ -1,6 +1,6 @@
 # Cambios
 
-## 0.6.0
+## 0.6.0 — 2026-11-15
 
 **Nuevo**
 - Notch: mientras suena música, la carátula se queda a la izquierda del notch y unas ondas se mueven a la derecha, sin tapar nada de la pantalla. En pausa desaparece. Las ondas las mueve Core Animation, así que con la música puesta OmniMac sigue en 0 % de CPU. Y los avisos (canción nueva, cargador, «Texto copiado»…) también pueden salir a los lados en vez de debajo: se elige en Ajustes › Notch › Avisos. Lo pidió teddy-k9 en el issue #4.
