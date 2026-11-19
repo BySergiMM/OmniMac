@@ -105,7 +105,15 @@ Y cada varios meses, o cuando alguna de ellas saque versión mayor:
 
 ## 4. La web (`docs/site`)
 
-- [ ] Funciones nuevas en `index.html` y en `en/index.html`. Las dos, siempre.
+- [ ] Funciones nuevas en la fuente española, `es/index.html`. La página inglesa
+      (`index.html`, la de la raíz) **no se edita a mano**: sale de
+      `python3 docs/site/tools/make_en.py`, y lo que cambia al traducir vive en
+      `tools/en-pairs.json` (línea española completa → línea inglesa). Si tocas una
+      línea que ya tiene par, actualiza su par.
+- [ ] `python3 docs/site/tools/make_en.py --check` en verde. No escribe nada: avisa si
+      la inglesa publicada no es la que saldría hoy, o si algún par ya no casa con
+      ninguna línea del español. Editar la inglesa a mano no se nota hasta que alguien
+      regenera, y entonces esos párrafos vuelven al español de golpe; ya ha pasado.
 - [ ] Capturas nuevas si la interfaz ha cambiado:
       `OmniMac --snapshots docs/site/img` y `--snapshots … --lang en`.
 - [ ] Vídeo, si la novedad se entiende mejor viéndola (`docs/site/video`).
